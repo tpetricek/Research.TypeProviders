@@ -113,7 +113,7 @@ our attempt to uncover hidden assumptions that no longer hold in the age of web.
 Among the ML family of languages, F\# often takes a pragmatic approach and emphasizes ease of use
 and the ability to integrate with its execution environments\footnote{Historically, this applied 
 to the .NET runtime, but the same applies to integrating with JavaScript in the web context.} over 
-other aspects of language design. If you use the F\# langage as ML, you get most of the good 
+other aspects of language design. If you use the F\# language as ML, you get most of the good 
 well-known properties of ML\footnote{For example, F\# does not require type annotations when used 
 as ML, but requires them when used with .NET objects.}. However, F\# leaves enough \emph{holes} that
 let you use it \emph{not} as ML. This is the space that we explore in this paper.
@@ -183,7 +183,7 @@ at: \url{http://funscript.info/samples/worldbank}
 \section{Case Study: Web-based data analytics}
 \label{sec:case}
 In this case study, we develop a web application shown in Figure~\ref{fig:wb}, which lets the
-user compare university enrolment in a number of selected countries and regions around the world. 
+user compare university enrollment in a number of selected countries and regions around the world. 
 The resulting application runs on the client-side (as JavaScript) and fetches data dynamically 
 from the World Bank \cite{data-wb-schter}.
 
@@ -214,7 +214,7 @@ identifiers with spaces):
 \end{array}
 \end{equation*}
 %
-The type provider connects to the World Bank and obtains a lisf of countries at 
+The type provider connects to the World Bank and obtains a list of countries at 
 \emph{compile-time} and at \emph{edit-time} (when using auto-completion in an editor).
 This means that the list is always up-to-date and we get a compile time error when accessing 
 a country that no longer exists (a property discussed in Section~\ref{sec:tp-data}).
@@ -276,7 +276,7 @@ very similar to code that one would write in JavaScript. We define a helper func
 (hiding some of the complexities of the mapping) and use it to create the \str{<input>} element and
 specify its attributes. Note that members like \ident{append} and \ident{attr} are standard 
 jQuery patterns. The compiler sees them as ordinary object members. When writing code using F\# editors
-based on the F\# Compiler Serivce \cite{fsharp-fcs}, they also appear in the auto-complete list.
+based on the F\# Compiler Service \cite{fsharp-fcs}, they also appear in the auto-complete list.
 
 Although the jQuery library is not perfect, it is a de facto standard in web development. The 
 FunScript type provider makes it possible to integrate with it painlessly without explicitly 
@@ -318,7 +318,7 @@ data for selected countries and generates a chart. To keep the code simple, we i
 %
 Although the function looks like ordinary code, it is wrapped in the $\ident{async}~\{\ldots\}$ 
 block, which is an F\# computation expression \cite{fsharp-zoo}. The F\# compiler performs 
-de-sugaring similar to the CPS transformation and interprets keywods such as \kvd{let!} and 
+de-sugaring similar to the CPS transformation and interprets keywords such as \kvd{let!} and 
 \kvd{for} using special operations (monadic bind and other). The \ident{async} identifier 
 determines that we are writing asynchronous workflow \cite{fsharp-async} that makes it 
 possible to include non-blocking calls in the block.
@@ -351,7 +351,7 @@ a non-blocking operation in JavaScript).
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Larning from the case study}
+\subsection{Learning from the case study}
 
 The case study shows that we can develop a simple interactive data visualization (that could
 be built, for example, by data journalists) in less than 30 lines of F\# code. The code uses 
@@ -456,7 +456,7 @@ They change the starting point for a type-checking of a program as follows:
  \emptyset &\narrow{\vdash}& e : \tau 
     &\qquad& (\textit{classical, or closed-world})\\
  \pi~(\includegraphics[width=1em,trim=0 1.5em 0 0]{earth.png})  &\narrow{\vdash}& e : \tau
-    &\qquad& (\textit{type proiders, or open-world})
+    &\qquad& (\textit{type providers, or open-world})
 \end{array}
 \end{equation*}
 %
@@ -594,7 +594,7 @@ a given region (or, according to another rule), but that is solving a different 
 In summary, the World Bank type provider fits a specific niche that we were exploring in the case 
 study. That is, when we want to create an information analysis that accesses specific data from
 an information source. With rising popularity of data journalism and Open Government Data
-initiatives, we argue that this is an important problem domainHere, we first specify the country 
+initiatives, we argue that this is an important problem domain. Here, we first specify the country 
 codes and then obtain the country objects.
 
 \vspace{-1em}
@@ -657,7 +657,7 @@ Type providers are often described as a technique that simplifies data access. T
 type provider shows that there is a broader range of uses, including integration between different
 programming languages. Another example of type provider for language integration is the R
 provider \cite{fsharp-rprovider} which imports packages and functions of the statistical 
-environemnt R.
+environment R.
 
 \subsubsection{The TypeScript type provider}
 The projection implemented by the TypeScript type provider imports interface definitions in the
@@ -749,7 +749,7 @@ Both cases make mapping difficult:
   files for JavaScript).
 
 \item Second, if the imported language has a more precise type system than F\#, the type 
-  provider hsa to drop some of the information. This can be done safely for types in 
+  provider has to drop some of the information. This can be done safely for types in 
   contravariant positions. In the unsafe case, the runtime needs to perform dynamic checks 
   (Section~\ref{sec:conc-interop}).
 \end{itemize}
@@ -766,7 +766,7 @@ An interesting example of type provider for a language with a weaker type system
 R provider \cite{fsharp-rprovider}. It solves the mismatch by using runtime reflection 
 to discover R functions and their declared parameters. However, R provider also generates
 additional function overloads that let the user specify additional parameters (not explicitly 
-declared in the signature). To make such interoperability easier, we propsed additional 
+declared in the signature). To make such interoperability easier, we proposed additional 
 escape mechanism \cite{fsharp-paramsdict} that provide usable syntax when static type information 
 cannot be fully recovered.
 
@@ -829,7 +829,7 @@ after underscore.
 Using a type provider is similar to writing a code generator that turns TypeScript 
 \textcolor{strclr}{\ttfamily d.ts} files into the above OCaml annotation. The main difference
 is that type providers provide a smoother integration. Type providers do not produce any artefacts
-(generated files) and can import entire repositories lazilly.
+(generated files) and can import entire repositories lazily.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1008,7 +1008,7 @@ how type providers and quotations interact.
 
 When we write code using type providers that provide erased types (both World Bank and TypeScript), 
 then the erasure happens before a quotation is captured. The following listing shows an example. 
-When we write code with explicit (or implicit) quotation containing a povided method (1), the actual 
+When we write code with explicit (or implicit) quotation containing a provided method (1), the actual 
 quotation (2) contains just calls to the underlying runtime library:
 %
 \begin{equation*}
@@ -1064,7 +1064,7 @@ mapping JavaScript libraries to F\# and the choices made in FunScript:
 
 \begin{itemize}
 \item Numeric types including \ident{int} and \ident{float} are mapped to JavaScript numbers.
-  However, the floating-point artihmetic in JavaScript differs from the one in F\# and so this changes 
+  However, the floating-point arithmetic in JavaScript differs from the one in F\# and so this changes 
   the semantics. Similarly, compilation of integer operators requires additional work (for 
   example, $1/2$ is not an integer division in JavaScript).
 
