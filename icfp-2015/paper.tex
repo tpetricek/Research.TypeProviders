@@ -1,0 +1,171 @@
+\documentclass[preprint]{sigplanconf}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage[fleqn]{amsmath}
+\usepackage[hang,flushmargin]{footmisc} 
+\usepackage{graphics} 
+\usepackage{stmaryrd}
+\usepackage{amsthm}
+\usepackage{hyperref}
+
+% =================================================================================================
+
+\newcommand{\langl}{\begin{picture}(4.5,7)
+\put(1.1,2.5){\rotatebox{60}{\line(1,0){5.5}}}
+\put(1.1,2.5){\rotatebox{300}{\line(1,0){5.5}}}
+\end{picture}}
+\newcommand{\rangl}{\begin{picture}(4.5,7)
+\put(.9,2.5){\rotatebox{120}{\line(1,0){5.5}}}
+\put(.9,2.5){\rotatebox{240}{\line(1,0){5.5}}}
+\end{picture}}
+
+\newcommand{\lang}{\begin{picture}(5,7)
+\put(1.1,2.5){\rotatebox{45}{\line(1,0){6.0}}}
+\put(1.1,2.5){\rotatebox{315}{\line(1,0){6.0}}}
+\end{picture}}
+\newcommand{\rang}{\begin{picture}(5,7)
+\put(.1,2.5){\rotatebox{135}{\line(1,0){6.0}}}
+\put(.1,2.5){\rotatebox{225}{\line(1,0){6.0}}}
+\end{picture}} 
+
+\definecolor{cmtclr}{rgb}{0.0,0.6,0.0}
+\definecolor{kvdclr}{rgb}{0.0,0.0,0.6}
+\definecolor{strclr}{rgb}{0.5,0.1,0.0}
+\definecolor{prepclr}{rgb}{0.0,0.0,0.0}
+
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
+\newcommand{\ignp}{\_\kern-.5ex\_\kern-.5ex\_ }
+\newcommand{\kvd}[1]{\textnormal{\textcolor{kvdclr}{\sffamily #1}}}
+\newcommand{\str}[1]{\textnormal{\textcolor{strclr}{\sffamily "#1"}}}
+\newcommand{\ident}[1]{\textnormal{\sffamily #1}}
+\newcommand{\lident}[1]{\textnormal{\sffamily 
+  \`{}\hspace{-0.25em}\`{}\hspace{-0.1em}#1\`{}\hspace{-0.25em}\`{}}}
+\newcommand{\cmt}[1]{\textit{\sffamily\textcolor{cmtclr}{#1}}}
+
+% =================================================================================================
+
+\begin{document}
+
+\special{papersize=8.5in,11in}
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country} 
+\copyrightyear{20yy} 
+\copyrightdata{978-1-nnnn-nnnn-n/yy/mm} 
+\doi{nnnnnnn.nnnnnnn}
+
+%\titlebanner{banner above paper title}        % These are ignored unless
+%\preprintfooter{short description of paper}   % 'preprint' option specified.
+
+\title{F\# Data: \textnormal{Making structured data first-class citizens}}
+%\subtitle{Subtitle Text, if any}
+
+\authorinfo{Tomas Petricek}
+           {University of Cambridge}
+           {tomas@tomasp.net}
+%\authorinfo{Name2\and Name3}
+%           {Affiliation2/3}
+%           {Email2/3}
+
+\maketitle
+
+% -------------------------------------------------------------------------------------------------
+
+\begin{abstract}
+Most statically typed languages assume that programs run in a closed world, but this is not the 
+case. Modern applications interact with external services and often access data in structured 
+formats such as XML, CSV and JSON. Static type systems do not understand such external data sources
+and only make data access more cumbersome. Should we just give up and leave the messy world of 
+external data to dynamic typing and runtime checks?
+
+Of course, we should not give up! In this paper, we show how to integrate external data sources 
+into the F\# type system. As most real-world data on the web do not come with an explicit schema, 
+we develop a type inference algorithm that infers a type from representative samples. Next, we use 
+the type provider mechanism for integrating the inferred structures into the F\# type
+system. 
+
+The resulting library significantly reduces the amount of code that developers need to write when 
+accessing data. It also provides additional safety guarantees -- arguably, as much as 
+possible if we abandon the (incorrect) closed world assumption.
+\end{abstract}
+
+\category{D.3.3}{Programming Languages}{Language Constructs and Features }
+\keywords F\#, Type Providers, JSON, XML, Data, Type Inference
+
+% =================================================================================================
+
+\section{Introduction}
+
+\newpage
+
+\footnote{\sffamily{http://api.openweathermap.org/data/2.5/weather?q=Prague\&units=metric}}
+
+Bacon ipsum dolor amet biltong strip steak pancetta tenderloin. Picanha pork pig shank. Jowl ground round kielbasa capicola swine tenderloin tri-tip beef ribs brisket picanha boudin. Turkey ham hock jowl andouille hamburger pork chop shankle bacon, shank bresaola jerky chuck biltong sirloin meatball.
+
+%
+\begin{equation*}
+\begin{array}{l}
+ \kvd{let}~\ident{data}=\ident{Http.Request}(\str{http://weather.org/?q=Prague}) \\[0.25em]
+ \kvd{match}~\ident{JsonValue.Parse}(\ident{data})~\kvd{with} \\[0.25em]
+ |~\ident{Record}(\ident{root})\rightarrow \\[0.25em]
+ \quad \kvd{match}~\ident{Map.find}~\str{main}~\ident{root}~\kvd{with} \\[0.25em]
+ \quad |~\ident{Record}(\ident{main})\rightarrow \\[0.25em]
+ \quad \quad \kvd{match}~\ident{Map.find}~\str{temp}~\ident{main}~\kvd{with} \\[0.25em]
+ \quad \quad |~\ident{Number}(\ident{num})\rightarrow \ident{printfn}~\str{Lovely \%f degrees!}~\ident{num}
+\end{array}
+\end{equation*}
+%
+
+
+%
+\begin{equation*}
+\begin{array}{l}
+ \kvd{type}~\ident{W} = \ident{JsonProvider}\langl\str{http://weather.org/?q=Prague}\rangl \\[0.25em]
+ \ident{printfn}~\str{Lovely \%f degrees!}~(\ident{W.GetSample().Main.Temp})
+\end{array}
+\end{equation*}
+%
+
+
+The text of the paper begins here.
+
+% -------------------------------------------------------------------------------------------------
+
+\newpage
+~
+\newpage
+
+\appendix
+\section{Appendix Title}
+
+This is the text of the appendix, if you need one.
+
+\acks
+
+Acknowledgments, if needed.
+
+% We recommend abbrvnat bibliography style.
+
+\bibliographystyle{abbrvnat}
+
+% The bibliography should be embedded for final submission.
+
+\begin{thebibliography}{}
+\softraggedright
+
+\bibitem[Smith et~al.(2009)Smith, Jones]{smith02}
+P. Q. Smith, and X. Y. Jones. ...reference text...
+
+\end{thebibliography}
+
+
+\end{document}
+
+%                       Revision History
+%                       -------- -------
+%  Date         Person  Ver.    Change
+%  ----         ------  ----    ------
+
+%  2013.06.29   TU      0.1--4  comments on permission/copyright notices
+
