@@ -17,6 +17,8 @@
 
 % =================================================================================================
 
+% TODO: The model here does not actually use type erasure!!
+
 \urlstyle{sf}
 
 \makeatletter
@@ -72,6 +74,8 @@
 \newcommand{\dropopt}[1]{\lfloor#1\rfloor}
 \newcommand{\addopt}[1]{\lceil#1\rceil}
 \newcommand{\tytagof}{\ident{tagof}}
+
+\newcommand{\reduce}{\rightarrow}
 
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
@@ -211,10 +215,10 @@ theoretical safety properties of the approach. The key novel contributions of th
   underlies the type providers (Section~\ref{sec:inference}). It is based on finding common 
   supertype of a set of examples.
 
-\item We introduce the notion of relativized type safety and show how it holds for the code
-  written using our type providers (Section~\ref{sec:safety}). Although we focus on our specific
-  case, this demonstrates a new way of thinking about ML-style type safety that is needed
-  in the context of web.
+\item We provide a minimal formal model (Section~\ref{sec:formal}) and use it to prove a
+  relativized notion of type safety for our type providers (Section~\ref{sec:safety}). Although 
+  we focus on our specific case, the relativized safety property demonstrates a new way of 
+  thinking about ML-style type safety that is needed in the context of web.
 \end{itemize}
 
 \noindent
@@ -439,8 +443,9 @@ is also used as a type argument of $\ident{CsvFile}\langl\alpha\rangl$. The prop
 such as \ident{Ozone} are then replaced with an accessor that reads the corresponding tuple
 element.
 
-More details about the full type erasure mechanism can be found in the paper on F\# type 
-providers [?]. We present a simplified model when discussing safety in Section~\ref{sec:safety}.
+The type erasure mechanism is explained in our simplified formal model in Section~\ref{sec:formal}.
+More details about the full implementation in F\# can be found in the paper on F\# type 
+providers [?].
 
 % -------------------------------------------------------------------------------------------------
 
@@ -580,7 +585,7 @@ describe the algorithm for finding a common supertype.
 Note that the subtyping relation between structural types $\sigma$ does not map to a subtyping 
 relation between F\#  types $\tau$. However, it does hold at runtime, meaning that an operation on 
 a supertype can be performed on its subtypes. We make the type provider mechanism and runtime aspects 
-precise in Section~\ref{sec:safety} when discussing safety.
+precise in Section~\ref{sec:formal} before discussing safety in Section~\ref{sec:safety}.
 
 \subsection{Structural types}
 \label{sec:inference-types}
@@ -774,6 +779,7 @@ empty string). These choices are based on experience with using F\# Data in prac
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure*}[t]
+{\small{
 
 \begin{equation*}
 \hspace{3em}
@@ -869,8 +875,8 @@ empty string). These choices are based on experience with using F\# Data in prac
  \textnormal{\footnotesize{(null-2)}}\;\; \sigma \tsep \kvd{null} \vdash \sigma~\kvd{option} \quad(\sigma :\ngtr \kvd{null})
  \end{array}
 \end{equation*}
-
-\caption{Inference judgements that define the common supertype relation}
+}}
+\caption{\small{Inference judgements that define the common supertype relation}}
 \label{fig:subtyping-cst}
 \end{figure*}
 
@@ -1007,32 +1013,173 @@ The only rule that introduces an union type is (\emph{union-3}), which is used o
 no other inference rule can be applied.
 \end{proof}
 
+% ==================================================================================================
 
+\begin{figure*}
+{\small{
+\begin{equation*}
+\hspace{3em}
+\begin{array}{l}
+ \ident{asBool}(i) \reduce \kvd{true}  \quad(i = 1)\\
+ \ident{asBool}(d) \reduce \kvd{true}  \quad(d = 1.0)\\
+ \ident{asBool}(f) \reduce \kvd{true}  \quad(f = 1.0)\\
+\end{array}
+\qquad
+\begin{array}{l}
+ \ident{asBool}(i) \reduce \kvd{false} \quad(i = 0)\\
+ \ident{asBool}(d) \reduce \kvd{false} \quad(d = 0.0)\\
+ \ident{asBool}(f) \reduce \kvd{false} \quad(f = 0.0)\\
+\end{array}
+\qquad
+\begin{array}{l}
+ \ident{asBool}(s) \reduce \kvd{true}  \quad(s=\str{true} \vee s=\str{1}) \\
+ \ident{asBool}(s) \reduce \kvd{false} \quad(s=\str{false} \vee s=\str{0}) \\
+ \ident{asBool}(b) \reduce b\quad(\textnormal{when}~b=\kvd{true}\vee b=\kvd{false})
+\end{array}
+\end{equation*}
+%
+\begin{equation*}
+\hspace{-1em}
+\begin{array}{l}
+ \ident{asInt}(i) \,\reduce i\\
+ \ident{asInt}(d) \reduce i\quad(i = \lfloor d \rfloor)\\
+ \ident{asInt}(f) \reduce i\quad(i = \lfloor f \rfloor) \\
+ \ident{asInt}(s) \,\reduce i\quad(s~\text{represents}~i) \\
+ \ident{asInt}(\kvd{true}) \reduce 1\\
+ \ident{asInt}(\kvd{false}) \reduce 0\\
+\end{array}
+\quad
+\begin{array}{l}
+ \ident{asDec}(i) \,\reduce d\quad(d = i)\\
+ \ident{asDec}(d) \reduce d\\
+ \ident{asDec}(f) \reduce d\quad(d = \lfloor f \rfloor) \\
+ \ident{asDec}(s) \,\reduce d\quad(s~\text{represents}~d) \\
+ \ident{asDec}(\kvd{true}) \reduce 1.0\\
+ \ident{asDec}(\kvd{false}) \reduce 0.0\\
+\end{array}
+\quad
+\begin{array}{l}
+ \ident{asFloat}(i) \,\reduce f\quad(f = i)\\
+ \ident{asFloat}(d) \reduce f\quad(f = d)\\
+ \ident{asFloat}(f) \reduce f\\
+ \ident{asFloat}(s) \,\reduce f\quad(s~\text{represents}~f) \\
+ \ident{asFloat}(\kvd{true}) \reduce 1.0\\
+ \ident{asFloat}(\kvd{false}) \reduce 0.0\\
+\end{array}
+\quad
+\begin{array}{l}
+ \ident{asStr}(i) \,\reduce s\quad(s~\text{represents}~i)\\
+ \ident{asStr}(d) \reduce s\quad(s~\text{represents}~d)\\
+ \ident{asStr}(f) \reduce s\quad(s~\text{represents}~f)\\
+ \ident{asStr}(s) \,\reduce s\\
+ \ident{asStr}(\kvd{true}) \reduce \str{true}\\
+ \ident{asStr}(\kvd{false}) \reduce \str{false}\\
+\end{array}
+\end{equation*}
+%
+\begin{equation*}
+\hspace{8em}
+\begin{array}{l}
+ \ident{getChildren}([s_1; \ldots; s_n]) \reduce [s_1; \ldots; s_n]\\
+ \ident{getChildren}(\kvd{null}) \reduce [~]\\
+\end{array}
+\qquad\qquad\qquad
+\begin{array}{l}
+ \ident{getField}(\nu,\nu_i,\nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
+ \ident{getField}(\epsilon,\nu_i,\{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
+\end{array}
+\end{equation*}
+}}
+\caption{\small{Reduction rules for conversion functions}}
+\label{fig:op-conversions}
+\end{figure*}
 
+% TODO: We'll need more things here for working with options 
+% Also, 'getField' should return 'null' if the field does not exist
+% (which we will presumably handle nicely thanks to handling of options)
 
+% ==================================================================================================
 
+\section{Formalising type providers}
+\label{sec:formal}
 
+In this section, we build the necessary theoretical framework for proving the relativised type safety 
+property of F\# Data type providers in Section~\ref{sec:safety}. We start by discussing the runtime 
+representation of structured values and runtime conversions (Section~\ref{sec:formal-convert}). Then 
+we embed these into a formal model of an F\# subset that is necessary for discussing type providers 
+(Section~\ref{sec:formal-ff}) and we describe how F\# Data type providers turn an inferred 
+structural type into actual F\# code (Section~\ref{sec:formal-tp}).
 
+% -------------------------------------------------------------------------------------------------
 
+\subsection{Structural values and conversions}
+\label{sec:formal-convert}
 
+In the model presented here, we represent JSON, XML and CSV documents using the same 
+\emph{structural value}\footnote{Here, we diverge from the actual implementation in F\# Data which 
+uses a different implementation for each format (reusing existing libraries).}. 
+A structural value are first-order and can be one of the primitive values 
+(Boolean, string, integer, decimal and float), a missing value (\kvd{null}), a record 
+(named or unnamed) and a collection:
+%
+\begin{equation*}
+\begin{array}{lcl}
+ s  &\narrow{=}& i \lsep d \lsep f \lsep s \lsep \kvd{true} \lsep \kvd{false} \lsep \kvd{null} \\[0.1em]
+    &\narrow{|}& [s_1; \ldots; s_n] \\[0.1em]
+    &\narrow{|}& \{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \}\\[0.1em]
+    &\narrow{|}& \nu~\{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \} \\
+\end{array}
+\end{equation*}
 
+\noindent
+As suggested by subtyping, our system permits certain runtime conversions (\emph{e.g.}~a numerical 
+value \num{1} can be treated as \kvd{true}). To capture these, the operational semantics accesses 
+values using the following operations:
+%
+\begin{equation*}
+\begin{array}{lcl}
+ op &\narrow{=}& \ident{asInt}(s) \lsep \ident{asDec}(s) \lsep \ident{asFloat}(s) \lsep \ident{asBool}(s) \\
+    &\narrow{|}& \ident{asStr}(s) \lsep \ident{getChildren}(s) \lsep \ident{getField}(\nu_{\ident{opt}}, \nu, s)
+\end{array}
+\end{equation*}
+%
+The reduction rules for these operations are defined in Figure~\ref{fig:op-conversions}. It is important
+to note that the relativised property we intend to prove about F\# Data provides \emph{sufficient}, but
+not \emph{necessary} conditions. This means that a type provided based on sample is guaranteed to work 
+correctly on certain inputs, but may also handle several additional inputs.
 
+The conversion functions follow this approach. They perform conversions required by the subtyping relation
+(\emph{e.g.}~integer is converted to decimal or a float) but also attempt additional conversions.
 
+% TODO: Finish this
 
+\subsection{Featherweight F\#}
+\label{sec:formal-ff}
 
+Types are primitive types or a class or a StructVal, which represents different structured values
 
+L
+\begin{equation*}
+\begin{array}{l}
+ \tau = \ident{int}\lsep\ident{decimal}\lsep\ident{float}\lsep\ident{bool}\lsep\ident{string}\lsep \ident{StructVal} \lsep C \\[0.2em]
+ L = \kvd{type}~C(\overline{f:\tau}) = \overline{M} \\[0.2em]
+ M = \kvd{member}~N:\tau=e \\[0.2em]
+ v = ...
+\end{array}
+\end{equation*}
 
+.. todo -- evaluation goes here too
 
+\subsection{Type providers}
+\label{sec:formal-tp}
+
+How we turn inferred structural type into F\# type
 
 % ==================================================================================================
 
 \section{Relativized type safety}
 \label{sec:safety}
-~
 
-% - Featherweight F\#
-% - Generating FF\# from inferred types
-% - Evaluation reduction
 % - Safety property
 
 % ==================================================================================================
@@ -1045,6 +1192,10 @@ what if the sample is online??
 \section{Implementation}
 \label{sec:impl}
 ~
+
+  
+Error handling - solve issues just add another example
+  
 
 \label{sec:impl-unions}
 Unions become records with fields - so having null makes sense
@@ -1059,6 +1210,10 @@ Heterogeneous collections
 
 \section{Conclusions}
 \label{sec:conclusions}
+
+  - Prime example of type providers, explores relativized type safety
+  - Used by industry, downloads, tested, etc. 
+  - Predictable yet powerful type inference
 
 
 \newpage
