@@ -15,6 +15,7 @@
 \usepackage[notquote]{hanging}
 \usepackage[T1]{fontenc}
 \usepackage{semantic}
+\usepackage{enumitem}
 
 % =================================================================================================
 
@@ -24,7 +25,7 @@
 % TODO: Explain why we can only provide simple classes (!)
 % TODO: Replace \nu_opt with \nu_? or something else that does not look shit
 % TODO: Cleanup "strucutred" vs "structural"
-% TODO: Call it "relativized safety" or "relativized soundness" consistently
+% TODO: Insert a few more mentions of why "s1 + s2 <: s1 + s2 + s3" is valid (cannot do complete pattern match)
 
 \urlstyle{sf}
 
@@ -667,7 +668,7 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \noindent\boxed{\emph{Primitives, options, collections}}
 \begin{align}
 \label{eq:sub-prim}\tag{B1}
-\ident{float}\,:>\,\ident{decimal}\,:>\,\ident{int}\,:>\,\ident{bit}\quad&\textnormal{and}\quad\ident{bool}\,:>\,\ident{bit}\quad\\[-0.2em]
+\ident{float}\,:>\,\ident{decimal}\,:>\,\ident{int}\,:>\,\ident{bit}\quad&\textnormal{and}\quad\ident{bool}\,:>\,\ident{bit}\\[-0.2em]
 \label{eq:sub-null}\tag{B2}
 \sigma :> \kvd{null} \quad &(\textnormal{iff}~\sigma \neq \hat{\sigma}) \\[-0.2em]
 \label{eq:sub-opt}\tag{B3}
@@ -685,8 +686,10 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \label{eq:sub-union2}\tag{U2}
 \sigma_1 + \ldots + \sigma_n :> \sigma_1 + \ldots + \sigma_m \quad &(\textnormal{where}~m \leq n) \\
 \label{eq:sub-union3}\tag{U3}
+\sigma_1 + \ldots + \sigma_n :> \sigma_1 + \ldots + \sigma_m \quad &(\textnormal{where}~m \geq n) \\
+\label{eq:sub-union4}\tag{U4}
 \hspace{-1em}\sigma_1 + \ldots + \sigma_n :> \sigma_{\pi(1)} + \ldots + \sigma_{\pi(n)} \quad &(\textnormal{permutation}~\pi) \\
-\label{eq:sub-union-el}\tag{U4}
+\label{eq:sub-union-el}\tag{U5}
 \sigma_1 + \ldots + \sigma_n :> \sigma_i \quad &(\textnormal{for}~i \in 1 \ldots n)
 \end{align}
 
@@ -741,6 +744,7 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure*}[t]
+\noindent
 \begin{equation*}
 \hspace{3em}
 \inference[(record-1)\;]
@@ -796,7 +800,6 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \qquad (\pi~\textnormal{permutation})  
 \end{equation*}
 
-
 \begin{equation*}
 \hspace{3em}
 % collection types
@@ -815,6 +818,7 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \end{equation*}
 
 % all rules are symmetric and reflexive
+\noindent
 \begin{equation*}
 \hspace{4.75em}
 \inference[(sym)\;]
@@ -823,7 +827,7 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 %
 \qquad\quad
 \begin{array}{l}
- \textnormal{\footnotesize{(refl)}}\;\; \sigma \tsep \sigma \vdash \sigma\\[0.75em]
+ \textnormal{\footnotesize{(refl)}}\;\; \sigma \tsep \sigma \vdash \sigma\\[0.6em]
  % top type
  \textnormal{\footnotesize{(top)}}\;\; \top \tsep \sigma \vdash \sigma
 \end{array}
@@ -831,7 +835,7 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \qquad\quad 
 % null and nullable
  \begin{array}{l}
- \textnormal{\footnotesize{(null-1)}}\;\; \sigma \tsep \kvd{null} \vdash \sigma \quad(\sigma :> \kvd{null}) \\[0.75em]
+ \textnormal{\footnotesize{(null-1)}}\;\; \sigma \tsep \kvd{null} \vdash \sigma \quad(\sigma :> \kvd{null}) \\[0.6em]
  \textnormal{\footnotesize{(null-2)}}\;\; \sigma \tsep \kvd{null} \vdash \sigma~\kvd{option} \quad(\sigma :\ngtr \kvd{null})
  \end{array}
 \end{equation*}
@@ -862,9 +866,11 @@ Here is a summary of the key aspects of the definition:
   supertype of any two types, because a union type $\tau_1 + \ldots + \tau_n$ is a supertype of all its 
   components (\ref{eq:sub-union-el}).
 
-\item The remaining rules for unins are standard. Subtype can have fewer alternatives 
+\item For unions, we include the standard rules. Subtype can have fewer alternatives 
   (\ref{eq:sub-union1}), elements can be reordered (\ref{eq:sub-union2}) and subtyping is covariant 
-  (\ref{eq:sub-union3}). Similarly, the collection type is also covariant (\ref{eq:sub-col}).
+  (\ref{eq:sub-union4}). An unusual rule (\ref{eq:sub-union3}) says that subtype can also have 
+  \emph{more} cases. This is valid because the type provider exposes unions as objects that do not
+  allow complete pattern matching.
 
 \item As usual, the subtyping on records is covariant (\ref{eq:sub-record1}), subtype can have additional 
   fields (\ref{eq:sub-record2}) and fields can  be reordered (\ref{eq:sub-record3}). The interesting rule 
@@ -1259,7 +1265,7 @@ The conversion functions follow this approach. They perform conversions required
 
 \caption{Featherweight F\# -- Remaining reduction rules}
 \label{fig:ff-reduction}
-\vspace{-0.5em}
+\vspace{-1em}
 \end{figure}
 
 % -------------------------------------------------------------------------------------------------
@@ -1299,7 +1305,7 @@ with option values and lists. We include \ident{List.map} as a special construct
 
 Next, we define the reduction relation and (a fragment of) type checking for Featherweight F\#.
 The language presented here is intentionally incomplete. We only define parts needed to prove
-the relativized soundness property in Section~\ref{sec:safety}.
+the relativized safety property in Section~\ref{sec:safety}.
 
 \paragraph{Reduction.} The reduction relation is of the form $e \reduce e'$. We also write 
 $e \reduce^{*} e'$ to denote the reflexive and transitive closure of $\reduce$. The reduction rules
@@ -1309,6 +1315,7 @@ for other expressions defined above are provided in Figure~\ref{fig:ff-reduction
 The (\emph{ctx}) rule performs a reduction inside a sub-expression specified by an evaluation context.
 This models the eager evaluation order of F\#. An evaluation context $E$ is defined as:
 
+\vspace{0.5em}
 \noindent
 \begin{equation*}
 \begin{array}{rcl}
@@ -1344,23 +1351,23 @@ one of the conversion functions from Figure~\ref{fig:op-conversions}.
 \qquad
 \inference
   {~}
-  {\Gamma \vdash s : \ident{StructVal}}
+  {L; \Gamma \vdash s : \ident{StructVal}}
 \qquad  
 \inference
   {~}
-  {\Gamma \vdash n : \ident{int}}
+  {L; \Gamma \vdash n : \ident{int}}
 \end{equation*}
 
 \begin{equation*}
 \inference
-  {\Gamma \vdash e : C & \kvd{type}~C(\overline{x:\tau}) = ..\;\kvd{member}~N_i : \tau_i = e_i\;..}
-  {\Gamma \vdash e.N_i:\tau_i}
+  {L; \Gamma \vdash e : C & \kvd{type}~C(\overline{x:\tau}) = ..\;\kvd{member}~N_i : \tau_i = e_i\;.. \in L}
+  {L; \Gamma \vdash e.N_i:\tau_i}
 \end{equation*}
 
 \begin{equation*}
 \inference
-  {\Gamma \vdash e_i : \tau_i & \kvd{type}~C(x_1:\tau_1, \ldots, x_n:\tau_n) = \ldots}
-  {\Gamma \vdash \kvd{new}~C(e_1, \ldots, e_n):C}
+  {L; \Gamma \vdash e_i : \tau_i & \kvd{type}~C(x_1:\tau_1, \ldots, x_n:\tau_n) = \ldots \in L}
+  {L; \Gamma \vdash \kvd{new}~C(e_1, \ldots, e_n):C}
 \end{equation*}
 
 \caption{Featherweight F\# -- Fragment of type checking}
@@ -1370,17 +1377,20 @@ one of the conversion functions from Figure~\ref{fig:op-conversions}.
 % -------------------------------------------------------------------------------------------------
 
 \paragraph{Type checking.} 
-Selected type checking rules for Featherweight F\# are shown in Figure~\ref{fig:ff-typecheck}.
+The type checking rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
+$L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
 The rules demonstrate the key difference between our language and standard ML or Featherweight Java:
 %
-\begin{itemize}
-\item All structured values $s$ have a type \ident{StructVal}. Some of those have other types
+\begin{itemize}[noitemsep]
+\item[--] All structured values $s$ have a type \ident{StructVal}. Some of those have other types
   (primitive integers, decimals, floats, strings and Booleans as illustrated by the rule for $n$).
   For other values, \ident{StructVal} is the only type -- this includes records and \kvd{null}.
-\item A list containing other structural values $[s_1; \ldots; s_n]$ has a type \ident{StructVal}.  
+\item[--] A list containing other structural values $[s_1; \ldots; s_n]$ has a type \ident{StructVal}.  
   but can also have the $\ident{list}\langl\tau\rangl$ type. Conversely, lists that contain
   non-structural values like objects or options are not of type \ident{StructVal}.
-\item The two rules for checking class construction and member access are similar to corresponding
+\item[--] Primitive operations $op$ are treated as functions, accepting \ident{StructVal} and producing
+  an appropriate type as the result.
+\item[--] The two rules for checking class construction and member access are similar to corresponding
   rules of Featherweight Java.  
 \end{itemize}
 %
@@ -1561,7 +1571,6 @@ calls \ident{asInt} (produced by the case for primitive types) and wraps the res
 constructor. Note that \ident{getField} is defined even when the field does not exist, but returns \ident{null}.
 This lets us treat missing fields as optional fields. The \ident{Name} member is similar, but does not 
 perform any checks. 
-
 For completeness, a type corresponding to the record is \ident{Person} and given a 
 structural document $s$, we create a \ident{Person} value by calling $\kvd{new}~\ident{Person}(s)$.
 
@@ -1650,85 +1659,177 @@ and also when inferring the type of a collection.
 \section{Relativized type safety}
 \label{sec:safety}
 
-Now that we have 
+Informally, the safety property of F\# Data type providers states that, given representative sample
+documents, any code that can be written using the provided types is guaranteed to work. We call this 
+\emph{relativized safety}, because we cannot avoid \emph{all} errors. In particular, the user can 
+always use the type provider with an input that has a different structure than any of the samples -- and in 
+this case, it is expected that the code will fail at runtime (throw an exception in the actual 
+implementation or by getting stuck in our model).
 
+The key question is, what is a representative sample? Given a set of sample documents, 
+the provided type is guaranteed to work if the inferred type of the input is a subtype of any of the
+sample documents. Going back to Section~\ref{sec:inference-subtyping}, this means that:
+%
+\begin{itemize}[noitemsep]
+\item[--] Input can contain smaller numerical values (for example, if a sample contains float, the input can contain an integer).
+\item[--] Records in the actual input can have additional fields
+\item[--] Records in the actual input can have fewer fileds, provided that the type of the fields is marked as optional in the sample
+\item[--] Union types in the input can have both fewer or more cases
+\item[--] When we have a union type in the sample, the actual input can also contain just values of one of the union cases
+\end{itemize}
+%
+The following lemma states that the provided code (generated in Figure~\ref{fig:tp-generation})
+works correctly on inputs $s'$ that is a subtype of the sample $s$. More formally, we require that the 
+provided expression (using $s'$ as the input) can be reduced to a value and, if it is a class,
+all its members can also be reduced to values.
 
 \begin{lemma}[Correctness of provided types]
-Given a rule from the type provider, when we have a structural value that 
-
-Given $\semalt{s} :> \semalt{s'}$ and $\tau, e, L = \sem{\semalt{s}}_{s'}$ then
-either $e \reduce v$ or $\tau=C$ and for all fields $e.N \reduce v$.
+\label{thm:tp-correctness}
+Given a sample value $s$ and an input value $s'$ such that $\semalt{s} :> \semalt{s'}$
+and provided type, expression and class declarations $\tau, e, L = \sem{\semalt{s}}_{s'}$, 
+then $e \reduce^{*} v$ and if $\tau$ is a class ($\tau=C$) then for all members $N_i$ of the 
+class $C$, it holds that $e.N_i \reduce^{*} v$.
 \end{lemma}
 \begin{proof}
-?
+By induction over the structure of $\sem{-}_e$. For primitives, the conversion functions accept all subtypes.
+For other cases, analyse the the provided code to see that it can work on all subtypes (\emph{e.g.}~\ident{getChildren}
+works on \kvd{null} values, \ident{getField} returns \kvd{null} when a field is missing and, when \ident{isTag} returns
+\ident{true}, then a value has the structure required by the corresponding case).
 \end{proof}
 
+\noindent
+Now that we know that the provided types are correct with respect to the subtyping relation, we can
+look at the main theorem of the paper. It statest that, for any input (which is a subtype of any of the
+samples) and any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 
-\begin{lemma}[Preservation]
-Preservation
-\end{lemma}
-\begin{proof}
-by induction over the reduction $\reduce$ (this should be fairly standard)
-\end{proof}
-
-\begin{lemma}[Progress]
-Progress
-\end{lemma}
-\begin{proof}
-by induction over the typing of $e$ (this is standard bit) 
-also using the observation that all provided classes are well-typed
-(by handwaving). The interesting case is when we do anything on StructVal, in which case
-we need:
-
-All access on StructVals happens in the code generated by type provider
-and we can use the lemma...
-\end{proof}
-
-Now we can finally write
+Using the standard approach to syntactic type safety [?], we prove the type preservation 
+(reduction does not change type) and progress (an expression that is not a value can be reduced).
 
 \begin{theorem}[Relativized safety]
+\label{thm:safety}
 Assume $s_1, \ldots, s_n$ are samples, $\sigma=\semalt{s_1, \ldots, s_n}$ is an inferred
 type and $\tau,e,L = \sem{\sigma}_x$ are a type, expression and class definitions generated by a 
 type provider.
 
-Then for all new inputs $s'$ such that $\exists i.(\semalt{s_i} :> \semalt{s'})$, and for any $e$ 
-such that $x:\ident{StructVal} \vdash e:\tau$ using class definitions $L$, it is the case that 
-$e[x\leftarrow s'] \reduce^{*} v$ and $\vdash v : \tau$.
+Then for all new inputs $s'$ such that $\exists i.(\semalt{s_i} :> \semalt{s'})$, let $e_s=e[x\leftarrow s']$
+be an expression (of type $\tau$) that wraps the input in a provided type. Then, for any expression $e_c$
+(user code) such that $\emptyset; y:\tau \vdash e_c:\tau'$ and that does not contain any structural values
+as sub-expressions, it is the case that $e_c[y\leftarrow e_s] \reduce^{*} v$ for some value $v$ and
+also $\emptyset; \vdash v : \tau$.
 \end{theorem}
 \begin{proof}
-Using progress and preservation.
+We discuss the two parts of the proof separately as type prservation (Lemma~\ref{thm:rs-preservation})
+and progress (Lemma~\ref{thm:rs-progress}).
 \end{proof}
 
-% ==================================================================================================
+\begin{lemma}[Preservation]
+\label{thm:rs-preservation}
+Given the class definitions $L$ generated by a type provider as specified in
+the assumptions of Theorem~\ref{thm:safety}, then if $\Gamma \vdash e : \tau$ and 
+$e \reduce^{*} e'$ then $\Gamma \vdash e' : \tau$.
+\end{lemma}
+\begin{proof}
+By induction over the reduction $\reduce$. The cases for the ML subset of Featherweight F\# 
+are standard. For (\emph{member}), we check that code generated by type providers
+in Figure~\ref{fig:tp-generation} is well-typed.
+\end{proof}
+
+\noindent
+The progress lemma states that evaluation of a well-typed program does not reach an undefined state. 
+This is not a problem for the ML subset and object-oriented subset of the calculus. The problematic
+part are the conversion functions (Figure~\ref{fig:op-conversions}). Given a structural value 
+(which has a type \ident{StructVal} in our language), the reduction can get stuck if the value does
+not have a structure required by a specific conversion function used.
+
+The Lemma~\ref{thm:tp-correctness} guarantees that this does not happen. In Theorem~\ref{thm:safety},
+we carefuly state that we only consider expressions $e_c$ which ``[do] not contain any structural 
+values as sub-expressions''. This makes sure that the only code working with structural values is the
+code generated by the type provider.
+
+\begin{lemma}[Progress]
+\label{thm:rs-progress}
+Given the assumptions and definitions from Theorem~\ref{thm:safety}, it is the case that
+$e_c[y\leftarrow e_s] \reduce^{*} v$.
+\end{lemma}
+\begin{proof}
+By induction over the typing derivation of $L; \emptyset \vdash e_c[y\leftarrow e_s] : \tau'$. 
+The cases for the ML subset are standard. For member access, we rely on Lemma~\ref{thm:tp-correctness}.
+\end{proof}
+
+% -------------------------------------------------------------------------------------------------
 
 \subsection{Discussion}
 \label{sec:safety-discuss}
-alternative - check the whole file upfront based on the inferred type
-what if the sample is online??
+
+The \emph{relativized safety} property does not guarantee the same amount of safety as standard type safety
+for programming langauges without type providers. However, it reflects the reality of programming with external
+data sources that is increasingly important in the age of web [?]. So, type providers do not reduce the safety
+-- they simply make the existing issues visible.
+
+The actual implementation in F\# Data throws an exception for invalid inputs. In contrast, the calculus
+presented here simply gets stuck. We could extend the calculus with exceptions, but that would obscure the 
+purpose -- precisely specifying when the code using type providers does not ``go wrong.''
+
+As mentioned earlier, \emph{relativized safety} specifies a sufficient, but not a necessary condition.
+This is also reflected in the conversion functions which allow additional conversions not required by 
+the subtyping relation. In practice, the additional flexibility proves useful (as minor variations in 
+input formats are common). However, an interesting stricter alternative would be to check that an input 
+has the required type when it is loaded -- and throw an exception immediately when loading data rather than 
+on member access.
+
+Finally, the formal model presented here ignores two aspects of the real type provider mechanisms. As discussed
+here, we do not use the \emph{type erasure} mechanism, but treat type providers as if they were actually 
+generating code. For XML, CSV and JSON, both models can be used. However, one interesting aspect of erasing 
+type providers is that the types can be generated lazilly -- only classes that are actually used in the type
+checked code are generated. Extending our formalism to capture this aspect is an interesting future work
+relevant to other type providers -- including the World Bank type provider [?] that is also available
+in the F\# Data library.
+
+% ==================================================================================================
 
 \section{Implementation}
 \label{sec:impl}
 ~
 
-
+\subsection{Parsing}
 \label{sec:impl-parsing}
-
-Turning JSON, CSV or XML to the idealized structured value presented here (esp. XML)
-
-  
-Error handling - solve issues just add another example
-  
-
-\label{sec:impl-unions}
-Unions become records with fields - so having null makes sense
-
-Write API
+Turning JSON, CSV or XML to the idealized structured value presented here (esp. XML)  
 
 JSON - infering numbers from values (not just from actual value type - world bank example)
 
+  
+\subsection{Unions}
+\label{sec:impl-unions}
+Mainly because type providers can only provide objects
+
+Unions become records with fields - so hiding null makes sense
+also it means the open-world semantics 
+
+\subsection{Heterogeneous collections}
 \label{sec:impl-collections}
 
 Heterogeneous collections
+
+\subsection{Practical experience}
+Error handling - solve issues just add another example
+
+% ==================================================================================================
+
+\section{Related and future work}
+
+~
+
+Write API
+
+~
+
+F\# and Agda type providers
+
+Kathleen Fisher's work
+
+JSON inference stuff
+
+LINQ and XML stuff
 
 \section{Conclusions}
 \label{sec:conclusions}
@@ -1737,18 +1838,7 @@ Heterogeneous collections
   - Used by industry, downloads, tested, etc. 
   - Predictable yet powerful type inference
 
-
-\newpage
-~
-\newpage
-
-\appendix
-\section{Appendix Title}
-
-This is the text of the appendix, if you need one.
-
 \acks
-
 Acknowledgments, if needed.
 
 % We recommend abbrvnat bibliography style.
@@ -1767,11 +1857,3 @@ P. Q. Smith, and X. Y. Jones. ...reference text...
 
 
 \end{document}
-
-%                       Revision History
-%                       -------- -------
-%  Date         Person  Ver.    Change
-%  ----         ------  ----    ------
-
-%  2013.06.29   TU      0.1--4  comments on permission/copyright notices
-
