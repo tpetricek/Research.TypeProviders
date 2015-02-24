@@ -23,6 +23,8 @@
 % TODO: Disambigurate 's' as structural value and 's' as string
 % TODO: Explain why we can only provide simple classes (!)
 % TODO: Replace \nu_opt with \nu_? or something else that does not look shit
+% TODO: Cleanup "strucutred" vs "structural"
+% TODO: Call it "relativized safety" or "relativized soundness" consistently
 
 \urlstyle{sf}
 
@@ -1254,7 +1256,7 @@ The conversion functions follow this approach. They perform conversions required
 \end{array}
 \end{equation*}
 
-\caption{Remaining reduction rules for Featherweight F\#}
+\caption{Featherweight F\# -- Remaining reduction rules}
 \label{fig:ff-reduction}
 \vspace{-0.5em}
 \end{figure}
@@ -1265,11 +1267,13 @@ The conversion functions follow this approach. They perform conversions required
 \label{sec:formal-ff}
 
 The semantics fragment introduced in the previous section discusses values and operations that are used by
-F\# Data. This section adds a minimal subset of the standard F\# language. We focus on the object system
-(which is what F\# type providers produce) and so the following is based on Featherweight Java. However, we
-only need class types (without inheritance) with properties. A class has a single implicit constructor and 
-the declaration closes over constructor parameters. In addition, we include special constructs for working
-with option types and lists.
+F\# Data. This section adds a minimal subset of the standard F\# language.
+
+We focus on the object system (which is what F\# type providers produce) and so the following combines 
+standard ML [?] features with Featherweight Java [?] classes. However, we only need classes with properties and
+without inheritance. A class has a single implicit constructor and the declaration closes over 
+constructor parameters. To avoid including all of ML, we only select constructs for working with options and lists
+that we need later.
 %
 \begin{equation*}
 \begin{array}{rcl}
@@ -1277,7 +1281,7 @@ with option types and lists.
       &\narrow{|}& C \lsep \ident{StructVal} \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl \\[0.6em]
  L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
  M &\narrow{=}& \kvd{member}~N:\tau=e \\[0.6em]
- v &\narrow{=}& s \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \\[0.0em]
+ v &\narrow{=}& s \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep [v_1; \ldots; v_n] \\[0.0em]
  e &\narrow{=}& op \lsep e.N \lsep \kvd{new}~C(\overline{e}) \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3}\\
    &\narrow{|}& \ident{Some}(e)\lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
    &\narrow{|}& \kvd{match}~e~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2 \\
@@ -1286,15 +1290,15 @@ with option types and lists.
 \end{equation*}
 
 \noindent
-In the above definition, $\tau$ denotes types including a special type \ident{StructVal} for all structural 
-values $s$; a class definition $L$ consists of a constructor and zero or more members. Values $v$ include 
-previously defined structural values $s$ and values for the option type; finally expressions $e$ include all 
+In the above definition, $\tau$ denotes types including a type of all structured values $s$ called
+\ident{StructVal}. A class definition $L$ consists of a constructor and zero or more members. Values $v$ include 
+previously defined structural values $s$ and values for the option and list type; finally expressions $e$ include 
 previously defined operations $op$, class construction, member access, conditionals and expressions for working 
 with option values and lists. We include \ident{List.map} as a special construct to avoid making the language too complex.
 
-In this paper, we do not define the typing of the F\# subset introduced above as our goal is not to prove
-type safety for the core language. For the relativized soundness proof in Section~\ref{sec:safety}, it is
-sufficient to discuss reduction.
+Next, we define the reduction relation and (a fragment of) type checking for Featherweight F\#.
+The language presented here is intentionally incomplete. We only define parts needed to prove
+the relativized soundness property in Section~\ref{sec:safety}.
 
 \paragraph{Reduction.} The reduction relation is of the form $e \reduce e'$. We also write 
 $e \reduce^{*} e'$ to denote the reflexive and transitive closure of $\reduce$. The reduction rules
@@ -1331,6 +1335,58 @@ The language is sufficient for our purpose, but simple. It does not provide recu
 and so all expressions reduce to a value in a finite number of steps or get stuck due to an error
 condition. An error condition can be a wrong argument passed to conditional, pattern matching or
 one of the conversion functions from Figure~\ref{fig:op-conversions}.
+
+% -------------------------------------------------------------------------------------------------
+
+\begin{figure}
+\begin{equation*}
+\qquad
+\inference
+  {~}
+  {\Gamma \vdash s : \ident{StructVal}}
+\qquad  
+\inference
+  {~}
+  {\Gamma \vdash n : \ident{int}}
+\end{equation*}
+
+\begin{equation*}
+\inference
+  {\Gamma \vdash e : C & \kvd{type}~C(\overline{x:\tau}) = ..\;\kvd{member}~N_i : \tau_i = e_i\;..}
+  {\Gamma \vdash e.N_i:\tau_i}
+\end{equation*}
+
+\begin{equation*}
+\inference
+  {\Gamma \vdash e_i : \tau_i & \kvd{type}~C(x_1:\tau_1, \ldots, x_n:\tau_n) = \ldots}
+  {\Gamma \vdash \kvd{new}~C(e_1, \ldots, e_n):C}
+\end{equation*}
+
+\caption{Featherweight F\# -- Fragment of type checking}
+\label{fig:ff-typecheck}
+\end{figure}
+
+% -------------------------------------------------------------------------------------------------
+
+\paragraph{Type checking.} 
+Selected type checking rules for Featherweight F\# are shown in Figure~\ref{fig:ff-typecheck}.
+The rules demonstrate the key difference between our language and standard ML or Featherweight Java:
+%
+\begin{itemize}
+\item All structured values $s$ have a type \ident{StructVal}. Some of those have other types
+  (primitive integers, decimals, floats, strings and Booleans as illustrated by the rule for $n$).
+  For other values, \ident{StructVal} is the only type -- this includes records and \kvd{null}.
+\item A list containing other structural values $[s_1; \ldots; s_n]$ has a type \ident{StructVal}.  
+  but can also have the $\ident{list}\langl\tau\rangl$ type. Conversely, lists that contain
+  non-structural values like objects or options are not of type \ident{StructVal}.
+\item The two rules for checking class construction and member access are similar to corresponding
+  rules of Featherweight Java.  
+\end{itemize}
+%
+An important part of Featherweight Java that is omitted here is the checking of type declarations
+(ensuring the bodies of members are well-typed). We omit this, because it is not needed for the
+relativized safety theorem, which considers only classes generated by our type provider (which 
+are correct by construction).
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1546,9 +1602,16 @@ and wrapped in \ident{Some}.
 
 \subsection{Infering types from values}
 
-Before concluding the section on formalizing type providers, 
+Before concluding the section on formalizing type providers, there is one more missing piece. The
+common supertype algorithm in Section~\ref{sec:inference} discusses the core of the type inference for
+structural values, but we have not yet clarified how exactly it is used. We address this in the present
+section.
 
-
+Given a JSON, XML or CSV document, the F\# Data implementation constructs a structural value $s$
+from the sample (this is straightforward, but Section~\ref{sec:impl-parsing} discusses some interesting 
+aspects). The following defines a mapping $\semalt{-}$ which turns a sample value $s$ into a structural
+type $\sigma$:
+%
 \begin{equation*}
 \begin{array}{rclcrcl}
  \semalt{0} &\narrow{=}& \ident{bit} &\qquad& \semalt{1} &\narrow{=}& \ident{bit} \\
@@ -1558,28 +1621,44 @@ Before concluding the section on formalizing type providers,
 \end{array}
 \end{equation*}
 \noindent
+\vspace{-0.2em}
 \begin{equation*}
 \begin{array}{l}
- \semalt{[s_1; \ldots; s_n]} = [\sigma_n] \quad\textnormal{where}\\[0.1em]
- \qquad\sigma_0 = \top,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{s_i} \vdash \sigma_i
- \\[0.6em]
+ \semalt{[s_1; \ldots; s_n]} = [\semalt{s_1, \ldots, s_n}]
+ \\[0.5em]
  \semalt{\nu_{\ident{opt}}~\{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \}} =\\[0.1em]
  \qquad\nu_{\ident{opt}}~\{ \nu_1:\semalt{s_1}, \ldots, \nu_n :\semalt{s_n} \}
+ \\[0.5em]
+ \semalt{s_1, \ldots, s_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
+ \qquad\sigma_0 = \top,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{s_i} \vdash \sigma_i
 \end{array}
 \end{equation*}
+%
+Primitive values are mapped to their corresponding types, with the exception of $0$ and $1$, which
+are inferred as \ident{bit}. For records, we return a type with field types inferred based on 
+individual values. 
 
+The interesting part is inferring type based on multiple samples. We overload
+the notation and write $\semalt{s_1, \ldots, s_n}$ for a type inferred from multiple samples.
+This uses the common supertype relation to find a common type for all values (starting with $\top$).
+This operation is used at the top-level (when calling type provider with multiple samples)
+and also when inferring the type of a collection.
 
 % ==================================================================================================
 
 \section{Relativized type safety}
 \label{sec:safety}
-~
 
-We presented the system together with its syntactic equational theory and categorical semantics.
-The equational theory is presented in order to explain how the systems work, but it also
-provides a basis for an operational semantics for concrete systems. Exploring these, 
-and their connection to the denotational semantics, is further work. 
+Now that we have 
 
+\begin{theorem}[Relativized safety]
+Given samples $s_1, \ldots, s_n$, inferred type $\sigma=\semalt{s_1, \ldots, s_n}$ and generated 
+$\tau,e,L = \sem{\sigma}_x$ then:
+
+For all $s'$ such that $\exists i.s_i :> s'$, then for any $e$ such that $x:\ident{StructVal} \vdash e:\tau$
+it is the case that $e[x\leftarrow s'] \reduce^{*} v$ and $\vdash v : \tau$.
+
+\end{theorem}
 % - Safety property
 
 % ==================================================================================================
@@ -1592,6 +1671,9 @@ what if the sample is online??
 \section{Implementation}
 \label{sec:impl}
 ~
+
+
+\label{sec:impl-parsing}
 
 Turning JSON, CSV or XML to the idealized structured value presented here (esp. XML)
 
