@@ -1611,6 +1611,7 @@ and wrapped in \ident{Some}.
 % --------------------------------------------------------------------------------------------------
 
 \subsection{Infering types from values}
+\label{sec:formal-inferval}
 
 Before concluding the section on formalizing type providers, there is one more missing piece. The
 common supertype algorithm in Section~\ref{sec:inference} discusses the core of the type inference for
@@ -1718,7 +1719,7 @@ as sub-expressions, it is the case that $e_c[y\leftarrow e_s] \reduce^{*} v$ for
 also $\emptyset; \vdash v : \tau$.
 \end{theorem}
 \begin{proof}
-We discuss the two parts of the proof separately as type prservation (Lemma~\ref{thm:rs-preservation})
+We discuss the two parts of the proof separately as type preservation (Lemma~\ref{thm:rs-preservation})
 and progress (Lemma~\ref{thm:rs-progress}).
 \end{proof}
 
@@ -1785,39 +1786,199 @@ checked code are generated. Extending our formalism to capture this aspect is an
 relevant to other type providers -- including the World Bank type provider [?] that is also available
 in the F\# Data library.
 
+
+
+% ==================================================================================================
+%
+%   ###                                                                                     
+%    #  #    # #####  #      ###### #    # ###### #    # #####   ##   ##### #  ####  #    # 
+%    #  ##  ## #    # #      #      ##  ## #      ##   #   #    #  #    #   # #    # ##   # 
+%    #  # ## # #    # #      #####  # ## # #####  # #  #   #   #    #   #   # #    # # #  # 
+%    #  #    # #####  #      #      #    # #      #  # #   #   ######   #   # #    # #  # # 
+%    #  #    # #      #      #      #    # #      #   ##   #   #    #   #   # #    # #   ## 
+%   ### #    # #      ###### ###### #    # ###### #    #   #   #    #   #   #  ####  #    # 
+%
 % ==================================================================================================
 
 \section{Implementation}
 \label{sec:impl}
-~
 
-\subsection{Parsing}
+The theoretical model in Section~\ref{sec:formal} presents the core ideas behind the type 
+providers for structured data formats. However, an important part of the success of the F\# Data
+library is also its pragmatic approach, which makes it suitable for use with real-world data.
+
+The formal model discusses some of the pragmatic choices, such as the preference for records over 
+unions and the ability to treat $0$ and $1$ as both Booleans and numbers. In this section, we briefly
+discuss some of the remaining practical concerns, starting with the handling of collections.
+
+% -------------------------------------------------------------------------------------------------
+
+\subsection{Parsing strucutred values}
 \label{sec:impl-parsing}
-Turning JSON, CSV or XML to the idealized structured value presented here (esp. XML)  
 
-JSON - infering numbers from values (not just from actual value type - world bank example)
+In this paper, we treat the XML, JSON and CSV formats uniformly as \emph{structural values}.
+The definition of structural values is, indeed, rich enough to capture all three formats. The
+structure is similar to JSON (it has primitive values, records and collections). We also added
+\emph{named} records, which are needed for XML.
+%
+\begin{itemize}
+\item When reading JSON, we directly create a corresponding structural value (with all records unnamed).
+  Optionally, we also read numerical values (and dates) stored in strings.
+\item When reading CSV, we read each row as an unnamed record and return them in a collection.
+  Optionally, the read values are parsed as numbers or Booleans and missing values become \kvd{null}.
+\item When reading XML, we create a named record for each node. Attributes become record fields and
+  body becomes a special field named $\bullet$
+\end{itemize}
+%
+The reading of XML documents is perhaps the most interesting. To demonstrate how the body is treated,
+consider the following:
+%
+{\small{
+\begin{verbatim}
+  <root id="1">
+    <item>Hello!</item>
+  </root>    
+\end{verbatim}
+}}
+%
+\noindent
+This XML becomes a record named \ident{root} with fields \ident{id} and $\bullet$. The nested element
+contains only the $\bullet$ field containing the inner text:
+%
+\begin{equation*}
+\ident{root}~\{ \ident{id} \mapsto 1, \bullet \mapsto [ \ident{item}~\{ \bullet \mapsto \str{Hello!} \}] \}
+\end{equation*}
+%
+When generating types for types inferred from XML, we also include a special case to remove the $\bullet$
+node using the fact that this can be only a collection (of elements) or a primitive value.
 
-  
-\subsection{Unions}
-\label{sec:impl-unions}
-Mainly because type providers can only provide objects
+Finally, the XML type provider in F\# Data includes an additional option to use \emph{global inference}.
+In that case, the inference algorithm from Section~\ref{sec:formal-inferval} is replaced with an alternative
+that unifies the types of all records with the same name. This is useful when the sample is, for example,
+an XHTML document -- in this case, all occurrences of an element (\emph{e.g.}~{\small\ttfamily <a>})
+are treated as the same type.
 
-Unions become records with fields - so hiding null makes sense
-also it means the open-world semantics 
+% -------------------------------------------------------------------------------------------------
+
+\begin{figure*}
+\noindent
+\begin{equation*}
+\inference[(col)\;]
+  { \tytagof(\sigma_i) = \tytagof(\sigma'_i) \quad 
+    \sigma_i \tsep \sigma'_i \vdash \sigma''_i \quad
+    \phi_i \tsep \phi'_i \vdash \phi''_i \qquad (\forall i\in \{ 1 .. k \}) }
+  { \begin{array}{c}
+    [\sigma_1,\psi_1 | \ldots | \sigma_k,\psi_k | \ldots | \sigma_n,\psi_n ] \tsep 
+    [\sigma'_1,\psi'_1 | \ldots | \sigma'_k, \psi'_k | \ldots | \sigma'_m, \psi'_m ] \vdash\\[0.1em]
+    [\sigma''_1, \psi''_1 | \ldots | \sigma''_k, \psi''_k | 
+        \sigma_{k+1},\addopt{\psi_{k+1}} | \ldots | \sigma_{n},\addopt{\psi_{n}} |
+        \sigma'_{k+1},\addopt{\psi'_{k+1}} | \ldots | \sigma'_{m}, \addopt{\psi'_{m}} ]
+    \end{array} }
+\quad
+\begin{array}{rcl}
+ \\
+ \addopt{\phi} = \phi'&\narrow{\textnormal{such that}}&\phi \tsep 1? \vdash \phi' \\[0.1em]
+ \phi \tsep \phi' \vdash \phi&\narrow{\textnormal{when}}&\phi :> \phi' \\[0.1em]
+ \phi \tsep \phi' \vdash \phi'&\narrow{\textnormal{when}}&\phi' :> \phi
+\end{array}    
+\end{equation*}
+\caption{Inference judgement that defines the common supertype of two heterogeneous collections}
+\label{fig:subtyping-hetcol}
+\end{figure*}
+
+% -------------------------------------------------------------------------------------------------
 
 \subsection{Heterogeneous collections}
 \label{sec:impl-collections}
 
-Heterogeneous collections
+When introducing the XML type provider (Section~\ref{sec:providers-xml}), we briefly mentioned 
+that F\# Data implements a special handling of heterogeneous collections. In the example, the provider
+generated a type with \ident{Title} member of type \ident{string} (corresponding to a nested element
+{\ttfamily\small <title>} that appears exactly once) and \ident{Items} member (returning a list of
+values obtained from multiple {\ttfamily\small <item>} elements).
 
-\subsection{Practical experience}
+To capture this behaviour, we need to extend our earlier treatment of collections. Rather than storing
+a single type for the elements as in $[\sigma]$, we store multiple possible element types. However,
+this is not just a union type as we also store \emph{inferred multiplicity} of elements for 
+each of the types:
+%
+\begin{equation*}
+\begin{array}{rcl}
+ \psi &\narrow{=}& 1 \lsep 1? \lsep \ast \\
+ \sigma &\narrow{=}& ~\ldots \lsep [\sigma_1, \psi_1 | \ldots | \sigma_n, \psi_n ]
+\end{array}
+\end{equation*}
+%
+The multiplicities $1, 1?$ and $\ast$ represent \emph{exactly one}, \emph{zero or one} and \emph{zero or more},
+respectively. Thus, the inferred type of the collection in the RSS feed would be
+$[\ident{title}~\{ \ldots \}\;,1|\;\ident{item}~\{ \ldots \},\ast]$, which reads as a collection
+containing exactly one \ident{title} record and any number of \ident{item} records.
+
+The subtyping relation on heterogeneous collections specifies that a subtype can have fewer cases 
+provided that they do not have to appear exactly once. A subtype can also have a stricter specification
+of multiplicity (the ordering is $\ast :> 1? :> 1$). 
+
+Finding a common supertype of heterogeneous collections is analogous to the handling of union types.
+The key rule is (\emph{col}) in Figure~\ref{fig:subtyping-hetcol}. It merges cases with the same tag
+(by merging both the type and the multiplicity). For cases that appear only in one collection, we ensure
+that the multiplicity is \emph{zero or one} or \emph{zero or more} using the auxiliary definition
+$\addopt{-}$.
+
+% -------------------------------------------------------------------------------------------------
+  
+\subsection{Inferring and generating unions}
+\label{sec:impl-unions}
+
+The F\# Data type providers prefer types that do not contain unions (Theorem~\ref{thm:no-unions}).
+The motivation for this is twofold. First, the current support for type providers in the F\# compiler
+does not allow type providers to generate F\#-specific types (including discriminated unions). This
+means that the provided type cannot use idiomatic F\# representation. Second, when accessing data,
+using records aids the explorability -- when a value is a record, users can type ``.'' and most modern
+F\# editors provide auto-completion list with members. 
+
+This choice has an important desirable consequence -- it allows treating a union with additional 
+cases as a subtype of another union and, hence, the provided code is guaranteed to work on \emph{more}
+inputs. Consider a type that is either a \ident{Person} record or just a string. 
+The type provider exposes it as the following F\# class:
+%
+\begin{equation*}
+\begin{array}{l}
+ \kvd{type}~\ident{PersonOrString}~=  \\[0.1em]
+ \quad \kvd{member}~\ident{Person}~:~\ident{option}\langl \ident{Person}\rangl \\[0.1em]
+ \quad \kvd{member}~\ident{String}~:~\ident{option}\langl \ident{string}\rangl \\[0.1em]
+\end{array}
+\end{equation*}
+%
+If we provided an algebraic data type (discriminated union), the consumer would have to use pattern
+matching that would cover \emph{two} cases. The above type forces the user to also handle a third
+case, when both properties return \ident{None}. This also means that union types can silently skip
+over \kvd{null} values.
+
+That said, exposing a discriminated union (perhaps together with better tooling) is certainly an
+attractive alternative that we plan to consider in the future. This can also be combined with type 
+inference that chooses between records and union types based on some statistical metric (see
+related work in Section~\ref{sec:related}).
+
+% -------------------------------------------------------------------------------------------------
+
+\subsection{Practical experiences}
+
+Sample is captured at compile time. It can come from the web or not (cache locally if you want
+but from the web has nice implications).
+
+We dont know what to do about schema change at runtime
+(for some data sources, we could do more clever things though)
+
+In practice..
 Error handling - solve issues just add another example
 
 % ==================================================================================================
 
 \section{Related and future work}
-
+\label{sec:related}
 ~
+
+Statistical metric makes the safety even messier (probabilistic!)
 
 Write API
 
