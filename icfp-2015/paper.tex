@@ -16,6 +16,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{semantic}
 \usepackage{enumitem}
+\usepackage{flushend}
 
 % =================================================================================================
 
@@ -237,7 +238,7 @@ theoretical safety properties of the approach. The key novel contributions of th
 \end{itemize}
 
 \noindent
-Although the F\# Data library has been widely adopted is one of the most downloaded F\# libraries 
+Although the F\# Data library \cite{fsharp-data} has been widely adopted is one of the most downloaded F\# libraries 
 it has not yet been presented in an academic form. Additional documentation and source code can 
 be found at \url{http://fsharp.github.io/FSharp.Data}.
 
@@ -1963,34 +1964,74 @@ related work in Section~\ref{sec:related}).
 
 \subsection{Practical experiences}
 
-Sample is captured at compile time. It can come from the web or not (cache locally if you want
-but from the web has nice implications).
+An important concern about using F\# Data in practice is the handling of schema change. When using a
+type provider, the sample is captured at compile-time. If the schema changes later (so that the actual
+input is no longer a subtype of the samples), the program using the type provider fails at run-time
+and it is the developer's responsibility to handle the exception. However, this is the same problem that
+happens when reading data using any other library.
 
-We dont know what to do about schema change at runtime
-(for some data sources, we could do more clever things though)
+F\# Data can help discover such errors earlier. The example in Section~\ref{sec:introduction}
+points the JSON type provider to a sample using a live URL. This has the advantage that a re-compilation 
+fails when the schema changes, which is an indication that the program needs to be updated to reflect the
+change. If this is undesirable, it is always possible to cache the sample locally.
 
-In practice..
-Error handling - solve issues just add another example
+In general, there is no better solution for plain XML, CSV and JSON data sources. Some data sources provide 
+versioning support (with meta-data about how the schema changed). For those, a type 
+provider could adapt automatically, but we leave this for future.
+
+An approach that we find useful in practice is to keep a set of samples. When the program fails at run-time
+(because a service returned data in an unexpected format), the new input can be added as an additional sample,
+which then shows what parts of code need to be modified.
 
 % ==================================================================================================
 
 \section{Related and future work}
 \label{sec:related}
-~
 
-Statistical metric makes the safety even messier (probabilistic!)
+The F\# Data library connects two lines of research that have been previously disconnected. The first is 
+extending the type systems of programming languages to accommodate external data sources and the second
+is inferring types for real-world data sources.
 
-Write API
+The type provider mechanism has been introduced in F\# \cite{fsharp-typeprov,fsharp-typeprov-ddfp}, 
+added to Agda \cite{agda-tp} and used in areas such as semantic web \cite{liteq}. Our paper is novel 
+in that it shows the programming language theory behind a concrete type providers. 
 
-~
+\paragraph{Extending the type systems.} 
+A number of systems integrate external data formats into a programming language. Those include 
+XML \cite{xduce,xduce-ml} and databases \cite{links}. In both of these, the system either requires
+the user to explicitly define the schema (using the host language) or it has an ad-hoc extension 
+that reads the schema (\emph{e.g.}~from a database). LINQ \cite{linq} is more general, but relies
+on code generation when importing the schema.
 
-F\# and Agda type providers
+The work that is most similar to F\# Data is the XML and SQL integration in C$\omega$ \cite{comega-xs}.
+It extends a C\# like object-oriented language with types similar to our structured types 
+(including nullable types, choices with subtyping and heterogeneous collections with multiplicities).
+However, C$\omega$ does not infer the types from samples and extends the type system of the host
+language (rather than using a general purpose embedding mechanism).
 
-Kathleen Fisher's work
+\paragraph{Advanced type systems.}
+Aside from type providers, a number of other advanced type system features could be used to
+tackle the problem discussed in this paper. The Ur \cite{ur} language has a rich system for working
+with records; meta-programming \cite{template-hask}, \cite{th-camlp4} and multi-stage programming \cite{multi-stage}
+could be used to generate code for the provided types. However, as far as we are aware, none of these 
+systems have been used to provide the same level of integration with XML, CSV and JSON.
 
-JSON inference stuff
+Another approach would be to use gradual typing \cite{gradual,gradual-js} and add types for structured
+data formats to existing dynamic language to check, for example, JSON manipulation in JavaScript.
 
-LINQ and XML stuff
+\paragraph{Typing real-world data.}
+The second line of research related to our work focuses on inferring structure of real-world data sets.
+A recent work on JSON \cite{typing-json} infers a succinct type using MapReduce to handle large number
+of samples. It fuses similar types based on a type similarity measure. This is more sophisticated than
+our technique, but it would make formally specifying the safety properties (Theorem~\ref{thm:safety}) difficult.
+Extending our \emph{relativized safety} property to a \emph{probabilistic safety} is an interesting 
+future work.
+
+The PADS project \cite{pads-dsl,pads-ml} tackles a more general problem of handling \emph{any} data format.
+The schema definitions in PADS are similar to our structural type. The structure inference for LearnPADS
+\cite{pads-learn} infers the data format from a flat input stream. A type provider for PADS could follow
+many of the patterns we explore in this paper, but formally specifying the safety property would be
+challenging.
 
 \section{Conclusions}
 \label{sec:conclusions}
@@ -2002,19 +2043,11 @@ LINQ and XML stuff
 \acks
 Acknowledgments, if needed.
 
-% We recommend abbrvnat bibliography style.
+
+\cite{age-of-web}
 
 \bibliographystyle{abbrvnat}
-
-% The bibliography should be embedded for final submission.
-
-\begin{thebibliography}{}
-\softraggedright
-
-\bibitem[Smith et~al.(2009)Smith, Jones]{smith02}
-P. Q. Smith, and X. Y. Jones. ...reference text...
-
-\end{thebibliography}
+\bibliography{paper}
 
 
 \end{document}
