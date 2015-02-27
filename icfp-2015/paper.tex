@@ -22,10 +22,8 @@
 
 % TODO: The model here does not actually use type erasure!!
 % TODO: Maybe get rid of \mu_opt for records everywhere
-% TODO: Disambigurate 's' as structural value and 's' as string
 % TODO: Explain why we can only provide simple classes (!)
 % TODO: Replace \nu_opt with \nu_? or something else that does not look shit
-% TODO: Cleanup "strucutred" vs "structural"
 % TODO: Insert a few more mentions of why "s1 + s2 <: s1 + s2 + s3" is valid (cannot do complete pattern match)
 
 \urlstyle{sf}
@@ -650,7 +648,7 @@ necessarily be a good fit for other languages).
 \subsection{Subtyping relation}
 \label{sec:inference-subtyping}
 
-To provide a basic intuition, the subtyping relation between structured types is illustrated in
+To provide a basic intuition, the subtyping relation between structural types is illustrated in
 Figure~\ref{fig:subtyping-diagram}. We split the diagram in two parts. The upper part shows 
 non-nullable types (with records and primitive types). The lower part shows nullable types with 
 \kvd{null}, collections and optional values. We omit links between the two part, but any type
@@ -997,7 +995,7 @@ empty string). These choices are based on experience with using F\# Data in prac
 \subsection{Common supertype relation}
 \label{sec:inference-commonsuper}
 
-As mentioned earlier, the structured type inference relies on a finding common supertype. However,
+As mentioned earlier, the structural type inference relies on a finding common supertype. However,
 the partially ordered set of types does not have a unique greatest lower bound. For example, record types
 $\{\ident{a}:\ident{int}\}$ and $\{\ident{b}:\ident{bool}\}$ have common supertypes
 $\{\ident{?a}:\ident{int}, \ident{?b}:\ident{bool}\}$ and $\{\ident{a}:\ident{int}\} + \{\ident{b}:\ident{bool}\}$
@@ -1135,7 +1133,7 @@ no other inference rule can be applied.
 
 In this section, we build the necessary theoretical framework for proving the relativised type safety 
 property of F\# Data type providers in Section~\ref{sec:safety}. We start by discussing the runtime 
-representation of structured values and runtime conversions (Section~\ref{sec:formal-convert}). Then 
+representation of structural values and runtime conversions (Section~\ref{sec:formal-convert}). Then 
 we embed these into a formal model of an F\# subset that is necessary for discussing type providers 
 (Section~\ref{sec:formal-ff}) and we describe how F\# Data type providers turn an inferred 
 structural type into actual F\# code (Section~\ref{sec:formal-tp}).
@@ -1148,8 +1146,9 @@ structural type into actual F\# code (Section~\ref{sec:formal-tp}).
 In the model presented here, we represent JSON, XML and CSV documents using the same 
 \emph{structural value}\footnote{Here, we diverge from the actual implementation in F\# Data which 
 uses a different implementation for each format (reusing existing libraries).}. Structural values are 
-first-order and can be one of the primitive values (Boolean, string, integer, decimal and float), a 
-missing value (\kvd{null}), a collection and a record (named or unnamed):
+first-order and can be one of the primitive values (Boolean \kvd{true} or \kvd{false}, string $t$, 
+integer $i$, decimal $d$ and floating-point number $f$), a missing value (\kvd{null}), a collection 
+and a record (named or unnamed):
 %
 \begin{equation*}
 \begin{array}{lcl}
@@ -1173,7 +1172,7 @@ value \num{1} can be treated as \kvd{true}). These are captured by the following
 \begin{array}{lcl}
  op &\narrow{=}& \ident{asInt}(s) \lsep \ident{asDec}(s) \lsep \ident{asFloat}(s) \lsep \ident{asBool}(s)  \\
     &\narrow{|}& \ident{asStr}(s) \lsep \ident{getChildren}(s) \lsep \ident{getField}(\nu_{\ident{opt}}, \nu, s)\\
-    &\narrow{|}& \ident{isNull}(s) \lsep \ident{isTag}(t, s)
+    &\narrow{|}& \ident{isNull}(s) \lsep \ident{isTag}(\ident{tag}, s)
 \end{array}
 \end{equation*}
 %
@@ -1298,7 +1297,7 @@ that we need later.
 \end{equation*}
 
 \noindent
-In the above definition, $\tau$ denotes types including a type of all structured values $s$ called
+In the above definition, $\tau$ denotes types including a type of all structural values $s$ called
 \ident{StructVal}. A class definition $L$ consists of a constructor and zero or more members. Values $v$ include 
 previously defined structural values $s$ and values for the option and list type; finally expressions $e$ include 
 previously defined operations $op$, class construction, member access, conditionals and expressions for working 
@@ -1383,7 +1382,7 @@ $L; \Gamma \vdash e : \tau$ where the context also contains a set of class decla
 The rules demonstrate the key difference between our language and standard ML or Featherweight Java:
 %
 \begin{itemize}[noitemsep]
-\item[--] All structured values $s$ have a type \ident{StructVal}. Some of those have other types
+\item[--] All structural values $s$ have a type \ident{StructVal}. Some of those have other types
   (primitive integers, decimals, floats, strings and Booleans as illustrated by the rule for $n$).
   For other values, \ident{StructVal} is the only type -- this includes records and \kvd{null}.
 \item[--] A list containing other structural values $[s_1; \ldots; s_n]$ has a type \ident{StructVal}.  
@@ -1499,7 +1498,7 @@ are correct by construction).
 \subsection{Type providers}
 \label{sec:formal-tp}
 
-So far, we defined the type inference algorithm for structured data formats which produces a structured
+So far, we defined the type inference algorithm for structured data formats which produces a structural
 type $\sigma$ based on one or more sample documents (Section~\ref{sec:inference}). In Section~\ref{sec:formal-ff},
 we defined a simplified model of F\# language and evaluation, which also included conversions that
 model the F\# Data library runtime (Section~\ref{sec:formal-tp}). In this section, we define how
@@ -1512,7 +1511,7 @@ Here, we treat the code as actually generated. This is an acceptable simplificat
 rely on laziness that is available through erased types.}. 
 
 \paragraph{Type provider mapping.}
-When generating types, the type provider produces an F\# type $\tau$, expression that wraps a structured 
+When generating types, the type provider produces an F\# type $\tau$, expression that wraps a structural 
 document value (of type \ident{StructVal}) as a value of type $\tau$ and a collection of class definitions. 
 We express it using the following mapping:
 %
@@ -1520,8 +1519,8 @@ We express it using the following mapping:
 \sem{-}_e : \sigma \rightarrow \tau \times e' \times L
 \end{equation*}
 %
-The semantics is parameterized by an expression $e$, which represents code to obtain a structured value that is
-being wrapped. Then, given an inferred structured type $\sigma$, the type provider produces an F\# type $\tau$,
+The semantics is parameterized by an expression $e$, which represents code to obtain a structural value that is
+being wrapped. Then, given an inferred structural type $\sigma$, the type provider produces an F\# type $\tau$,
 an expression $e'$ which constructs a value of type $\tau$ using $e$ and also a set of class definitions $L$.
 
 Figure~\ref{fig:tp-generation} shows the rules that define $\sem{-}_e$. Primitive types are all
@@ -1529,10 +1528,10 @@ handled by a single rule. For a given structural type, it returns the correspond
 mapped directly with the exception of \ident{bit}, which becomes an F\# \ident{bool}. The generated code calls
 an appropriate conversion function from Figure~\ref{fig:op-conversions} on the input.
 
-Handling of records is more interesting. We generate a new class $C$ that takes a structured value as constructor
+Handling of records is more interesting. We generate a new class $C$ that takes a structural value as constructor
 parameter. For each record field, we generate a new member with the same name as the field\footnote{The actual
 F\# Data implementation also capitalizes the names.} The body of the member calls \ident{getField} and then
-passes this expression to $\sem{\sigma_i}$ which adds additional wrapping that maps the field (structured value
+passes this expression to $\sem{\sigma_i}$ which adds additional wrapping that maps the field (structural value
 of type $\sigma_i$) into an F\# type $\tau_i$. The returned expression creates a new instance of $C$ and
 the mapping returns the class $C$ together with all recursively generated definitions.
 
@@ -1573,7 +1572,7 @@ constructor. Note that \ident{getField} is defined even when the field does not 
 This lets us treat missing fields as optional fields. The \ident{Name} member is similar, but does not 
 perform any checks. 
 For completeness, a type corresponding to the record is \ident{Person} and given a 
-structural document $s$, we create a \ident{Person} value by calling $\kvd{new}~\ident{Person}(s)$.
+structural value $s$, we create a \ident{Person} value by calling $\kvd{new}~\ident{Person}(s)$.
 
 \paragraph{Example 2.} The second example illustrates the remaining parts of the type provision,
 including collections and union types. Reusing the \ident{Person} type from the previous example,
@@ -1814,7 +1813,7 @@ discuss some of the remaining practical concerns, starting with the handling of 
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Parsing structured values}
+\subsection{Parsing structured data}
 \label{sec:impl-parsing}
 
 In this paper, we treat the XML, JSON and CSV formats uniformly as \emph{structural values}.
@@ -2004,7 +2003,7 @@ that reads the schema (\emph{e.g.}~from a database). LINQ \cite{linq} is more ge
 on code generation when importing the schema.
 
 The work that is most similar to F\# Data is the XML and SQL integration in C$\omega$ \cite{comega-xs}.
-It extends a C\# like object-oriented language with types similar to our structured types 
+It extends a C\# like object-oriented language with types similar to our structural types 
 (including nullable types, choices with subtyping and heterogeneous collections with multiplicities).
 However, C$\omega$ does not infer the types from samples and extends the type system of the host
 language (rather than using a general purpose embedding mechanism).
@@ -2029,7 +2028,7 @@ future work.
 
 The PADS project \cite{pads-dsl,pads-ml} tackles a more general problem of handling \emph{any} data format.
 The schema definitions in PADS are similar to our structural type. The structure inference for LearnPADS
-\cite{pads-learn} infers the data format from a flat input stream. A type provider for PADS could follow
+\cite{pads-learn} infers the data format from a flat input stream. A PADS type provider could follow
 many of the patterns we explore in this paper, but formally specifying the safety property would be
 challenging.
 
