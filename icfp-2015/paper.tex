@@ -341,7 +341,7 @@ sample for the type inference, but then processes data from another source.
 The notation $\ident{JsonProvider}\langl\str{people.json}\rangl$ on the first line passes a 
 \emph{static parameter} to the type provider. Static parameters are resolved at compile-time, 
 so the file name has to be a constant. The provider analyzes the sample and generates
-a type that we name \ident{People}. In F\# editors that use the F\# Compiler Service [?], the 
+a type that we name \ident{People}. In F\# editors that use the F\# Compiler Service, the 
 type provider is also executed at development-time and so the same provided types are
 used in code completion.
 
@@ -438,7 +438,7 @@ Finally, the fields \ident{Ozone} and \ident{Temp} have types \ident{decimal} an
 $\ident{option}\langl\ident{int}\rangl$.
 
 \paragraph{Erasing type providers.}
-At runtime, the type providers we describe use an erasure mechanism similar to Java Generics [?]. 
+At runtime, the type providers we describe use an erasure mechanism similar to Java Generics \cite{java-erasure}. 
 A type provider also generates code that is executed in place of the members of the generated types.
 In the above example, the compiled (and actually executed) code looks as follows:
 %
@@ -461,7 +461,7 @@ element.
 
 The type erasure mechanism is explained in our simplified formal model in Section~\ref{sec:formal}.
 More details about the full implementation in F\# can be found in the paper on F\# type 
-providers [?].
+providers \cite{fsharp-typeprov}.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -551,7 +551,7 @@ world inputs (missing data, inconsistent encoding of Booleans and heterogeneous 
 
 From looking at just the previous three examples, these may appear arbitrary, but our experience
 suggests that they are the most common issues. The following JSON response with government debt
-information returned by the World Bank API [?] demonstrates all three problems:
+information returned by the World Bank API demonstrates all three problems:
 %
 {\small{
 \begin{verbatim}
@@ -1278,7 +1278,7 @@ The semantics fragment introduced in the previous section discusses values and o
 F\# Data. This section adds a minimal subset of the standard F\# language.
 
 We focus on the object system (which is what F\# type providers produce) and so the following combines 
-standard ML [?] features with Featherweight Java [?] classes. However, we only need classes with properties and
+standard ML \cite{sml} features with Featherweight Java \cite{fwjava} classes. However, we only need classes with properties and
 without inheritance. A class has a single implicit constructor and the declaration closes over 
 constructor parameters. To avoid including all of ML, we only select constructs for working with options and lists
 that we need later.
@@ -1507,8 +1507,8 @@ the type providers work, which links the two aspects discussed so far.
 
 The type providers for XML, CSV and JSON all work in the same way. They take sample documents and infer a common
 supertype $\sigma$ from the samples. From $\sigma$, they then generate F\# types that are then exposed to the
-programmer\footnote{The actual implementation provides \emph{erased types} as described in [?]. Here, we treat
-the code as actually generated. This is an acceptable simplification, because F\# Data type providers do not 
+programmer\footnote{The actual implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. 
+Here, we treat the code as actually generated. This is an acceptable simplification, because F\# Data type providers do not 
 rely on laziness that is available through erased types.}. 
 
 \paragraph{Type provider mapping.}
@@ -1704,7 +1704,7 @@ Now that we know that the provided types are correct with respect to the subtypi
 look at the main theorem of the paper. It statest that, for any input (which is a subtype of any of the
 samples) and any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 
-Using the standard approach to syntactic type safety [?], we prove the type preservation 
+Using the standard approach to syntactic type safety  \cite{syntactic}, we prove the type preservation 
 (reduction does not change type) and progress (an expression that is not a value can be reduced).
 
 \begin{theorem}[Relativized safety]
@@ -1765,8 +1765,8 @@ The cases for the ML subset are standard. For member access, we rely on Lemma~\r
 
 The \emph{relativized safety} property does not guarantee the same amount of safety as standard type safety
 for programming langauges without type providers. However, it reflects the reality of programming with external
-data sources that is increasingly important in the age of web [?]. So, type providers do not reduce the safety
--- they simply make the existing issues visible.
+data sources that is increasingly important in the age of web \cite{age-of-web}. So, type providers do not
+reduce the safety -- they simply make the existing issues visible.
 
 The actual implementation in F\# Data throws an exception for invalid inputs. In contrast, the calculus
 presented here simply gets stuck. We could extend the calculus with exceptions, but that would obscure the 
@@ -1784,7 +1784,7 @@ here, we do not use the \emph{type erasure} mechanism, but treat type providers 
 generating code. For XML, CSV and JSON, both models can be used. However, one interesting aspect of erasing 
 type providers is that the types can be generated lazilly -- only classes that are actually used in the type
 checked code are generated. Extending our formalism to capture this aspect is an interesting future work
-relevant to other type providers -- including the World Bank type provider [?] that is also available
+relevant to other type providers -- including the World Bank type provider that is also available
 in the F\# Data library.
 
 
@@ -2036,15 +2036,32 @@ challenging.
 \section{Conclusions}
 \label{sec:conclusions}
 
-  - Prime example of type providers, explores relativized type safety
-  - Used by industry, downloads, tested, etc. 
-  - Predictable yet powerful type inference
+In this paper, we explored the F\# Data type providers for structured data formats such as XML, CSV and JSON.
+As most real-world data do not come with an explicit schema, the library uses \emph{type inference} that
+deduces a type from a set of samples. Next, it uses the \emph{type provider} mechanism to integrate the 
+inferred type directly into the F\# type system.
+
+The type inference algorithm we use is based on a common supertype relation. For usability reasons, the
+algorithm attempts to infer type that does not contain unions and prefers records with optional fields instead.
+The algorithm is simple and predictable, which is important as developers need to understand how changing the
+samples affects the resulting types.
+
+In the second part of the paper, we explore the programming language theory behind type providers. F\# Data
+is a prime example of type providers, but our work also demonstrates a more general point. The types generated
+by type providers can depend on external input (such as samples) and so we can only formulate \emph{relativized
+safety property}, which says that a program is safe only if the actual inputs satisfy additional conditions --
+in our case, they have to be subtypes of one of the samples.
+
+The type provider mechanism has been described before, but this paper is novel in that it explores concrete
+type providers from the perspective of programming language theory. This is particularly important as the
+F\# Data library is becoming de-facto standard tool for data access in F\#\footnote{At the time of writing, 
+the library has 37,000 downloads on NuGet; over 1600 commits and 36 contributors on GitHub.} and other 
+languages are begining to adopt mechanisms similar to F\# type providers.
 
 \acks
-Acknowledgments, if needed.
+We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
+including Jomo Fisher, Keith Battocchi and Kenji Takeda.
 
-
-\cite{age-of-web}
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
