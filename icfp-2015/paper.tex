@@ -489,7 +489,7 @@ containing child nodes of different names. Consider the following (simplified) R
 \noindent
 The \ident{channel} node contains a single \ident{title} node (with the name of the feed) and multiple 
 \ident{item} nodes (individual news articles). In RSS, the \ident{title} nodes always contain plain text,
-while \ident{item} nodes contain \ident{title} (and also \ident{url} and othe properties omitted here).
+while \ident{item} nodes contain \ident{title} (and also \ident{url} and other properties omitted here).
 
 When extracting data from such XML documents, we often need to get nodes of a specific name (all
 items) or extract the content of a node (feed title). The XML type provider is optimized for 
@@ -607,7 +607,7 @@ precise in Section~\ref{sec:formal} before discussing safety in Section~\ref{sec
 \subsection{Structural types}
 \label{sec:inference-types}
 
-The grammar below defines \emph{structural type} $\sigma$. We distinguish between \emph{non-nullale types}
+The grammar below defines \emph{structural type} $\sigma$. We distinguish between \emph{non-nullable types}
 that always have a valid value (written as $\hat{\sigma}$) and \emph{nullable types} that encompass missing 
 and \kvd{null} values (written as $\sigma$). We write $\nu$ for record field names and $\nu_{\ident{opt}}$
 for record names, which can be empty:
@@ -641,7 +641,7 @@ Finally, a union type in our model implicitly permits the \kvd{null} value. This
 types are \emph{not} mapped to F\# union types. Instead our encoding requires the user to handle the 
 cases one-by-one and so they also need to handle the situation when none of the cases matches (as discussed
 in Section~\ref{sec:impl-unions}, this is the right choice for an F\# type provider, but it would not 
-necessarilly be a good fit for other languages).
+necessarily be a good fit for other languages).
 
 % TODO: Also include reference to section with more on heterogeneous collections.
 
@@ -1026,7 +1026,7 @@ the following helper definition:
 \end{array}
 \end{equation*}
 %
-Finding a common supertype of when one type is a union is more complicated. Our definiion aims to 
+Finding a common supertype of when one type is a union is more complicated. Our definition aims to 
 use a flat structure (avoid nesting unions) and limit the number of cases. This is done by grouping
 types that have a common supertype which is not a union type. For example, rather than inferring 
 $\ident{int} + (\ident{bool} + \ident{decimal})$, our algorithm will find the common supertype of
@@ -1193,7 +1193,7 @@ The conversion functions follow this approach. They perform conversions required
 \item \textbf{Conversions.} Additional conversions are not strictly required, but prove useful in practice.
   These include converting to a smaller numerical type (such as float to integer) written as $i=\lfloor f\rfloor$,
   which is not defined in case of arithmetic overflow; conversion to and from string values written as
-  ``$t$~represents~$i$'', which parses or formats a non-string value and also trating of decimals 
+  ``$t$~represents~$i$'', which parses or formats a non-string value and also treating of decimals 
   0.0 and 1.0 as Booleans.
 
 \item \textbf{Structural operations.} Aside from primitives, the \ident{getChildren} operation returns treats
@@ -1576,7 +1576,7 @@ For completeness, a type corresponding to the record is \ident{Person} and given
 structural document $s$, we create a \ident{Person} value by calling $\kvd{new}~\ident{Person}(s)$.
 
 \paragraph{Example 2.} The second example illustrates the remaining parts of the type provision,
-including collections and union types. Teusing the \ident{Person} type from the previous example,
+including collections and union types. Reusing the \ident{Person} type from the previous example,
 consider a collection $[\ident{Person}+\ident{string}]$, which contains a mix of \ident{Person} and string values.
 
 \noindent
@@ -1611,7 +1611,7 @@ and wrapped in \ident{Some}.
 
 % --------------------------------------------------------------------------------------------------
 
-\subsection{Infering types from values}
+\subsection{Inferring types from values}
 \label{sec:formal-inferval}
 
 Before concluding the section on formalizing type providers, there is one more missing piece. The
@@ -1675,7 +1675,7 @@ sample documents. Going back to Section~\ref{sec:inference-subtyping}, this mean
 \begin{itemize}[noitemsep]
 \item[--] Input can contain smaller numerical values (for example, if a sample contains float, the input can contain an integer).
 \item[--] Records in the actual input can have additional fields
-\item[--] Records in the actual input can have fewer fileds, provided that the type of the fields is marked as optional in the sample
+\item[--] Records in the actual input can have fewer fields, provided that the type of the fields is marked as optional in the sample
 \item[--] Union types in the input can have both fewer or more cases
 \item[--] When we have a union type in the sample, the actual input can also contain just values of one of the union cases
 \end{itemize}
@@ -1701,7 +1701,7 @@ works on \kvd{null} values, \ident{getField} returns \kvd{null} when a field is 
 
 \noindent
 Now that we know that the provided types are correct with respect to the subtyping relation, we can
-look at the main theorem of the paper. It statest that, for any input (which is a subtype of any of the
+look at the main theorem of the paper. It states that, for any input (which is a subtype of any of the
 samples) and any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 
 Using the standard approach to syntactic type safety  \cite{syntactic}, we prove the type preservation 
@@ -1744,7 +1744,7 @@ part are the conversion functions (Figure~\ref{fig:op-conversions}). Given a str
 not have a structure required by a specific conversion function used.
 
 The Lemma~\ref{thm:tp-correctness} guarantees that this does not happen. In Theorem~\ref{thm:safety},
-we carefuly state that we only consider expressions $e_c$ which ``[do] not contain any structural 
+we carefully state that we only consider expressions $e_c$ which ``[do] not contain any structural 
 values as sub-expressions''. This makes sure that the only code working with structural values is the
 code generated by the type provider.
 
@@ -1764,7 +1764,7 @@ The cases for the ML subset are standard. For member access, we rely on Lemma~\r
 \label{sec:safety-discuss}
 
 The \emph{relativized safety} property does not guarantee the same amount of safety as standard type safety
-for programming langauges without type providers. However, it reflects the reality of programming with external
+for programming languages without type providers. However, it reflects the reality of programming with external
 data sources that is increasingly important in the age of web \cite{age-of-web}. So, type providers do not
 reduce the safety -- they simply make the existing issues visible.
 
@@ -1782,7 +1782,7 @@ on member access.
 Finally, the formal model presented here ignores two aspects of the real type provider mechanisms. As discussed
 here, we do not use the \emph{type erasure} mechanism, but treat type providers as if they were actually 
 generating code. For XML, CSV and JSON, both models can be used. However, one interesting aspect of erasing 
-type providers is that the types can be generated lazilly -- only classes that are actually used in the type
+type providers is that the types can be generated lazily -- only classes that are actually used in the type
 checked code are generated. Extending our formalism to capture this aspect is an interesting future work
 relevant to other type providers -- including the World Bank type provider that is also available
 in the F\# Data library.
@@ -1814,7 +1814,7 @@ discuss some of the remaining practical concerns, starting with the handling of 
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Parsing strucutred values}
+\subsection{Parsing structured values}
 \label{sec:impl-parsing}
 
 In this paper, we treat the XML, JSON and CSV formats uniformly as \emph{structural values}.
@@ -2056,7 +2056,7 @@ The type provider mechanism has been described before, but this paper is novel i
 type providers from the perspective of programming language theory. This is particularly important as the
 F\# Data library is becoming de-facto standard tool for data access in F\#\footnote{At the time of writing, 
 the library has 37,000 downloads on NuGet; over 1600 commits and 36 contributors on GitHub.} and other 
-languages are begining to adopt mechanisms similar to F\# type providers.
+languages are beginning to adopt mechanisms similar to F\# type providers.
 
 \acks
 We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
