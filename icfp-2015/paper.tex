@@ -607,12 +607,12 @@ precise in Section~\ref{sec:formal} before discussing safety in Section~\ref{sec
 
 The grammar below defines \emph{structural type} $\sigma$. We distinguish between \emph{non-nullable types}
 that always have a valid value (written as $\hat{\sigma}$) and \emph{nullable types} that encompass missing 
-and \kvd{null} values (written as $\sigma$). We write $\nu$ for record field names and $\nu_{\ident{opt}}$
+and \kvd{null} values (written as $\sigma$). We write $\nu$ for record field names and $\nu?$
 for record names, which can be empty:
 %
 \begin{equation*}
 \begin{array}{rcl}
- \hat{\sigma} &\narrow{=}& \nu_{\ident{opt}}\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
+ \hat{\sigma} &\narrow{=}& \nu?\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
                 &\narrow{|}& \ident{float} \lsep \ident{decimal} \lsep \ident{int} \lsep \ident{bit} \lsep \ident{bool} \lsep \ident{string} 
  \\[0.6em] 
        \sigma &\narrow{=}& ~\hat{\sigma}~ \lsep \hat{\sigma}\;\,\kvd{option} \lsep [\sigma] \\[0.1em]
@@ -696,25 +696,25 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \begin{align}
 \hspace{-1em}
 \label{eq:sub-record1}\tag{R1}
- \nu~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> 
- \nu~\{ \nu_1\!:\!\sigma_1', .., \nu_n\!:\!\sigma_n' \}
- \;\; (\sigma_i :> \sigma_i')
+ \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em}:> \hspace{-0.1em}
+ \nu?~\{ \nu_1\!:\!\sigma_1', .., \nu_n\!:\!\sigma_n' \}
+ \; (\sigma_i \hspace{-0.25em}:>\hspace{-0.25em} \sigma_i')
 \end{align}
 \vspace{-1.4em}
 \begin{align}
 \hspace{-1em}
 \label{eq:sub-record2}\tag{R2}
- \nu~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> 
- \nu~\{ \nu_1\!:\!\sigma_1, .., \nu_m\!:\!\sigma_m \}
- \;\; (m \geq n)
+ \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em} :> \hspace{-0.1em}
+ \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_m\!:\!\sigma_m \}
+ \; (m \hspace{-0.1em}\geq\hspace{-0.1em} n)
 \end{align}
 \vspace{-1.0em}
 \begin{align}
 \label{eq:sub-record3}\tag{R3}
 \hspace{-1.75em}
 \begin{array}{l}
- \nu~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
- \nu~\{ \nu_{\pi(1)}\!:\!\sigma_{\pi(1)}, .., \nu_{\pi(m)}\!:\!\sigma_{\pi(m)} \}
+ \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
+ \nu?~\{ \nu_{\pi(1)}\!:\!\sigma_{\pi(1)}, .., \nu_{\pi(m)}\!:\!\sigma_{\pi(m)} \}
 \end{array} \qquad &(\textnormal{permutation}~\pi)
 \end{align}
 \vspace{-0.6em}
@@ -722,8 +722,8 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \label{eq:sub-record4}\tag{R4}
 \hspace{-1.75em}
 \begin{array}{l}
- \nu~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n, \nu_{n+1}\!:\!\kvd{null}, .., \nu_{n+m}\!:\!\kvd{null} \} :> \\
- \nu~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \}
+ \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n, \nu_{n+1}\!:\!\kvd{null}, .., \nu_{n+m}\!:\!\kvd{null} \} :> \\
+ \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \}
 \end{array}
 \end{align}
 \end{definition}
@@ -750,9 +750,9 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
   { (\nu_i = \nu'_j \Leftrightarrow (i = j) \wedge (i \leq k))
       \qquad \forall i\in\{ 1 .. k \}.(\sigma_i \tsep \sigma'_i \vdash \sigma''_i) }
   { \begin{array}{l}
-    \nu \; \{ \nu_1 : \sigma_1,  \; \ldots \;, \nu_k : \sigma_k, \; \ldots \;, \nu_n : \tau_n \} \tsep
-    \nu \; \{ \nu'_1 : \sigma'_1, \; \ldots \;, \nu'_k : \sigma'_k, \; \ldots \;, \nu'_m : \tau'_m \} \vdash\\
-    \nu \; \{ \nu_1 : \sigma''_1, \; \ldots \; , \nu_k : \sigma''_k, 
+    \nu? \; \{ \nu_1 : \sigma_1,  \; \ldots \;, \nu_k : \sigma_k, \; \ldots \;, \nu_n : \tau_n \} \tsep
+    \nu? \; \{ \nu'_1 : \sigma'_1, \; \ldots \;, \nu'_k : \sigma'_k, \; \ldots \;, \nu'_m : \tau'_m \} \vdash\\
+    \nu? \; \{ \nu_1 : \sigma''_1, \; \ldots \; , \nu_k : \sigma''_k, 
                             \nu_{k+1} : \addopt{\sigma_{k+1}}, \ldots, \nu_n : \addopt{\sigma_n},
                             \nu'_{k+1} : \addopt{\sigma'_{k+1}}, \ldots, \nu'_m : \addopt{\sigma'_m} \}
     \end{array} }
@@ -788,12 +788,12 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 \end{equation*}
 
 \begin{equation*}
-\hspace{2em}
-\inference[(order)\;]
-  { \nu \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \tsep \sigma \vdash \sigma' }
-  { \nu \; \{ \nu_{\pi(1)} : \sigma_{\pi(1)}, \ldots, \nu_{\pi(n)} : \sigma_{\pi(n)} \} \tsep \sigma \vdash \sigma' }
+\hspace{1em}
+\inference[(order-1)\;]
+  { \nu? \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \tsep \sigma \vdash \sigma' }
+  { \nu? \; \{ \nu_{\pi(1)} : \sigma_{\pi(1)}, \ldots, \nu_{\pi(n)} : \sigma_{\pi(n)} \} \tsep \sigma \vdash \sigma' }
 \quad
-\inference
+\inference[(order-2)\;]
   { \sigma_1 + \ldots + \sigma_n \tsep \sigma \vdash \sigma' }
   { \sigma_{\pi(1)} + \ldots + \sigma_{\pi(n)} \tsep \sigma \vdash \sigma' }
 \qquad (\pi~\textnormal{permutation})  
@@ -1171,7 +1171,7 @@ value \num{1} can be treated as \kvd{true}). These are captured by the following
 \begin{equation*}
 \begin{array}{lcl}
  op &\narrow{=}& \ident{asInt}(s) \lsep \ident{asDec}(s) \lsep \ident{asFloat}(s) \lsep \ident{asBool}(s)  \\
-    &\narrow{|}& \ident{asStr}(s) \lsep \ident{getChildren}(s) \lsep \ident{getField}(\nu_{\ident{opt}}, \nu, s)\\
+    &\narrow{|}& \ident{asStr}(s) \lsep \ident{getChildren}(s) \lsep \ident{getField}(\nu?, \nu, s)\\
     &\narrow{|}& \ident{isNull}(s) \lsep \ident{isTag}(\ident{tag}, s)
 \end{array}
 \end{equation*}
@@ -1417,12 +1417,12 @@ are correct by construction).
 % Records become classes
 \begin{equation*}
 \begin{array}{l}
- \sem{\nu_{\ident{opt}}\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}}_e = \\[0.1em]
+ \sem{\nu?\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}}_e = \\[0.1em]
  \quad C, \kvd{new}~C(e), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
  \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
  \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n  \\[0.1em]
  \qquad M_i = \kvd{member}~\nu_i:\tau_i=e_i\\[0.1em]
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_{e'},\;\; e'=\ident{getField}(\nu_{\ident{opt}}, \nu_i, e)\\[0.6em]
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_{e'},\;\; e'=\ident{getField}(\nu?, \nu_i, e)\\[0.6em]
 \end{array}
 \end{equation*}
 %
@@ -1637,8 +1637,8 @@ type $\sigma$:
 \begin{array}{l}
  \semalt{[s_1; \ldots; s_n]} = [\semalt{s_1, \ldots, s_n}]
  \\[0.5em]
- \semalt{\nu_{\ident{opt}}~\{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \}} =\\[0.1em]
- \qquad\nu_{\ident{opt}}~\{ \nu_1:\semalt{s_1}, \ldots, \nu_n :\semalt{s_n} \}
+ \semalt{\nu?~\{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \}} =\\[0.1em]
+ \qquad\nu?~\{ \nu_1:\semalt{s_1}, \ldots, \nu_n :\semalt{s_n} \}
  \\[0.5em]
  \semalt{s_1, \ldots, s_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
  \qquad\sigma_0 = \top,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{s_i} \vdash \sigma_i
