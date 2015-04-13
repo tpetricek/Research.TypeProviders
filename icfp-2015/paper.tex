@@ -21,9 +21,7 @@
 % =================================================================================================
 
 % TODO: The model here does not actually use type erasure!!
-% TODO: Maybe get rid of \mu_opt for records everywhere
 % TODO: Explain why we can only provide simple classes (!)
-% TODO: Replace \nu_opt with \nu_? or something else that does not look shit
 % TODO: Insert a few more mentions of why "s1 + s2 <: s1 + s2 + s3" is valid (cannot do complete pattern match)
 
 \urlstyle{sf}
@@ -104,7 +102,7 @@
 \copyrightdata{978-1-nnnn-nnnn-n/yy/mm} 
 \doi{nnnnnnn.nnnnnnn}
 
-%\titlebanner{banner above paper title}        % These are ignored unless
+\titlebanner{Unpublished draft, March 2015}        % These are ignored unless
 %\preprintfooter{short description of paper}   % 'preprint' option specified.
 
 \title{F\# Data: \textnormal{Making structured data first-class citizens}}
@@ -124,10 +122,10 @@
 % =================================================================================================
 
 \begin{abstract}
-Most statically typed languages assume that programs run in a closed world, but this is not the 
+Most static type systems assume that a program runs in a closed world, but this is not the 
 case. Modern applications interact with external services and often access data in structured 
 formats such as XML, CSV and JSON. Static type systems do not understand such external data sources
-and only make data access more cumbersome. Should we just give up and leave the messy world of 
+and only make accessing data more cumbersome. Should we just give up and leave the messy world of 
 external data to dynamic typing and runtime checks?
 
 Of course, we should not give up! In this paper, we show how to integrate external data sources 
@@ -137,7 +135,7 @@ the type provider mechanism for integrating the inferred structures into the F\#
 system. 
 
 The resulting library significantly reduces the amount of code that developers need to write when 
-accessing data. It also provides additional safety guarantees. Arguably, as much as possible 
+accessing data. It also provides additional safety guarantees. Arguably, as much safety as possible 
 if we abandon the incorrect closed world assumption.
 \end{abstract}
 
@@ -161,19 +159,19 @@ if we abandon the incorrect closed world assumption.
 \section{Introduction}
 \label{sec:introduction}
 
-The key function of many modern applications is to connect multiple data sources or services and
-present the aggregated data in some form. Mobile applications for taking notes, searching train
-schedules or finding tomorrow's weather all communicate with one or more services over the internet.
+The purpose of many modern applications is to connect multiple data sources or services and
+present the aggregated data in a new form. Mobile applications for taking notes, searching train
+schedules or finding tomorrow's weather all communicate with one or more services over the network.
 
 Increasing number of such services provide REST-based end-points that return data as CSV, XML
-or JSON. Despite numerous schematization efforts, the services typically do not come with schema.
-At best, the documentation provides a number of typical requests and sample responses.
+or JSON. Despite numerous schematization efforts, the services typically do not come with an explicit 
+schema. At best, the documentation provides a number of typical requests and sample responses.
 
 For example, the OpenWeatherMap service provides an end-point for getting current weather for a 
 given city\footnote{See ``Current weather data'': \url{http://openweathermap.org/current}}. The page documents the input 
 URL parameters and shows one sample JSON response to illustrate the response structure.
 Using a standard library for working with JSON and HTTP, we might call the service and 
-read the temperature as follows \footnote{We abbreviate the full URL: 
+read the temperature as follows\footnote{We abbreviate the full URL: 
 \url{http://api.openweathermap.org/data/2.5/weather?q=Prague\&units=metric}}:
 
 \noindent
@@ -196,7 +194,7 @@ read the temperature as follows \footnote{We abbreviate the full URL:
 \noindent
 The code assumes that the response has a particular format described in the documentation. The
 root node must be a record with a \str{main} field, which has to be another record containing
-a \str{temp} field with numerical value. When the format is incorrect, the data access simply fails
+a \str{temp} field with a numerical value. When the format is incorrect, the data access simply fails
 with an exception.
 
 Using the JSON type provider from the F\# Data library, we can write code with exactly the 
@@ -217,8 +215,8 @@ compile-time with the URL as a sample. The type provider infers the structure of
 and provides a type with a \ident{GetSample} method that returns a parsed JSON with nested
 properties \ident{Main.Temp}, returning the temperature as a number.
 
-In the rest of the paper, we give more detailed description of the mechanism and we also discuss
-theoretical safety properties of the approach. The key novel contributions of this paper are:
+In the rest of the paper, we give a detailed description of the mechanism and we also discuss
+safety properties of the approach. The key novel contributions of this paper are:
 
 \begin{itemize}
 \item We present type providers for XML, CSV and JSON (Section~\ref{sec:providers}) 
@@ -236,7 +234,7 @@ theoretical safety properties of the approach. The key novel contributions of th
 \end{itemize}
 
 \noindent
-Although the F\# Data library \cite{fsharp-data} has been widely adopted is one of the most downloaded F\# libraries 
+Although the F\# Data library \cite{fsharp-data} has been widely adopted and is one of the most downloaded F\# libraries 
 it has not yet been presented in an academic form. Additional documentation and source code can 
 be found at \url{http://fsharp.github.io/FSharp.Data}.
 
@@ -304,7 +302,7 @@ that also involves \kvd{null} value and an array:
 %
 {\small{
 \begin{verbatim}
-  [ { "name": null, "age": 25 },
+  [ { "name": "Jan", "age": 25 },
     { "name": "Alexander", "age": 3.5 },
     { "name": "Tomas" } ]
 \end{verbatim}
@@ -331,7 +329,7 @@ that contains another data set in the same format, we can print names and ages a
 \end{array}
 \end{equation*}
 %
-The code achieves the same simplicity as when using dynamically typed languages, but is statically 
+The code achieves the same simplicity as when using dynamically typed languages, but it is statically 
 type-checked. In contrast to the earlier example, we now use a local file \strf{people.json} as a 
 sample for the type inference, but then processes data from another source. 
 
@@ -339,7 +337,7 @@ sample for the type inference, but then processes data from another source.
 The notation $\ident{JsonProvider}\langl\str{people.json}\rangl$ on the first line passes a 
 \emph{static parameter} to the type provider. Static parameters are resolved at compile-time, 
 so the file name has to be a constant. The provider analyzes the sample and generates
-a type that we name \ident{People}. In F\# editors that use the F\# Compiler Service, the 
+a type that we name \ident{People}. In editors that use the F\# Compiler Service, the 
 type provider is also executed at development-time and so the same provided types are
 used in code completion.
 
@@ -349,18 +347,18 @@ infers the following types from the sample:
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{Entity}~=  \\[0.1em]
- \quad \kvd{member}~\ident{Age}~:~\ident{option}\langl \ident{decimal}\rangl \\[0.1em]
- \quad \kvd{member}~\ident{Name}~:~\ident{option}\langl \ident{string}\rangl \\[0.6em]
+ \quad \kvd{member}~\ident{Name}~:~\ident{string} \\[0.1em]
+ \quad \kvd{member}~\ident{Age}~:~\ident{option}\langl \ident{decimal}\rangl \\[0.6em]
  \kvd{type}~\ident{People}~=  \\[0.1em]
  \quad \kvd{member}~\ident{GetSample}~:~\ident{unit}~\rightarrow~\ident{Entity}[] \\[0.1em]
  \quad \kvd{member}~\ident{Parse}~:~\ident{string}~\rightarrow~\ident{Entity}[] \\[0.1em]
 \end{array}
 \end{equation*}
 %
-The type \ident{Entity} represents the person. The property \ident{Name} is optional, because
-one of the sample records contains \kvd{null} as the name. The property \ident{Age} is also optional,
-because the value is missing in one sample. The two sample ages are an integer \num{25} and a 
-decimal \num{3.5} and so the common inferred type is \ident{decimal}.
+The type \ident{Entity} represents the person. The field \ident{Name} is available for all
+sample values and is inferred as \ident{string}. The field \ident{Age} is marked as optional,
+because the value is missing in one sample. The two sample ages are an integer $25$ and a 
+decimal $3.5$ and so the common inferred type is \ident{decimal}.
 
 The type \ident{People} provides two methods for reading data. \ident{GetSample} returns the
 sample used for the inference and \ident{Parse} parses a JSON string containing data in the same 
@@ -376,8 +374,8 @@ a member access throws an exception if the document does not have the expected f
 
 Informally, the safety property discussed in Section~\ref{sec:safety} states that if the inputs
 are subtypes of some of the provided samples (\emph{i.e.}~the samples are representative), then
-no exceptions will occur. In other words, we cannot avoid all failures, but we can prevent some --
-for example, if the OpenWeatherMap changes the response format, the sample in Section~\ref{sec:introduction}
+no exceptions will occur. In other words, we cannot avoid all failures, but we can prevent some.
+If the OpenWeatherMap changes the response format, the sample in Section~\ref{sec:introduction}
 will not re-compile and the user knows that the code needs to be changed. What this means for
 the traditional ML type safety is discussed in Section~\ref{sec:safety-discuss}.
 
@@ -436,8 +434,9 @@ Finally, the fields \ident{Ozone} and \ident{Temp} have types \ident{decimal} an
 $\ident{option}\langl\ident{int}\rangl$.
 
 \paragraph{Erasing type providers.}
-At runtime, the type providers we describe use an erasure mechanism similar to Java Generics \cite{java-erasure}. 
-A type provider also generates code that is executed in place of the members of the generated types.
+At compile-time, F\# type providers use an erasure mechanism similar to Java Generics \cite{java-erasure}. 
+A type provider generates types and code that should be executed when members are accessed. In compiled
+code, the types are erased and the program directly executes the generated code.
 In the above example, the compiled (and actually executed) code looks as follows:
 %
 \begin{equation*}
@@ -452,25 +451,27 @@ In the above example, the compiled (and actually executed) code looks as follows
 The generated type \ident{AirCsv} is erased to a type $\ident{CsvFile}\langl\alpha\rangl$.
 The \ident{Load} method takes the file name together with a function that turns a row represented 
 as an array of strings to a typed representation -- here, a four-element tuple 
-$\ident{decimal}*\ident{option}\langl\ident{int}\rangl*\ident{string}*\ident{bool}$ (this type
-is also used as a type argument of $\ident{CsvFile}\langl\alpha\rangl$. The properties
+$\ident{decimal}*\ident{option}\langl\ident{int}\rangl*\ident{string}*\ident{bool}$. The properties
 such as \ident{Ozone} are then replaced with an accessor that reads the corresponding tuple
 element.
 
-The type erasure mechanism is explained in our simplified formal model in Section~\ref{sec:formal}.
-More details about the full implementation in F\# can be found in the paper on F\# type 
-providers \cite{fsharp-typeprov}.
+The formal model in Section~\ref{sec:formal} does not discuss the erasure mechanism and instead 
+models evaluation of the provided types. We do not lose anything here -- the erasure is mainly
+useful when the provided types are very large (and cannot be efficiently generated all at once).
+For more, see the F\# type providers report \cite{fsharp-typeprov}.
+
 
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Processing XML data}
 \label{sec:providers-xml}
 
-The XML format is similar to JSON in that it uses nested elements rather than a flat CSV-like 
-structure. In our inference algorithm, we use the notion of \emph{records} for both JSON records 
-and XML elements. However, unlike in JSON, the XML elements also have a name. An element can 
-contain a collection of child elements. In case of XML, the collection can often be heterogeneous 
-containing child nodes of different names. Consider the following (simplified) RSS news feed as an example:
+The XML format is similar to JSON in that it uses nested elements rather than a flat 
+structure. Our inference algorithm uses the notion of \emph{records} for both JSON records 
+and XML elements. However, unlike in JSON, the XML elements also have a name. 
+
+An XML element can contain a collection of child elements. The collection is often heterogeneous 
+containing child nodes of different names. Consider the following (simplified) RSS feed:
 %
 {\small{
 \begin{verbatim}
@@ -489,9 +490,9 @@ The \ident{channel} node contains a single \ident{title} node (with the name of 
 \ident{item} nodes (individual news articles). In RSS, the \ident{title} nodes always contain plain text,
 while \ident{item} nodes contain \ident{title} (and also \ident{url} and other properties omitted here).
 
-When extracting data from such XML documents, we often need to get nodes of a specific name (all
+When extracting data from XML, we often need to get nodes of a specific name (all
 items) or extract the content of a node (feed title). The XML type provider is optimized for 
-this style of access and allows processing the feed as follows:
+this style of access:
 
 \noindent
 \begin{equation*}
@@ -508,7 +509,7 @@ In this example, the type of the \ident{channel} value represents a heterogeneou
 that contains exactly one \ident{title} node and zero or more \ident{item} nodes.
 
 \paragraph{Heterogeneous collections and unions.}
-Our inference algorithms recognizes this as a \emph{heterogeneous collection} (if the same structure 
+Our inference algorithms recognizes the \ident{channel} element as a \emph{heterogeneous collection} (if the same structure 
 appears in all samples) and generates a type with a member \ident{Title} for accessing the value 
 of the singleton \ident{title} element together with a member \ident{Items} that returns a 
 collection of zero or more items. As a further simplification, if an element contains only a 
@@ -1602,7 +1603,7 @@ to obtain the wrapped F\# value is:
 \ident{List.map}~(\lambda x\rightarrow\kvd{new}~\ident{PersonOrString}(x))~(\ident{getChildren}(s))
 \end{equation*}
 %
-The \ident{PersonOrString} type contains one property for each of the union case. In the body, they
+The \ident{PersonOrString} type contains one member for each of the union case. In the body, they
 check that the value is not \kvd{null} and that it has the right structure (using the \ident{isTag}
 function). This checks that the value is a record named \ident{Person} or a string, respectively.
 If the conditions are satisfied, the value is converted to the F\# type corresponding to the case

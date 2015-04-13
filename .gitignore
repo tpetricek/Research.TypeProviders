@@ -7,3 +7,5 @@
 *.pag
 *.out
 *.bak
+*.fls
+*.fdb_latexmk
