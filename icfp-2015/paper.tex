@@ -5,24 +5,31 @@
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage[fleqn]{amsmath}
-\usepackage[hang,flushmargin]{footmisc} 
 \usepackage{graphics} 
 \usepackage{stmaryrd}
 \usepackage{amsthm}
 \usepackage[hyphens]{url}
 \usepackage{hyperref}
 \usepackage{ftnright}
-\usepackage[notquote]{hanging}
 \usepackage[T1]{fontenc}
 \usepackage{semantic}
 \usepackage{enumitem}
-\usepackage{flushend}
+%\usepackage[hang,flushmargin]{footmisc} 
+%\usepackage[notquote]{hanging}
+%\usepackage{flushend}
 
 % =================================================================================================
 
-% TODO: The model here does not actually use type erasure!!
-% TODO: Explain why we can only provide simple classes (!)
-% TODO: Insert a few more mentions of why "s1 + s2 <: s1 + s2 + s3" is valid (cannot do complete pattern match)
+% TODO: Adapt XML example 
+% TODO: Switch from sum types to variant types
+% TODO: Discuss 'stability' of the inference (minor change in schema does not cause dramatic cahnges)
+% TODO: Say that any variant is a subtype of any other variant 
+% TODO: Say that anything is a subtype of variant
+% TODO: Say that variant is a last-resort thing
+% TODO: Double check that bottom/top are used correctly
+% TODO: Explain (even more) that there is no least upper bound, which is why Theorem 3 is good enough
+% TODO: Avoid "no other rule applies" in the formal system
+% TODO: Practical evaluation (lots of downloads, lots of Github - how often people customize samples?)
 
 \urlstyle{sf}
 
@@ -388,6 +395,81 @@ are available for a person. To support this scenario, our inference algorithm pr
 In the above example, this is demonstrated by the fact that \ident{Age} is marked as optional.
 An alternative is to provide two different record types (one with \ident{Name} and other with 
 \ident{Name} and \ident{Age}), but this would complicate the processing code.
+
+% -------------------------------------------------------------------------------------------------
+
+\subsection{Processing XML data, alternative}
+
+In XML, documents are formed by (possibly) nested elements with attributes. We can view elements
+as records (unlike in JSON, the records are named) with a field for each attribute and an additional
+special field for the nested contents (which may be a collection of elements).
+
+As an example, consider a simple extensible document format where a root element
+{\ttfamily\small <doc>} can contain a number of document element, one of which is
+{\ttfamily\small <heading>} representing headings:
+%
+{\small{
+\begin{verbatim}
+  <doc>
+    <heading>Working with JSON</heading>
+    <p>Type providers make this easy.</p>
+    <heading>Working with XML</heading>
+    <p>Processing XML is as easy as JSON.</p>
+    <image source="xml.png" />
+  </doc>
+\end{verbatim}
+}}
+%
+\noindent
+The F\# Data library has been primarilly designed to allow easy reading of data. For example,
+say we want to print all headings that appear in the document. The sample shows a part of the 
+possible document structure (in particular the {\ttfamily\small <heading>} element we want to
+read), but it does not show all possible elements (say, {\ttfamily\small <table>}). Assuming the
+above document is \strf{sample.doc}, we can write:
+%
+\noindent
+\begin{equation*}
+\begin{array}{l}
+ \kvd{type}~\ident{Document}~=~\ident{XmlProvider}\langl\str{sample.doc}\rangl\hspace{1em} \\[0.5em]
+ \kvd{let}~\ident{root}~=~\ident{Document.Load}(\str{http://.../another.doc})\\
+ \kvd{for}~\ident{elem}~\kvd{in}~\ident{root.Doc}~\kvd{do}\\
+ \quad\kvd{match}~\ident{elem.Heading}~\kvd{with} \\
+ \quad|~\ident{Some text} \rightarrow \ident{printf}~\str{ - \%s }~\ident{text}\\
+ \quad|~\ident{None} \rightarrow ()\\
+\end{array}
+\end{equation*}
+%
+The example iterates over a collection of elements \ident{elem} returned by \ident{root.Doc}. 
+Our system provides a typed access to elements known from the sample document and so we can
+write \ident{elem.Heading}.
+
+\paragraph{Open world and variant types.}
+In the above example, The system does not infer a union type representing a choice between
+heading, paragraph and image. By its nature, the XML format is extensible and the sample cannot 
+include all possible examples\footnote{Even when the document structure is defined using XML 
+Schema, documents may contain elements prefixed with other namespaces.}. The type of \ident{elem}
+is thus a \emph{variant} type annotated with the three statically known possibilities (heading,
+paragraph, image). The variant is mapped to the following F\# type:
+%
+\begin{equation*}
+\begin{array}{l}
+ \kvd{type}~\ident{Element}~=  \\[0.1em]
+ \quad \kvd{member}~\ident{Heading}~:~\ident{option}\langl \ident{string} \rangl\\
+ \quad \kvd{member}~\ident{Paragraph}~:~\ident{option}\langl \ident{string} \rangl\\
+ \quad \kvd{member}~\ident{Image}~:~\ident{option}\langl \ident{Image} \rangl\\
+\end{array}
+\end{equation*}
+%
+The type provides a nice access to the elements known statically from the sample, but it encodes
+the \emph{open-world assumption} -- the user also needs to handle the case when the value is none 
+of the statically known elements. 
+
+One perhaps surprising consequence of the use of variant types is that the above code will work
+correctly on document that contains elements other than those in the sample document. This would 
+arguably not be desirable design for data types in a programming language, but it is extremely
+useful when reading data from external data sources. It is also worth noting that our type 
+inference attempts to minimze the number of variant types that appear in the resulting type --
+a variant is not used if there is another option.
 
 % --------------------------------------------------------------------------------------------------
 
@@ -2059,6 +2141,7 @@ the library has 37,000 downloads on NuGet; over 1600 commits and 36 contributors
 languages are beginning to adopt mechanisms similar to F\# type providers.
 
 \acks
+?
 We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
 including Jomo Fisher, Keith Battocchi and Kenji Takeda.
 
