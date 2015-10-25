@@ -61,9 +61,13 @@
 Don Syme
 \institute{Microsoft Research Cambridge, UK}
 \email{don.syme@microsoft.com}
+\and
+Zach Bray
+\institute{Type Inferred Ltd}
+\email{zachbray@gmail.com}
 }
 \def\titlerunning{In the Age of Web: Typed Functional-First Programming Revisited}
-\def\authorrunning{T. Petricek, D. Syme}
+\def\authorrunning{T. Petricek, D. Syme, Z. Bray}
 \begin{document}
 \maketitle
 
@@ -128,8 +132,8 @@ the web directs our inquiry and provides an angle for reconsidering such assumpt
 Perhaps the most remarkable assumption is the idea that programs fundamentally operate in a closed
 world. Although we have learned how to perform FFI and I/O \cite{haskell-ffi,haskell-imperative},
 those are treated as dealing with the ``dirty real world''. For a practical solution, we argue that
-we need to go much further, but deeper integration with (untyped) JavaScript libraries and (evolving)
-services inevitably breaks strict type safety requirements.
+we need to go much further -- to the extent that deeper integration with (untyped) JavaScript
+libraries and (evolving) services inevitably breaks some of the strict type safety requirements.
 
 We do not claim that the F\# approach is the only possible one. Rather, this paper should be seen
 as a programming language experiment \cite{philosophy-pl} or an empirical observation of the
@@ -282,11 +286,11 @@ Although the jQuery library is not perfect, it is a de facto standard in web dev
 FunScript type provider makes it possible to integrate with it painlessly without explicitly
 specifying any FFI interface and without manual wrapping (see also Section~\ref{sec:js-lib}).
 
-Note that we use a standard F\# function \ident{List.map} to iterate over the countries. This has
-a side-effect of creating the HTML elements, but it also returns a new list. The result is a list
-of $\ident{string}\ast\ident{Indicators}\ast\ident{jQuery}$ values representing the country name,
-its indicators (for accessing the World Bank data) and the created DOM object representing the
-checkbox.
+Note that we use a standard F\# function \ident{List.map} to iterate over the countries. The
+function passed as an argument has a side-effect of creating the HTML elements, but it also returns
+a new list. The result is a list of $\ident{string}\ast\ident{Indicators}\ast\ident{jQuery}$ values
+representing the country name, its indicators (for accessing the World Bank data) and the created
+DOM object representing the checkbox.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -408,7 +412,7 @@ behaviours.
 
 The aim of this paper is not to make value judgements and argue what is better. Using the case
 study as a basis, we claim that the outlined approach is just \emph{one possible} and that it
-\emph{works in practice}. In the rest of the paper, we give more details about the most important
+\emph{works in practice}. The rest of the paper gives more details about the most important
 aspects of the approach and discuss alternatives.
 
 
@@ -442,13 +446,11 @@ a form of meta-programming).
 \subsection{How type providers work and fail}
 \label{sec:tp-def}
 
-In technical terms, type providers are libraries that are loaded by the compiler (and editor)
-and are executed at compile-time (or edit-time). A type provider builds information about types
-it provides and makes those available to the compiler. It is worth noting that this is done lazily,
-so the type provider does not need to provide types for the entire information space at once.
-
-In terms of programming language theory, type providers can be easily explained anecdotally.
-They change the starting point for a type-checking of a program as follows:
+Type providers are libraries that are loaded by the compiler (and editor) and are executed at
+compile-time (or edit-time). A type provider builds information about types and makes those
+available to the compiler. This is done lazily, so the type provider does not need to provide
+types for the entire information space at once. In terms of programming language theory, type
+providers change the starting point for a type-checking of a program as follows:
 %
 \begin{equation*}
 \hspace{8em}
@@ -461,15 +463,14 @@ They change the starting point for a type-checking of a program as follows:
 \end{equation*}
 %
 Rather than starting the type-checking with an empty context, we start type-checking with a
-context containing a \emph{projection} of some information from the world. In this paper, we do not
-attempt to formalize type providers, so we avoid the question of what, formally, is the world here.
-However, this analogy is useful for understanding how type providers work and how they can go wrong:
+context containing a \emph{projection} of some information from the world. This analogy is useful
+for understanding how type providers work and how they can go wrong:
 
 \begin{itemize}
 \item \emph{Type provider failure.}
   The projection (a type provider) is implemented in F\# and can fail (for example, if the internet
-  is required but unavailable). However, when it succeeds, it generates valid F\# code and so
-  unchecked compilation errors cannot happen.
+  is required but unavailable). However, when the type provider succeeds, it generates valid F\#
+  code and so unchecked compilation errors cannot happen.
 
 \item \emph{Runtime failure.}
   When the world changes and we \emph{run} the program, we may get a runtime exception. It is
@@ -481,38 +482,30 @@ However, this analogy is useful for understanding how type providers work and ho
   When the world changes and we \emph{recompile} the program, the result of the projection can
   differ and so we may not be able to type-check code that used to type-check. This can be seen as
   negative aspect, but there is a clear benefit -- it means we discover an error that would happen
-  at runtime earlier, that is during recompilation.
+  at runtime earlier during recompilation.
 \end{itemize}
 
 \noindent
-The above points are \emph{general} points about type providers. In this paper, we are more interested
-in the \emph{specific} type providers used in the case study. We look at the World Bank and TypeScript
-type providers in the following two sections. When discussing type providers, we need to look at
-how the provider (or the projection $\pi$) works and what assumptions it makes about the world.
-That is, what world changes cause the provided type to change and what world changes cause a
-runtime exception.
+The above points are \emph{general} points about type providers. In this paper, we look at two
+\emph{specific} type providers for World Bank and TypeScript. When discussing type providers, we
+look at how the provider (or the projection $\pi$) works and what assumptions it makes
+about the world. That is, what world changes cause the provided type to change and what world
+changes cause a runtime exception.
 
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Integrating with World Bank data}
 \label{sec:tp-data}
 
-The World Bank provider \cite{fsharp-data} is a type provider for a specific data source -- it has
-been designed specifically for World Bank data. This contrasts with F\# Data type providers for
-working with CSV, XML and JSON data that take a sample or schema as a parameter and can thus be used
-with files of any structure.
-
-\subsubsection{The World Bank type provider}
+The World Bank provider \cite{fsharp-data} is a type provider designed specifically for a single
+data source. This contrasts with F\# Data type providers for working with CSV, XML and JSON data
+that take a sample or schema as a parameter and can thus be used with files of any structure.
 
 The projection implemented by the type provider generates a type called \ident{Countries} that contains
-countries (and regions) as members. Each member returns a value of type \ident{Indicators} that is
-also generated and contains all indicators as members. Note that the type provider generates just
-these two types -- in particular, it does not generate a new type for each country. This would be an
-interesting option if we could check what indicators are available for a given country.
-
-The type provider builds the structure of the provided types, but the provided types are \emph{erased}
-during compilation and replaced with runtime implementation. For the World Bank type provider, the
-erasure works as follows:
+countries as members. Each member returns a value of type \ident{Indicators} that is
+also generated and contains all indicators as members. The type provider provides types that are
+\emph{erased} during compilation and replaced with runtime implementation. For the World Bank type
+provider, the erasure works as follows:
 %
 \begin{equation*}
 \begin{array}{lcl}
@@ -526,76 +519,66 @@ erasure works as follows:
 The underlying operations (\ident{GetCountry}, \ident{GetCountries} and \ident{AsyncGetIndicator})
 are operations of an underlying runtime library (which is a normal non-provided library). This is
 a typical pattern -- type providers generally produce a light layer on top of a rich runtime library.
-
 An important point here is that the type provider uses the \emph{name} of a country or an indicator
 for the member name, but at runtime, it uses a \emph{code} of the country or the indicator. This has
-interesting implications for the safety properties, as discussed in the next section.
+interesting implications for the safety properties.
 
 \subsubsection{Safety properties of the type provider}
 
-Now that we know how the World Bank type provider generates the types and the runtime code, we can
-look at the assumptions it makes about the world and in which cases it encounters one of the failures
-defined in Section~\ref{sec:tp-def}.
+Given the mapping, we can now look at the assumptions that the World Bank type provider makes about
+the world and in which cases it encounters one of the failures defined in Section~\ref{sec:tp-def}.
 
 \begin{itemize}
 \item If you are offline when using the type provider (compiling or editing), the type provider will
-  not be able to obtain the list of countries or indicators. This is an example of \emph{type provider
-  failure}. In case of the World Bank, this is partly prevented by caching of the schema, but internet
-  access is required when using the provider for the first time.
+  not be able to obtain the list of countries or indicators. This is a \emph{type provider failure}.
+  The World Bank provider caches the schema, but it still requires internet access for the first time.
 
-\item An interesting case is when a country or indicator is renamed. In that case, compiled code
-  using the World Bank type provider will continue to work (there is no \emph{runtime failure}),
-  because the lookup uses the country or the indicator code. However, recompilation will fail
-  as the member name (which appears in the source code) will be different.
+\item When a country or indicator is renamed, the compiled code will continue to work (there is no
+  \emph{runtime failure}), because the lookup uses the country or the indicator \emph{code}. However,
+  recompilation will fail as the member name (which appears in the source code) will be different.
 
-\item Finally, if a country or indicator completely disappears, we will get \emph{runtime failure}
-  when running existing compiled code and \emph{recompilation failure}. here, the \emph{recompilation
+\item Finally, if a country or indicator disappears, we will get \emph{runtime failure} when running
+  existing compiled code and \emph{recompilation failure}. Here, the \emph{recompilation
   failure} is a useful indicator that the assumptions made by our code have been violated by
   the data source.
 \end{itemize}
 
 \noindent
-When contrasted with the traditional view of safety in the ML family of languages, the World Bank
-type provider certainly relaxes the usual safety conditions. However, this is not the case when
-compared with standard developer practices. In particular, if we wrote
-$\ident{data.GetCountries}().\ident{GetCountry}(\str{CZE})$ by hand, the \emph{runtime failure}
-behaviour would be the same, but we would lose the useful \emph{recompilation failure}. The following
-section discusses this (and other) alternatives.
+When contrasted with the traditional view of ML type-safety, the World Bank type provider relaxes
+the usual safety conditions. However, this is not the case when compared with standard developer
+practices. In particular, if we wrote $\ident{data.GetCountries}().\ident{GetCountry}(\str{CZE})$,
+the \emph{runtime failure} behaviour would be the same, but we would lose the useful
+\emph{recompilation failure}.
 
 \subsubsection{Discussion of alternatives}
 
-There are two main alternatives that are worth discussing. First, how would the code look if
+There are two main alternatives worth discussing. First, how would the code look if
 we did not use any type provider. Second, what are alternative designs for the World Bank type
 provider and how would such alternatives change the safety properties.
 
 \vspace{-1em}
-\paragraph{Accessing countries without type providers.} First, consider how we would write the code to obtain a list
-of countries without using the World Bank type provider. Assuming we want only the countries and
-regions in Figure~\ref{fig:wb}, we could specify the country codes and then obtain the country objects:
+\paragraph{Accessing countries without type providers.} Assuming we want the countries
+and regions in Figure~\ref{fig:wb}, we could build a list of country codes and use projection:
 %
 \begin{equation*}
 \begin{array}{l}
  \kvd{let}~\ident{data}~=~\ident{WorldBank.GetDataContext}() \\
  \kvd{let}~\ident{countryCodes}~=~\lbrack~\str{EU},~\str{CZE},~\str{GBP},~\str{USA}~\rbrack \\
- \kvd{let}~\ident{countries}~=~\ident{countryCodes}~|\rangl~\ident{List.map}~(\ident{data.GetCountries}().\ident{GetCountry})
+ \kvd{let}~\ident{countries}~=~\ident{countryCodes}~|\rangl~\ident{List.map}~(\ident{data.GetCountries}().\ident{GetCountry}())
 \end{array}
 \end{equation*}
 %
 The motivation for the case study was a data journalism application with a transparent logic
-that is easy to understand (and perhaps even modify). The type provider certainly achieves these
-goals better -- a country can be added just by looking through an auto-complete list and we do not
-need to know its code or exact name. However, if we wanted to list all countries in a region, then
-the World Bank type provider would not be helpful.
-
-As for the safety properties, as discussed earlier, using explicit country codes has the same
-runtime properties as using the type provider. This could be avoided by listing all countries in
-a given region (or, according to another rule), but that is solving a different problem.
+that is easy to understand and modify. The type provider achieves these goals better -- a country
+can be added just by looking through an auto-complete list without knowing its code.
+As for the safety properties, using explicit country codes has the same runtime properties as using
+the type provider. This could be avoided by listing all countries in a given region, but that is
+solving a different problem.
 
 In summary, the World Bank type provider fits a specific niche that we were exploring in the case
 study. That is, when we want to create an information analysis that accesses specific data from
 an information source. With rising popularity of data journalism and Open Government Data
-initiatives, we argue that this is an important problem domain. Here, we first specify the country
-codes and then obtain the country objects.
+initiatives, we argue that this is an important problem domain.
 
 \vspace{-1em}
 \paragraph{Providing safer data accessors.}
@@ -607,47 +590,28 @@ avoid this error would be to change the type of the provided members like
 
 However, that is only shifting the burden of error handling from the library to the user. If the
 author of the application does not intend to handle errors (for example, by skipping missing data),
-they would have to write the following:
-%
-\begin{equation*}
-\begin{array}{l}
- \kvd{let}~\ident{optCountries}~= \\
- \quad~\lbrack~~ \ident{data.Countries.}\lident{European Union} \\
- \qquad   \ident{data.Countries.}\lident{Czech Republic} \\
- \qquad   \ident{data.Countries.}\lident{United Kingdom} \\
- \qquad   \ident{data.Countries.}\lident{United States} ~\rbrack
-\\[0.5em]
- \kvd{let}~\ident{countries}~=\\
-  \quad \ident{optCountries}~|\rangl~\ident{List.map}~(\kvd{fun}~\ident{countryOpt}~\rightarrow \\
-  \qquad \kvd{match}~\ident{countryOpt}~\kvd{with}~\ident{Some~c}~\rightarrow~\ident{c}~|~\ignp~\rightarrow
-    \ident{failwith}~\str{Country does not exist!})
-\end{array}
-\end{equation*}
-%
-For the purpose of our case study, providing option types would only make the code more complex.
-However, if we wanted to handle errors more gracefully, then option types would be a better
-alternative. Note, however, that we can still handle exceptions using $\kvd{try}~\ldots~\kvd{with}$.
+they would have to add code that explicitly throws an exception. For the purpose of our case study,
+we prefer to keep the end-user code simple -- we can still handle the error using
+$\kvd{try}~\ldots~\kvd{with}$.
 
-Whether using option types is more desirable or not often depends on the use case (how we
-want to handle errors) and reliability of the data source (countries do not disappear often).
-This alternative can be supported by adding a static parameter to the type provider (like
-$\ident{Asynchronous}=\kvd{true}$). For example, the CSV type provider from F\# Data has a
-parameter \ident{AssumeMissingValues} that instructs the type provider to provide option values,
-even if the sample does not contain them.
+Whether using option types is more desirable depends on the use case (how we want to handle errors)
+and reliability of the data source (countries do not disappear often). The choice can be left to
+the user by adding a static parameter (like $\ident{Asynchronous}=\kvd{true}$). For example, the CSV
+type provider from F\# Data has a parameter \ident{AssumeMissingValues} that instructs the type
+provider to always provide options.
 
 \vspace{-1em}
 \paragraph{Accessing data ``as of time''.}
-So far, we discussed how to mitigate the problems caused by the fact that the open world changes.
+We discussed how to mitigate the problems caused by the fact that the open world changes.
 Can we make the world \emph{not} change? This is a sensible question for some data sources
-(although not for the World Bank). For example Freebase \cite{google-freebase} supports the
-notion of ``as of time''. When calling Freebase with the \ident{as\_of\_time} parameter, the API
-returns data and meta-data that was present at the specified date.
+(but not the World Bank). Freebase \cite{google-freebase} supports the notion of ``as of time''.
+When calling the API with the \ident{as\_of\_time} parameter it returns data and meta-data that
+was present at the specified date.
 
 This would be a desirable option for our case study -- if we want to illustrate point made
 by an article, the accompanying application could use data available at the time when the
-article was written. However, this feature relies on the ability of the data source (not all
-services have this), or on the possibility to create local snapshots (difficult for large data
-sources).
+article was written. However, this feature relies on the ability of the data source -- not all
+services have this option.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -660,11 +624,10 @@ programming languages. Another example of type provider for language integration
 provider \cite{fsharp-rprovider} which imports packages and functions of the statistical
 environment R.
 
-\subsubsection{The TypeScript type provider}
-The projection implemented by the TypeScript type provider imports interface definitions in the
-\str{.d.ts} format specified by TypeScript \cite{ms-typescript}. This is a format of type
-annotations for JavaScript libraries. The following example is an excerpt from the \str{jquery.d.ts}
-file that describes the \ident{jQuery} value and the \ident{attr} method used in our example:
+The projection implemented by the TypeScript type provider imports type annotations for JavaScript
+libraries sa specified by TypeScript \cite{ms-typescript}. The following is an excerpt from the
+\str{jquery.d.ts} file that describes the \ident{jQuery} value and the \ident{attr} method used
+in our example:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -673,7 +636,7 @@ file that describes the \ident{jQuery} value and the \ident{attr} method used in
  \kvd{interface}~\ident{JQueryStatic}~\{ \\
  \quad (\ident{selector}: \kvd{string}, \ident{context?}: \kvd{any}):~\ident{JQuery}; \\
 \}
-\\[0.5em]
+\\
 \kvd{interface}~\ident{JQuery}~\{ \\
 \quad \ident{attr}(\ident{attributeName}~:~\kvd{string}):~\kvd{string}; \\
 \quad \ident{attr}(\ident{attributeName}~:~\kvd{string},~\ident{value}~:~\kvd{any}):~\ident{JQuery}; \\
@@ -681,14 +644,14 @@ file that describes the \ident{jQuery} value and the \ident{attr} method used in
 \end{array}
 \end{equation*}
 %
-The example demonstrates a number of typical problems that arise when using type providers for
-language interoperation. Not all TypeScript language constructs have direct equivalent in F\# and
+The example demonstrates typical problems that arise when using type providers for language
+interoperation. Not all TypeScript language constructs have direct equivalent in F\# and
 the TypeScript type provider needs to map them to other constructs that are available:
 %
 \begin{itemize}
-\item The interface file defines \ident{jQuery} as a global variable. Although F\# supports
-  global bindings, those cannot be provided by a type provider and so the global variable
-  is exposed as a static member of the imported type, so we use it via \ident{j.jQuery}.
+\item The interface file defines \ident{jQuery} as a global variable. F\# type providers cannot
+  provide global bindings and so the variable is exposed as a static member of the imported type
+  (\emph{i.e.}~\ident{j.jQuery}).
 
 \item The interface \ident{JQueryStatic} specifies that the \ident{jQuery} object is callable
   (other members are omitted). This denotes that the corresponding JavaScript object is a
@@ -698,10 +661,9 @@ the TypeScript type provider needs to map them to other constructs that are avai
 
 \noindent
 It is also worth noting that the \ident{attr} member is overloaded and uses an optional parameter.
-However, both of these features are available in F\# and can be directly mapped. Now that we
-covered how the type structure is generated, we also need to show what code is generated when
-the types are erased:
-%
+However, both of these features are available in F\# and can be directly mapped. The following
+snippet shows the runtime code that is generated when the types are erased:
+
 \begin{equation*}
 \begin{array}{l}
  \sem{~\ident{j.jQuery.Invoke}(\ident{command})~} ~= \\
@@ -712,23 +674,21 @@ the types are erased:
 \end{array}
 \end{equation*}
 %
-An important point here is that the above provided code is never actually \emph{executed}.
-As discussed in Section~\ref{sec:js-meta}, it is translated to JavaScript (which then runs
-in the web browser). So, the above code can be seen more as instructions for the translator.
-The mapping is quite simple -- member calls are translated to \ident{Emit.CallImpl} (empty
-name denotes that the object itself is called) and property getters are translated to
-\ident{Emit.PropertyGetImpl}. In both cases the first argument denotes whether the call is
-static and the last argument is an array of arguments.
+The provided code is never actually \emph{executed}. As discussed in Section~\ref{sec:js-meta}, it
+is translated to JavaScript (which then runs in the web browser). So, the above code can be seen
+more as instructions for the translator. The mapping is straightforward -- member calls are
+translated to \ident{Emit.CallImpl} (empty name denotes that the object itself is called) and
+property getters are translated to \ident{Emit.PropertyGetImpl}. The first argument
+denotes whether the call is static and the last argument is an array of arguments.
 
 \subsubsection{Safety of cross-language type providers}
-As mentioned earlier, TypeScript does not have the type soundness property \cite{ms-safets},
-because of covariant generics. This illustrates two points. First, this is a property of
-\emph{running} TypeScript code, which is not the case here -- we use TypeScript only as a
-source of annotations for JavaScript libraries. There is no guarantee that the library will
-actually adhere to the specification, which is an issue that we return to when discussing
-translation to JavaScript (Section~\ref{sec:js-meta}).
+TypeScript does not have the traditional type soundness property \cite{ms-safets},
+because of covariant generics. However, this is a property of \emph{running} TypeScript code, while
+we use TypeScript only as a source of annotations for JavaScript libraries. Still, there is only a
+weak guarantee that the library will adhere to the specification. We return to this issue
+when discussing translation to JavaScript (Section~\ref{sec:js-meta}).
 
-The second point is that we can not import the typing rules associated with TypeScript.
+More importantly, we do not import the typing rules associated with TypeScript.
 The type provider mechanism can only provide F\# types that then behave according to the
 F\# typing rules. This means that we can import generics\footnote{Due to technical
 limitations, this is not currently allowed by F\# type providers, but there are no
@@ -739,37 +699,26 @@ in the \ident{render} function. We return to the topic of unsafe operations in
 Section~\ref{sec:js-meta}.
 
 The above discussion highlights a broader point about using type providers for language
-interoperability. Given any language, its type system be weaker or stricter in some ways.
-Both cases make mapping difficult:
+interoperability. For any language, its type system may be weaker or stricter in some ways:
 
 \begin{itemize}
-\item First, consider a weaker system with less type information. The type provider may need
-  to map more types to \ident{object} (or similar general type). However, this will make
-  the provided operations hard to use (because the source language is more flexible than
-  F\#). An alternative is to require explicit annotations (like \textcolor{strclr}{\ttfamily d.ts}
-  files for JavaScript).
+\item When interoperating with a weaker system, the type provider may need
+  to map more types to a general type like \ident{object}. This makes the provided operations hard
+  to use (as the source language is more flexible than F\#). An alternative is to use explicit
+  annotations (like \textcolor{strclr}{\ttfamily d.ts} files for JavaScript).
 
-\item Second, if the imported language has a more precise type system than F\#, the type
+\item If the imported language has a more precise type system than F\#, the type
   provider has to drop some of the information. This can be done safely for types in
   contravariant positions. In the unsafe case, the runtime needs to perform dynamic checks
   (Section~\ref{sec:conc-interop}).
 \end{itemize}
 
 \noindent
-In case of JavaScript, we encounter both cases. In many cases, the return type is not
+In case of TypeScript, we encounter both cases. In many cases, the return type is not
 statically known and is exposed as \kvd{any}, which we then map to F\# \ident{object}
 (and the developer has to use \ident{unbox}). However, TypeScript also supports limited
 form of dependent typing (overloading on constants \cite{ms-typescript-09}). This cannot
-be expressed in the F\# type system and the developer has to do more work (for example,
-choose the right overload or provide an explicit type annotation).
-
-An interesting example of type provider for a language with a weaker type system is the
-R provider \cite{fsharp-rprovider}. It solves the mismatch by using runtime reflection
-to discover R functions and their declared parameters. However, R provider also generates
-additional function overloads that let the user specify additional parameters (not explicitly
-declared in the signature). To make such interoperability easier, we proposed additional
-escape mechanism \cite{fsharp-paramsdict} that provide usable syntax when static type information
-cannot be fully recovered.
+be expressed in the F\# type system and the developer has to choose the right provided overload.
 
 \subsubsection{Discussion of alternatives}
 There are two options for calling JavaScript libraries such as jQuery. We can use annotations
@@ -777,13 +726,10 @@ There are two options for calling JavaScript libraries such as jQuery. We can us
 A different approach is to discourage the use of existing JavaScript libraries as discussed in
 Section~\ref{sec:js-lib}.
 
-\vspace{-1em}
 \paragraph{Embedding inline JavaScript.}
-To make the interoperability mechanism general, the host language (here, F\#) should not know about
-the syntax of the embedded language (here, JavaScript). This means that the JavaScript code can
-only be embedded as strings. FunScript provides this option and it is used for accessing various
-primitive JavaScript operations. For example, the following is one way to define a function that
-converts a value to a number using JavaScript semantics:
+In general, the host language should not know about the sytnax of the embedded language. This can
+be hanlded via quasi-quotations \cite{haskell-templ}, or by embedding JavaScript as strings (perhaps
+with syntax checking at a later stage). In FunScript, the \ident{number} function is defined as:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -792,13 +738,10 @@ converts a value to a number using JavaScript semantics:
 \end{array}
 \end{equation*}
 %
-The example uses .NET attributes (on the first line), which are meta-data attached to a function.
-When FunScript finds a call to such annotated function, it replaces the call with the specified
-JavaScript. The string \textcolor{strclr}{\ttfamily \{0\}} is a placeholder for the argument. Note
-that the body of the function is never actually executed and so we use a placeholder.
-
-The approach provides no guarantees about the inline JavaScript code. At compile-time, it cannot
-even check that the JavaScript code is syntactically correct. This could be improved using a
+The example uses .NET attributes, which are meta-data attached to a function. When FunScript finds
+a call to such annotated function, it replaces the call with the specified JavaScript.
+The approach provides no guarantees about the inline JavaScript code. In practice, this feature
+is used only for minimal JavaScript runtime, but the approach could be improved using a
 parameterized type provider such as $\ident{JSCode}\langl\str{return \{0\}*1.0;}\rangl$, which
 would check that the static parameter is syntactically correct JavaScript code. So, type providers
 could be used to make this approach safer.
@@ -806,9 +749,9 @@ could be used to make this approach safer.
 \vspace{-1em}
 \paragraph{Other ways of writing annotations.}
 Many compilers to JavaScript provide a way for writing type signatures for JavaScript
-libraries in the host language. For example, the following snippet shows a declaration of the
+libraries in the host language. For example, the following shows a declaration of the
 jQuery \ident{attr} method from a mapping for js\_of\_ocaml \cite{js_ocmal} (definitions in
-SMLtoJs \cite{js_sml} are similar, but simpler):
+SMLtoJs \cite{js_sml} are simpler):
 %
 \begin{equation*}
 \begin{array}{l}
@@ -822,80 +765,15 @@ SMLtoJs \cite{js_sml} are similar, but simpler):
 The js\_of\_ocaml project uses the OCaml object model for calling JavaScript libraries.
 Compared with FunScript, it is more explicit in importing JavaScript -- the \ident{meth}
 type denotes a JavaScript method; \ident{optdef} specifies that the result may be
-undefined and \ident{js\_string} denotes a JavaScript string (which is distinct from OCaml
-strings). Also, note that the second method is called \ident{attr\_set}. This is a simple
-naming trick -- OCaml does not support overloading and js\_of\_ocaml simply ignores anything
-after underscore.
+undefined and \ident{js\_string} denotes a JavaScript string. Also, note that the second method
+is called \ident{attr\_set}. This is a simple naming trick -- OCaml does not support overloading
+and js\_of\_ocaml simply ignores anything after underscore.
 
 Using a type provider is similar to writing a code generator that turns TypeScript
 \textcolor{strclr}{\ttfamily d.ts} files into the above OCaml annotation. The main difference
-is that type providers provide a smoother integration. Type providers do not produce any artefacts
+is that type providers do not produce any artefacts
 (generated files) and can import entire repositories lazily.
 
-% -------------------------------------------------------------------------------------------------
-
-\subsection{Relativized type safety}
-\label{sec:tp-relative}
-
-Type providers for information sources, such as the World Bank provider, weaken the usual notion
-of type safety. In general, they require that certain assumptions about the world do not change
-between the state of the world at compile-time and state of the world at run-time. The TypeScript
-provider is different and it is more interesting to consider runtime behaviour as discussed
-in Section~\ref{sec:conc-interop}.
-
-For type providers that provide access to external information sources, we can formulate a
-\emph{relativized} notion of type safety. A full formalization is beyond the scope of this
-paper, but the following provides an outline of such a theorem.
-
-\begin{theorem*}[Relativized type safety]
-Assume $\pi_{\ident{~WorldBank}}$ is the mapping implemented by the World Bank type provider,
-$w, w_0$ are models of a (read-only) world that can be seen as functions defined on country-indicator
-pairs and $\langl e, w \rangl \rightarrow e'$ is a one-step reduction on expressions that has
-access to the World Bank data modelled by $w$. Then we define:
-
-\begin{itemize}
-\item
-Multi-step reduction $\langl e, w \rangl \rightarrow^* e'$ if either $e=e'$
-or $\langl e, w \rangl \rightarrow e''$ and $\langl e'', w \rangl \rightarrow^* e'$.
-\item
-Functions $\ident{countries}(e)$ and $\ident{indicators}(e)$ that return sets of
-country names \\and indicator names that appear in an expression $e$.
-\end{itemize}
-%
-Then the following \emph{relativized type safety} implication holds:
-%
-\begin{equation*}
-\begin{array}{lcl}
-(~~\pi_{\ident{~WorldBank}}~(w_0) \vdash e : \tau
-  && \textnormal{If $e$ is well-typed using a compile-time world $w_0$}
-\\
-\quad \wedge~ \langl e, w \rangl \rightarrow^* e'
-  && \textnormal{\ldots and the expression reduces in one or more steps}
-\\
-\quad \wedge~ (~\forall c \in \ident{countries}(e),
-  && \textnormal{\ldots and the run-time world model $w$ contains all}
-\\
-       \qquad~~~ \forall i \in \ident{indicators}(e) . \langl c, i \rangl \in \mathit{dom}(w)))
-  && \textnormal{\;\quad country-indicator pairs that may be accessed,}
-\\
-\Rightarrow ~\ident{value}(e') ~\vee~ (\exists e'' . \langl e', w \rangl \rightarrow e'')
-  && \textnormal{then the result is either a value or can further reduce.}
-\end{array}
-\end{equation*}
-\end{theorem*}
-
-\noindent
-The theorem has the usual structure of a type safety theorem. The reduction is defined on pairs
-consisting of expression and a world $w$. The result of the reduction is only an expression and
-so it cannot modify the world. Even though the above is only a brief sketch, it demonstrates two
-important points about relativized type safety that are relevant to many type providers.
-
-First, we distinguish between the state of the world $w_0$ that is used at compile-time and the
-state $w$ used at run-time. If these were the same, the additional assumption would always hold.
-Second, the additional assumptions states that all countries and indicators that \emph{may be
-accessed} need to be available. This is stricter than necessary (akin to effect systems),
-but it does not specify that the run-time world must contains \emph{all} provided countries
-and indicators.
 
 
 % =================================================================================================
@@ -922,24 +800,20 @@ languages provide a way of compiling to JavaScript. In F\#, the first project wa
 is available with full commercial support. In this paper, we use FunScript which is a lightweight
 library focused just on translating F\# to JavaScript.
 
-In this section, we discuss the options available when targeting JavaScript. The compilation to
-JavaScript can be implemented as compiler back-end or as a library based on meta-programming
-(Section~\ref{sec:js-meta}), there are different approaches to base libraries (Section~\ref{sec:js-lib}),
-asynchronous computing (Section~\ref{sec:js-async}) and the semantic mismatch between the host
-language and JavaScript (Section~\ref{sec:js-relative}).
+A wide range of choices is available when targeting JavaScript. The compilation to JavaScript can be
+implemented as compiler back-end or as a library (Section~\ref{sec:js-meta}) and there are different
+approaches to base libraries (Section~\ref{sec:js-lib}) and asynchronous computing
+(Section~\ref{sec:js-async}).
 
 \subsection{Lightweight meta-programming with quotations}
 \label{sec:js-meta}
 
 The FunScript library is based on F\# quotations \cite{fsharp-metaprog}. This means that the code
-is compiled as ordinary F\#, but the compiler also stores marked blocks of code as data. In FunScript,
-we use a launcher that, when the program runs, analyses its quotations and produces a JavaScript file
-(so, the workflow is to compile the code as usual and then run it to produce JavaScript).
-
+is compiled as ordinary F\#, but the compiler also stores marked blocks of code as data.
 In FunScript, we typically need to translate the entire source file. To allow this, we instruct the
 compiler to store code as data for the whole module using the \ident{ReflectedDefinition} attribute.
-This is done at the beginning of the file (which we omitted in Section~\ref{sec:case}):
-%
+This is done at the beginning of the file:
+
 \begin{equation*}
 \begin{array}{l}
  \lbrack\langl\ident{ReflectedDefinition}\rangl\rbrack \\
@@ -952,31 +826,17 @@ This is done at the beginning of the file (which we omitted in Section~\ref{sec:
 \end{equation*}
 %
 When marked with \ident{ReflectedDefinition}, the F\# compiler stores the body of all functions and
-methods in the marked module as \emph{quotations} that can be retrieved at run-time. Note that this does
-not store the AST for the entire file -- for example, information about declared types needs to be
-obtained separately using the .NET reflection mechanism.
-
-The quotation mechanism has other uses. In the following, we use an explicit quotation $\langl @ \ldots @\rangl$,
-which returns the wrapped code as data. This can be used, for example, to compile a matrix calculation
-to run on a GPU \cite{accelerator}:
-%
-\begin{equation*}
-\begin{array}{l}
- \langl @~ \kvd{fun}~(\ident{input}:\ident{Matrix}\langl\ident{float32}\rangl)~\rightarrow \\
- \qquad~~ \kvd{let}~\ident{sum}~=~(\ident{shift input}~-\hspace{-0.2em}1~0) ~+~ \ident{input} ~+~ (\ident{shift input}~+\hspace{-0.2em}1~0) \\
- \qquad~~ \ident{sum}~/~3.0\textnormal{f}~~@\rangl
-\end{array}
-\end{equation*}
-%
+methods in the marked module as \emph{quotations} that can be retrieved at run-time.
 Compared to writing a full compiler back-end, the lightweight approach to meta-programming makes it easy to
 write a translator from F\# to other languages. This has been used for compiling to SQL queries, compiling
-F\# code to CUDA, for Freebase queries \cite{fsharp-data} and other applications.
+F\# code to CUDA or for Freebase queries \cite{fsharp-data}. For example, explicit quotations such as
+$\langl @~ ((\ident{shift input}~-\hspace{-0.2em}1) ~+~ \ident{input})/2 ~@\rangl$
+have been used for translating F\# code to GPU \cite{accelerator}.
 
 Using the lightweight meta-programming approach in FunScript would not be appropriate if we wanted to
 compile arbitrary existing F\# source code to JavaScript without any modifications. For that, using a
 compiler back-end is a better choice. However, for the task solved in our case study (compiling
-newly written F\# code), the approach works well. A related question is providing mappings for
-standard (in our case, F\# and .NET) libraries used by the code. We discuss this in the next section.
+newly written F\# code), the approach works well.
 
 \subsection{Accessing F\# and JavaScript libraries}
 \label{sec:js-lib}
@@ -984,32 +844,26 @@ standard (in our case, F\# and .NET) libraries used by the code. We discuss this
 The F\# code in our case study uses a number of libraries. This includes the F\# core library (for
 example, the \ident{List.map} function), standard .NET libraries (iteration using the \kvd{for} loop
 uses .NET \ident{IEnumerable} interface) and JavaScript libraries. Accessing these libraries in
-FunScript follows a similar approach to F\# WebTools \cite{fsharp-webtools}.
+FunScript follows the F\# WebTools \cite{fsharp-webtools}.
 
 The range of possible approaches to libraries when translating to JavaScript has two extreme cases.
-We can attempt to port all libraries of our source language (F\#, Haskell or even .NET), or we
-can ignore most standard libraries and instead provide access to as many JavaScript libraries as
-possible. FunScript stands in the middle -- it provides access to \emph{some} F\# and .NET libraries,
-but most advanced functionality is accessed through JavaScript libraries.
+We can attempt to port all libraries of the source language (F\#, Haskell or even .NET), or we
+can ignore standard libraries and instead provide access to all JavaScript libraries. FunScript
+stands in the middle -- it provides access to \emph{some} F\# and .NET libraries,
+but relies  on JavaScript for more advanced functionality.
 
 \paragraph{Mapping standard .NET and F\# libraries.}
-The F\# ecosystem relies on .NET libraries. This means that taking an F\# library and translating it
-to JavaScript without any modification is not a viable approach as we would have to be able to also
-translate any (compiled) .NET library. This is where F\# differs, for example, from Haskell which has
-a closed ecosystem and the ghcjs project \cite{haskell-ghcjs} is thus capable of translating many
-standard libraries.
-
-FunScript implements (explicit) mappings for standard F\# and .NET libraries that are useful in
-JavaScript (collections, string manipulation, date and other). Those are either reimplemented in
-F\# with the \ident{ReflectedDefinition} attribute, or mapped to standard JavaScript library.
+The F\# ecosystem relies on .NET, so taking an F\# library and translating it to JavaScript without
+any modification would require translating any (compiled) .NET library. This is where F\# differs,
+for example, from Haskell which has a closed ecosystem and the ghcjs project \cite{haskell-ghcjs}
+is thus capable of translating most standard libraries.
 
 An interesting aspect of the case study is that we use F\# Data \cite{fsharp-data} type providers,
-which is a standard F\# library that has not been built specifically for FunScript. This illustrates
-how type providers and quotations interact.
-
+which is a standard F\# library that has not been built specifically for FunScript. Thus it is worth
+explaining how type providers and quotations interact.
 When we write code using type providers that provide erased types (both World Bank and TypeScript),
-then the erasure happens before a quotation is captured. The following listing shows an example.
-When we write code with explicit (or implicit) quotation containing a provided method (1), the actual
+then the erasure happens before a quotation is captured. When we write code with explicit (or
+implicit) quotation containing a provided method (1), the actual
 quotation (2) contains just calls to the underlying runtime library:
 %
 \begin{equation*}
@@ -1019,28 +873,21 @@ quotation (2) contains just calls to the underlying runtime library:
 \end{array}
 \end{equation*}
 %
-Thus, the FunScript component only needs to provide a client-side implementation of the underlying
+As a result, the FunScript component only needs to provide a client-side implementation of the underlying
 operations \ident{GetCountries}, \ident{GetCountry} and \ident{AsyncGetIndicator}. This is done in the
 same way as mappings for standard .NET libraries. Under the cover, \ident{AsyncGetIndicator} invokes
 an AJAX request to the World Bank API. We provide more details about asynchronous execution in
 Section~\ref{sec:js-async}.
 
 \paragraph{Accessing standard JavaScript libraries.}
-As discussed earlier, client-side programs can either rely more heavily on JavaScript libraries,
-or they can reimplement most of the core functionality. The latter approach is easier when all code
-is written for the same ecosystem. This is done, for example, by ghcjs \cite{haskell-ghcjs}.
-This technique can be very effective when writing code that will be a part of a larger JavaScript
-application and implements, for example, a core computation. This can then be compiled to run
-efficiently using asm.js \cite{asm-js}.
-
-The case study presented in this paper focuses more on the plumbing code that connects multiple
-components -- F\# type providers for data access and JavaScript libraries for visualization. Thus,
-a smooth integration between F\# and JavaScript is necessary.
+As discussed earlier, the focus of this case study is on integrating multiple ecosystems -- using
+F\# type providers for data access and JavaScript libraries for visualization. In this approach
+a high degree of integration between F\# and JavaScript is necessary.
 
 An important problem with accessing JavaScript libraries is deciding which types should be
 mapped to ordinary F\# types and which types should be treated as opaque JavaScript types that
-can only be manipulated by JavaScript operations and operators. For example, consider the following
-excerpt from the code in Section~\ref{sec:case-loading}:
+can only be manipulated by JavaScript operations. Consider the following excerpt from the code
+in Section~\ref{sec:case-loading}:
 %
 \begin{equation*}
 \begin{array}{lll}
@@ -1050,8 +897,7 @@ excerpt from the code in Section~\ref{sec:case-loading}:
  \ident{o.series} \leftarrow \lbrack| ~ |\rbrack \\
  (\ldots)
  \\[0.5em]
- \ident{opts.series.push}(\ident{h.HighchartsSeriesOptions}(\ident{data}, \ident{name}))  \\
- (\ldots)
+ \ident{opts.series.push}(\ident{h.HighchartsSeriesOptions}(\ident{data}, \ident{name}))
 \end{array}
 \end{equation*}
 %
@@ -1059,62 +905,101 @@ In ordinary F\# code, we would not initialize \ident{o.series} to an empty array
 accessing it and we would not expect to use a \ident{push} method to append an element --
 .NET arrays are mutable, but not resizable. Here, the first is necessary. When created,
 the \ident{series} property of \ident{HighchartsOptions} is \kvd{undefined}. The \ident{push}
-operation is added (as an extension method) to standard .NET array, but it cannot be
-implemented for ordinary F\# code. The following list briefly summarizes the options for
-mapping JavaScript libraries to F\# and the choices made in FunScript:
+operation is added to standard .NET array, but it cannot be implemented for ordinary F\# code.
+In summary, the options for mapping JavaScript libraries to F\# and the choices made by FunScript
+are:
 
 \begin{itemize}
 \item Numeric types including \ident{int} and \ident{float} are mapped to JavaScript numbers.
   However, the floating-point arithmetic in JavaScript differs from the one in F\# and so this changes
-  the semantics. Similarly, compilation of integer operators requires additional work (for
-  example, $1/2$ is not an integer division in JavaScript).
+  the semantics. Compilation of integer operators requires additional work (as $1/2$ is not an
+  integer division in JavaScript).
 
 \item FunScript maps F\# arrays to JavaScript arrays. We can define extension methods
-  such as \ident{push} that make sense for JavaScript arrays. An alternative is to use a
-  separate type -- for example js\_of\_ocaml uses a separate \ident{js\_array} type.
-  A nice thing about the FunScript approach is that it lets us use standard F\# modules
-  and functions such as \ident{Array.map}.
+  such as \ident{push} that make sense for JavaScript arrays. This lets us use standard
+  F\# modules and functions such as \ident{Array.map}. An alternative is to use a
+  separate type -- js\_of\_ocaml uses a separate type \ident{js\_array}.
 
 \item Due to its .NET heritage, there are many types in F\# that have \kvd{null} as a valid
   value. This means that there is a reasonable precedent for allowing \kvd{undefined} values
   on types imported from JavaScript (but not for types defined in F\#). In contrast,
-  js\_of\_ocaml is more explicit -- for example the \ident{attr} operation is marked as
-  returning \ident{optdef} (potentially undefined) \ident{js\_string} value whereas FunScript
-  uses just .NET \ident{string} (which may be \kvd{null}).
+  js\_of\_ocaml is more explicit and uses \ident{optdef} type to denote potentially undefined
+  values.
 \end{itemize}
 
 \noindent
-In summary, the approach used by F\# is to reuse as much of F\# and .NET as possible. This
+In summary, the approach used by F\# is to reuse as much of F\# and .NET as easily possible. This
 makes writing and reusing code easier and lets developers use existing familiar libraries and
-idioms. However, it means that the semantics of F\# running as JavaScript is not the same as the
-semantics of F\# running as compiled code. We return to this topic in Section~\ref{sec:js-relative}.
-Before that, the following section gives one more example where similar approach is used.
+idioms. However, it means that the semantics of F\# running as JavaScript is not always strictly
+the same as the semantics of F\# running as compiled code.
 
-\subsection{Client-side asynchronous computations}
+\paragraph{Client-side asynchronous computations.}
 \label{sec:js-async}
-
 In F\#, asynchronous workflows \cite{fsharp-async} serve two purposes. First, they provide a
 way for running multiple tasks in parallel. Second, they make it possible to write long-running
 non-blocking code without the use of explicit callbacks. In our case study, we only use the
 latter aspect. When loading data for selected countries in a loop, we fetch data asynchronously
-(using an AJAX call). Under the cover, JavaScript triggers a callback, which then resumes the
+(using AJAX). Under the cover, JavaScript triggers a callback, which then resumes the
 asynchronous workflow.
 
-Although the recent HTML5 standard makes it possible to write multi-threaded JavaScript using
-Web Workers, the FunScript implementation of $\ident{async}~\{ \ldots \}$ does not do that.
-Instead, it uses a simple cooperative model based on continuations (which is similar to how Links
-\cite{web-links} compilation works).
+FunScript uses a simple cooperative model based on continuations (which is similar to how Links
+\cite{web-links} compilation works). In ordinary F\#, asynchronous workflows can be started in a
+number of ways: \ident{Async.RunSynchronously} starts the work and blocks until it completes;
+\ident{Async.Start} starts the work in the background and \ident{Async.StartImmediate} starts the
+work on the current thread and runs callbacks on the same thread. Only the last one
+can be mapped to JavaScript (FunScript translator will fail at translation-time if the other two are used).
+Our approach is again to reuse standard F\# constructs, but interpret them in a different way that
+fits better with the new execution environment.
 
-In ordinary F\#, asynchronous workflows can be started in a number of ways: \ident{Async.RunSynchronously}
-starts the work and blocks until it completes; \ident{Async.Start} starts the work in the background
-and \ident{Async.\-Start\-Immediate} starts the work on the current thread and runs callbacks
-in the same synchronization context (essentially on the same thread). However, only the last one
-can be mapped to JavaScript (FunScript translator will fail if the other two are used).
+% =================================================================================================
+%
+% =================================================================================================
 
-Our approach is again to reuse standard F\# constructs, but interpret them in a way that fits
-with the new execution environment. The alternative would be to define a separate computation type
-such as $\ident{js\_async}~\{ \ldots \}$. So, developers can use existing constructs, but need
-to be aware that their code runs in a different environment.
+\section{Relativized safety and semantics}
+
+If there is one key message that the reader should take from this paper, it is the idea that both
+the type safety property and the langauge semantics can be relativized. That is, when we write code
+that uses the safe ML subset of F\#, we get all the good ML properties. However, to be able to
+interoperate with the open world and other ecosystems, the core language can be reinterpreted -- in
+a practically useful way but with semantics and safety that is relative with respect to the new
+environment.
+
+\subsection{Relativized type safety}
+\label{sec:tp-relative}
+
+Type providers for information sources, such as the World Bank provider, weaken the usual notion
+of type safety. In general, they require that certain assumptions about the world do not change
+between the state of the world at compile-time and state of the world at run-time. The TypeScript
+provider is different and it is more interesting to consider runtime behaviour as discussed
+in Section~\ref{sec:conc-interop}.
+
+For type providers that provide access to external information sources, we can formulate a
+\emph{relativized} notion of type safety. A full formalization is beyond the scope of this
+paper, but the following provides an outline of such a theorem.
+
+\begin{theorem*}[Relativized type safety]
+Assume $\pi_{\ident{~WorldBank}}$ is the mapping implemented by the World Bank type provider,
+$w_0, w_1$ are models of a (read-only) world that can be seen as functions defined on country-indicator
+pairs and $\langl e, w \rangl \rightarrow e'$ is a one-step reduction on expressions that has
+access to the World Bank data modelled by $w$.
+
+Then, if $e$ is well-typed using a compile-time model of the world $w_0$ and the model of the world
+used at run-time $w_1$ contains all country indicator pairs that may be accessed by $e$, then $e$
+can make a reduction step, \emph{i.e.} $\langl e, w_1 \rangl \rightarrow e'$ and the type of $e'$
+is the same as the type of $e$.
+\end{theorem*}
+
+\noindent
+The theorem has the usual structure of a type safety theorem. The reduction is defined on pairs
+consisting of expression and a world $w$. The result of the reduction is only an expression and
+so it cannot modify the world. Even though we give only a brief sketch, it demonstrates two
+important points about relativized type safety that are relevant to many type providers.
+
+First, we distinguish between the state of the world $w_0$ that is used at compile-time and the
+state $w_1$ used at run-time. If these were the same, the additional assumption would always hold.
+Second, we require that all countries and indicators that \emph{may be accessed} need to be
+available. This is an over-approximation, but it does \emph{not} say that
+the run-time world must contains \emph{all} countries and indicators.
 
 \subsection{Relativized semantics}
 \label{sec:js-relative}
@@ -1123,7 +1008,7 @@ When compiling any language to JavaScript, we can treat JavaScript as a low-leve
 (and use the asm.js \cite{asm-js} subset for efficiency), or we can use it as
 higher-level language and map many source language constructs to corresponding JavaScript
 constructs. In this case study, we used the latter. This enables interop with JavaScript, but
-it makes it hard (if at all possible) to preserve the original F\# semantics in all cases.
+it makes it hard (if at all possible) to preserve the original F\# semantics.
 
 This is perhaps a controversial approach, but it fits well with F\#, because it is similar to
 how F\# handles interop with .NET. When you do not use .NET objects, you do not need type
@@ -1168,7 +1053,7 @@ do not provide as smooth JavaScript integration.
 \paragraph{Further work.}
 The programming model used in our case study combines dynamically typed components (JavaScript
 libraries) and statically typed components (code written in F\#). This suggests a relation with
-the work on gradual typing \cite{gradual-typing} and blame tracking \cite{blame-well}. However,
+the work on gradual typing \cite{gradual-fun,gradual-oop} and blame tracking \cite{blame-well}. However,
 in our work, the distinction between the statically and dynamically typed parts (and the boundary)
 is less explicit. However, it would be interesting to see if gradual typing and blame can be
 used to formally define our informal notion of \emph{relativized semantics} introduced in
@@ -1184,7 +1069,6 @@ of this paper is not in any single technology it presents, but in the combinatio
 For this reason, we used the form of a case study, using a significant example to guide our
 discussion.
 
-\newpage
 There are two main assumptions that we reconsider. The first assumption is that programs
 operate in a closed world. Instead, modern application access a range of external services
 and information-sources. In our case study, these are accessed using type providers.
@@ -1200,6 +1084,7 @@ external information and run your code as JavaScript, you get a weaker notion of
 we called \emph{relativized type safety} and a weaker runtime guarantees that we called
 \emph{relativized semantics}. Nevertheless, the case study shows that these are enough to
 let us benefit from the functional-first statically-typed programming paradigm in the age of web.
+\newpage
 
 % =================================================================================================
 
