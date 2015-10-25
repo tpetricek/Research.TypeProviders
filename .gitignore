@@ -9,3 +9,5 @@
 *.bak
 *.fls
 *.fdb_latexmk
+.paket
+packages
