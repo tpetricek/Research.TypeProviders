@@ -28,6 +28,7 @@
 % TODO: Say that variant is a last-resort thing
 % TODO: Double check that bottom/top are used correctly
 % TODO: Explain (even more) that there is no least upper bound, which is why Theorem 3 is good enough
+% TODO:  -- but maybe we can have lub w.r.t variants? or something?
 % TODO: Avoid "no other rule applies" in the formal system
 % TODO: Practical evaluation (lots of downloads, lots of Github - how often people customize samples?)
 
@@ -399,6 +400,7 @@ An alternative is to provide two different record types (one with \ident{Name} a
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Processing XML data, alternative}
+\label{sec:providers-xml}
 
 In XML, documents are formed by (possibly) nested elements with attributes. We can view elements
 as records (unlike in JSON, the records are named) with a field for each attribute and an additional
@@ -586,16 +588,16 @@ precise in Section~\ref{sec:formal} before discussing safety in Section~\ref{sec
 
 The grammar below defines \emph{structural type} $\sigma$. We distinguish between \emph{non-nullable types}
 that always have a valid value (written as $\hat{\sigma}$) and \emph{nullable types} that encompass missing 
-and \kvd{null} values (written as $\sigma$). We write $\nu$ for record field names and $\nu?$
+and \kvd{null} values (written as $\sigma$). We write $\nu$ for record field names and $\nu_?$
 for record names, which can be empty:
 %
 \begin{equation*}
 \begin{array}{rcl}
- \hat{\sigma} &\narrow{=}& \nu?\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
+ \hat{\sigma} &\narrow{=}& \nu_?\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
                 &\narrow{|}& \ident{float} \lsep \ident{decimal} \lsep \ident{int} \lsep \ident{bit} \lsep \ident{bool} \lsep \ident{string} 
  \\[0.6em] 
-       \sigma &\narrow{=}& ~\hat{\sigma}~ \lsep \hat{\sigma}\;\,\kvd{option} \lsep [\sigma] \\[0.1em]
-              &\narrow{|}& \sigma_1 + \ldots + \sigma_n \lsep ~\top~ \lsep \kvd{null}
+       \sigma &\narrow{=}& ~\hat{\sigma}~ \lsep \kvd{option}\langl \hat{\sigma} \rangl \lsep [\sigma] \\[0.1em]
+              &\narrow{|}& \kvd{var}\langl\sigma_1, \ldots, \sigma_n\rangl \lsep ~\top~ \lsep \kvd{null}
 \end{array}
 \end{equation*}
 %
@@ -614,13 +616,10 @@ type. A simple collection type $[\sigma]$ is also nullable and missing values or
 empty collection. The type $\kvd{null}$ is inhabited by the $\kvd{null}$ value (using an overloaded but not
 ambiguous notation) and $\top$ represents the top type.
 
-Finally, a union type in our model implicitly permits the \kvd{null} value. This is because structural union 
-types are \emph{not} mapped to F\# union types. Instead our encoding requires the user to handle the 
-cases one-by-one and so they also need to handle the situation when none of the cases matches (as discussed
-in Section~\ref{sec:impl-unions}, this is the right choice for an F\# type provider, but it would not 
-necessarily be a good fit for other languages).
-
-% TODO: Also include reference to section with more on heterogeneous collections.
+Finally, a variant type \kvd{var} is annotated with the statically known types it may represent based
+on the sample document. As discussed earlier (Section~\ref{sec:providers-xml}), the variant type forces
+the user to handle the case when a value is of a different type than the ones statically known. For
+this reason, the variant type also implicitly permits the \kvd{null} value. 
 
 % --------------------------------------------------------------------------------------------------
 
@@ -640,7 +639,7 @@ with the same name and between union types. This following definition makes this
 
 \begin{definition}
 We write $\sigma_1 :> \sigma_2$ to denote that $\sigma_2$ is a subtype of $\sigma_1$. The 
-subtyping relation is defined as a transitive reflexive closure of these rules:
+subtyping relation is defined as a transitive reflexive closure of the following rules:
 
 \vspace{0.5em}
 \noindent\boxed{\emph{Primitives, options, collections}}
@@ -657,52 +656,46 @@ subtyping relation is defined as a transitive reflexive closure of these rules:
 [\sigma_1] :> [\sigma_2] \quad &(\textnormal{if}~\sigma_1 :> \sigma_2)
 \end{align}
 
-\noindent\boxed{\emph{Union types}}
+\noindent\boxed{\emph{Variant types}}
 \begin{align}
-\label{eq:sub-union1}\tag{U1}
-\sigma_1 + \ldots + \sigma_n :> \sigma_1' + \ldots + \sigma_n' \quad &(\textnormal{iff}~\forall i.\sigma_i :> \sigma_i') \\
-\label{eq:sub-union2}\tag{U2}
-\sigma_1 + \ldots + \sigma_n :> \sigma_1 + \ldots + \sigma_m \quad &(\textnormal{where}~m \leq n) \\
-\label{eq:sub-union3}\tag{U3}
-\sigma_1 + \ldots + \sigma_n :> \sigma_1 + \ldots + \sigma_m \quad &(\textnormal{where}~m \geq n) \\
-\label{eq:sub-union4}\tag{U4}
-\hspace{-1em}\sigma_1 + \ldots + \sigma_n :> \sigma_{\pi(1)} + \ldots + \sigma_{\pi(n)} \quad &(\textnormal{permutation}~\pi) \\
-\label{eq:sub-union-el}\tag{U5}
-\sigma_1 + \ldots + \sigma_n :> \sigma_i \quad &(\textnormal{for}~i \in 1 \ldots n)
+\label{eq:sub-var-bot}\tag{U1}
+\kvd{var}\langl \sigma_1, \ldots, \sigma_n\rangl :>&~ \sigma \\
+\label{eq:sub-var-eq}\tag{U2}
+\kvd{var}\langl \sigma_1, \ldots, \sigma_n \rangl :>&~ \kvd{var}\langl \sigma_1', \ldots, \sigma_n' \rangl
 \end{align}
 
 \noindent\boxed{\emph{Record types}}
 \begin{align}
 \hspace{-1em}
 \label{eq:sub-record1}\tag{R1}
- \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em}:> \hspace{-0.1em}
- \nu?~\{ \nu_1\!:\!\sigma_1', .., \nu_n\!:\!\sigma_n' \}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em}:> \hspace{-0.1em}
+ \nu_?~\{ \nu_1\!:\!\sigma_1', .., \nu_n\!:\!\sigma_n' \}
  \; (\sigma_i \hspace{-0.25em}:>\hspace{-0.25em} \sigma_i')
 \end{align}
 \vspace{-1.4em}
 \begin{align}
 \hspace{-1em}
 \label{eq:sub-record2}\tag{R2}
- \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em} :> \hspace{-0.1em}
- \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_m\!:\!\sigma_m \}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em} :> \hspace{-0.1em}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_m\!:\!\sigma_m \}
  \; (m \hspace{-0.1em}\geq\hspace{-0.1em} n)
 \end{align}
 \vspace{-1.0em}
 \begin{align}
 \label{eq:sub-record3}\tag{R3}
-\hspace{-1.75em}
+\hspace{-1.5em}
 \begin{array}{l}
- \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
- \nu?~\{ \nu_{\pi(1)}\!:\!\sigma_{\pi(1)}, .., \nu_{\pi(m)}\!:\!\sigma_{\pi(m)} \}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
+ \nu_?~\{ \nu_{\pi(1)}\!:\!\sigma_{\pi(1)}, .., \nu_{\pi(m)}\!:\!\sigma_{\pi(m)} \}
 \end{array} \qquad &(\textnormal{permutation}~\pi)
 \end{align}
 \vspace{-0.6em}
 \begin{align}
 \label{eq:sub-record4}\tag{R4}
-\hspace{-1.75em}
+\hspace{-1.5em}
 \begin{array}{l}
- \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n, \nu_{n+1}\!:\!\kvd{null}, .., \nu_{n+m}\!:\!\kvd{null} \} :> \\
- \nu?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n, \nu_{n+1}\!:\!\kvd{null}, .., \nu_{n+m}\!:\!\kvd{null} \} :> \\
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \}
 \end{array}
 \end{align}
 \end{definition}
@@ -834,21 +827,16 @@ Here is a summary of the key aspects of the definition:
 
 \item The \ident{bit} type is a subtype of both \ident{int} and \ident{bool} (\ref{eq:sub-prim}). 
   Thus, a sample $0,1$ has a type \ident{bit}; $0,1,\kvd{true}$ is \ident{bool} and
-  $0,1,2$ becomes \ident{int} (for a sample $0,1,2, \kvd{true}$ we would need a union type).
+  $0,1,2$ becomes \ident{int} (for a sample $0,1,2, \kvd{true}$ we would need a variant type).
 
 \item The \kvd{null} type is a subtype of all nullable types (\ref{eq:sub-null}), that is all 
   $\sigma$ types excluding non-nullable types $\hat{\sigma}$). Any non-nullable type is also a 
   subtype of its optional version (\ref{eq:sub-opt}).
 
-\item There is a top type (\ref{eq:sub-top}), but no bottom type. It is possible to find common 
-  supertype of any two types, because a union type $\tau_1 + \ldots + \tau_n$ is a supertype of all its 
-  components (\ref{eq:sub-union-el}).
-
-\item For unions, we include the standard rules. Subtype can have fewer alternatives 
-  (\ref{eq:sub-union1}), elements can be reordered (\ref{eq:sub-union2}) and subtyping is covariant 
-  (\ref{eq:sub-union4}). An unusual rule (\ref{eq:sub-union3}) says that subtype can also have 
-  \emph{more} cases. This is valid because the type provider exposes unions as objects that do not
-  allow complete pattern matching.
+\item There is a top type (\ref{eq:sub-top}) and variants can be seen as the bottom because
+  any type $\sigma$ is a subtype of a variant (\ref{eq:sub-var-bot}). There is no \emph{single} 
+  bottom type -- there is a range of distinct variant types, but any variant is a subtype
+  of any other variant (\ref{eq:sub-var-eq}).
 
 \item As usual, the subtyping on records is covariant (\ref{eq:sub-record1}), subtype can have additional 
   fields (\ref{eq:sub-record2}) and fields can  be reordered (\ref{eq:sub-record3}). The interesting rule 
@@ -857,12 +845,18 @@ Here is a summary of the key aspects of the definition:
 \end{itemize}
 
 \noindent
-The rule that allows subtype to have fewer record elements (\ref{eq:sub-record4}) is particularly
-important. It allows us to prefer records in some cases. For example, given two samples 
-$\{ \ident{name}:\ident{string} \}$ and $\{ \ident{name}:\ident{string}, \ident{age}:\ident{int} \}$,
-we can find a common supertype $\{ \ident{name}:\ident{string}, \ident{age}:\ident{int}~\kvd{option} \}$
-which is also a record. For usability reasons, we prefer this to another common supertype
-$\{ \ident{name}:\ident{string} \} + \{ \ident{name}:\ident{string}, \ident{age}:\ident{int} \}$.
+If we were proposing a type system for type-checking programs, the use of multiple variant types
+(which all are subtypes of each other) would not add any value and we could introduce a single 
+bottom type instead. However, our purpose is different -- we aim to make reading structured data
+easier and, as shown in Section~\ref{sec:providers-xml}, the types forming a variant provide a
+useful information about the sample document.
+
+Another important rule is (\ref{eq:sub-record4}), which allows subtype to have fewer record 
+elements. In some cases, this allows us to infer records rather than variants. For example, given 
+$\{ \ident{name}\!:\!\ident{string} \}$ and $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int} \}$,
+we can find a common supertype $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int}~\kvd{option} \}$
+which is also a record. This is more precise and more usable type than another common supertype
+$\kvd{var}\langl \{ \ident{name}:\ident{string} \}, \{ \ident{name}:\ident{string}, \ident{age}:\ident{int} \}\rangl$.
 The next section describes precisely how our inference algorithm works.
 
 It is worth noting that some of the aspects (such as 3 different numeric types and handling of 
@@ -873,7 +867,8 @@ differently.
 We could also be more or less strict about missing data -- we choose to handle missing values 
 silently when we can (\kvd{null} becomes an empty collection), but we are explicit in other cases 
 (we infer \ident{string}~\kvd{option} as a hint to the user rather than treating \kvd{null} as an 
-empty string). These choices are based on experience with using F\# Data in practice.
+empty string). These choices are based on experience with using F\# Data in practice
+and might differ for other languages.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -976,9 +971,14 @@ empty string). These choices are based on experience with using F\# Data in prac
 
 As mentioned earlier, the structural type inference relies on a finding common supertype. However,
 the partially ordered set of types does not have a unique greatest lower bound. For example, record types
-$\{\ident{a}:\ident{int}\}$ and $\{\ident{b}:\ident{bool}\}$ have common supertypes
-$\{\ident{?a}:\ident{int}, \ident{?b}:\ident{bool}\}$ and $\{\ident{a}:\ident{int}\} + \{\ident{b}:\ident{bool}\}$
-which are unrelated. Our inference algorithm always prefers records over unions (Theorem~\ref{thm:no-unions}). 
+$\{\ident{a}\!:\!\ident{int}\}$ and $\{\ident{b}\!:\!\ident{bool}\}$ have common supertypes
+$\{\ident{?a}\!:\!\ident{int}, \ident{?b}\!:\!\ident{bool}\}$ and 
+$\kvd{var}\langl\{\ident{a}\!:\!\ident{int}\}, \{\ident{b}:\ident{bool}\}\rangl$
+
+NOT TRUE
+which are unrelated.
+
+ Our inference algorithm always prefers records over unions (Theorem~\ref{thm:no-unions}). 
 The definition of the \emph{common supertype} relation uses a number of auxiliary definitions 
 that are explained in the discussion that follows.
 
