@@ -32,6 +32,14 @@ Target "run" (fun _ ->
     fsw.EnableRaisingEvents <- true )
 
   fsw.EnableRaisingEvents <- true
+
+  let ps =
+    ProcessStartInfo
+      ( FileName = @"C:\Programs\Publishing\SumatraPDF\SumatraPDF.exe",
+        Arguments = "\"" + __SOURCE_DIRECTORY__ + "\\paper.pdf\"",
+        WorkingDirectory = path )
+  let p = Process.Start(ps)
+  
   System.Threading.Thread.Sleep(System.Threading.Timeout.Infinite)
 )
 

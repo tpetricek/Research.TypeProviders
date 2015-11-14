@@ -1,3 +1,12 @@
+%
+% IMPORTANT:  Please only use this class file for submissions to PLDI'15
+%
+%
+% In the future, please use the 3.X official releases of this class
+% file for subsequent SIGPLAN submissions, which is expected to
+% become available soon.
+%
+%
 %-----------------------------------------------------------------------------
 %
 %               LaTeX Class/Style File
@@ -27,7 +36,7 @@
 
 
 \NeedsTeXFormat{LaTeX2e}[1995/12/01]
-\ProvidesClass{sigplanconf}[2013/07/02 v2.8 ACM SIGPLAN Proceedings]
+\ProvidesClass{sigplanconf-pldi15}[2014/08/18 v3.0x ACM SIGPLAN Proceedings]
 
 % The following few pages contain LaTeX programming extensions adapted
 % from the ZzTeX macro package.
@@ -202,6 +211,7 @@
 \@setflag \@blockstyle = \@false
 \@setflag \@copyrightwanted = \@true
 \@setflag \@explicitsize = \@false
+\@setflag \@legacycopyright = \@false
 \@setflag \@mathtime = \@false
 \@setflag \@natbib = \@true
 \@setflag \@ninepoint = \@true
@@ -211,7 +221,12 @@
 \@setflag \@reprint = \@false
 \@setflag \@tenpoint = \@false
 \@setflag \@times = \@false
-
+\@setflag \@squareay = \@false
+\@setflag \@blind = \@false
+\@setflag \@pldi = \@false
+\@setflag \@pldicrc = \@false
+\@setflag \@clearpagebib = \@false
+ 
 % Note that all the dangerous article class options are trapped.
 
 \DeclareOption{9pt}{\@setflag \@ninepoint = \@true
@@ -248,6 +263,8 @@
 
 \DeclareOption{landscape}{\@unsupportedoption{landscape}}
 
+\DeclareOption{legacycopyright}{\@setflag \@legacycopyright = \@true}
+
 \DeclareOption{legalpaper}{\@unsupportedoption{legalpaper}}
 
 \DeclareOption{letterpaper}{\@unsupportedoption{letterpaper}}
@@ -276,7 +293,26 @@
 
 \DeclareOption{titlepage}{\@unsupportedoption{titlepage}}
 
-\DeclareOption{twocolumn}{\@setflag \@onecolumn = \@false}
+\DeclareOption{twocolumn}{\@setflag \@onecolumn = \@False}
+
+\DeclareOption{blind}{\@setflag \@blind = \@true}
+
+\DeclareOption{squareay}{\@setflag \@squareay = \@true}
+
+\DeclareOption{clearpagebib}{\@setflag \@clearpagebib = \@true}
+
+\DeclareOption{pldi}{\PassOptionsToClass{10pt}{article}%
+                     \@setflag \@ninepoint = \@false
+                     \@setflag \@tenpoint = \@true
+                     \@setflag \@explicitsize = \@true
+                     \@setflag \@squareay = \@true
+                     \@setflag \@blind = \@true
+                     \@setflag \@preprint = \@true
+                     \@setflag \@clearpagebib = \@true
+		     }
+
+\DeclareOption{pldicrc}{\@setflag \@authoryear = \@true
+                        \@setflag \@squareay = \@true}
 
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{article}}
 
@@ -500,7 +536,11 @@
 
 
 \renewenvironment{thebibliography}[1]
-     {\section*{\refname
+     {\section*{%
+      \if \@clearpagebib
+        \clearpage
+      \fi
+        \refname
         \@mkboth{\MakeUppercase\refname}{\MakeUppercase\refname}}%
       \list{\@biblabel{\@arabic\c@enumiv}}%
            {\settowidth\labelwidth{\@biblabel{#1}}%
@@ -524,13 +564,21 @@
 \if \@authoryear
   \typeout{Using natbib package with 'authoryear' citation style.}
   \usepackage[authoryear,square]{natbib}
-  \bibpunct{(}{)}{;}{a}{}{,}    % Change fences to parentheses;
-                                % citation separator to semicolon;
-                                % eliminate comma between author and year.
+  % Consistent with TOPLAS / ACM (http://www.acm.org/publications/latex_style/);
+  % citation separator to semicolon;
+  % eliminate comma between author and year.
+  \if \@squareay
+    \bibpunct{[}{]}{;}{a}{}{,}
+  \else
+    \bibpunct{(}{)}{;}{a}{}{,}
+  \fi
   \let \cite = \citep
 \else
   \typeout{Using natbib package with 'numbers' citation style.}
   \usepackage[numbers,sort&compress,square]{natbib}
+\fi
+\if \@clearpagebib
+  \renewcommand{\bibsection}{\clearpage\section*{\refname}}
 \fi
 \setlength{\bibsep}{3pt plus .5pt minus .25pt}
 
@@ -575,7 +623,7 @@
 
 \def \@copyrightspace {%
   \@float{copyrightbox}[b]%
-  \vbox to 1.2in{%
+  \vbox to 1.5in{%
     \vfill
     \parbox[b]{20pc}{%
       \scriptsize
@@ -583,7 +631,7 @@
         [Copyright notice will appear here
          once 'preprint' option is removed.]\par
       \else
-        \@toappear
+        \if \@blind \else \@toappear \fi
       \fi
       \if \@reprint
         \noindent Reprinted from \@conferencename,
@@ -593,115 +641,171 @@
       \fi}}%
   \end@float}
 
-\newcommand{\reprintprice}[1]{%
-  \gdef \@reprintprice {#1}}
-
-\reprintprice{\$15.00}
-
 \long\def \toappear #1{%
   \def \@toappear {#1}}
 
 \toappear{%
   \noindent \@permission \par
   \vspace{2pt}
-  \noindent \textsl{\@conferencename}, \quad \@conferenceinfo. \par
+  \noindent \textsl{\@conferencename}\quad \@conferenceinfo \par
   \noindent Copyright \copyright\ \@copyrightyear\ ACM \@copyrightdata
-    \dots \@reprintprice.\par
-  \noindent http://dx.doi.org/10.1145/\@doi }
+    \dots \@reprintprice\par
+  \noindent \setcopyrightdoi\par}
 
-\newcommand{\permission}[1]{%
-  \gdef \@permission {#1}}
+\def \publicationrights #1{%                                    {type}
+  \if \@definedp{\rightsstatement#1}%
+    \gdef \@permission {\@name{\rightsstatement#1}}%
+  \else
+    \@latex@error{The publication right '#1' is invalid}{}%
+  \fi}
 
-\permission{%
-  Permission to make digital or hard copies of all or part of this work for
+\expandafter\def \csname rightsstatementauthor-pays\endcsname{%
+  Permission to make digital or hard copies of part or all of this work for
+  personal or classroom use is granted without fee provided that copies are
+  not made or distributed for profit or commercial advantage and that copies
+  bear this notice and the full citation on the first page. Copyrights for
+  third-party components of this work must be honored. For all other uses,
+  contact the Owner/Author.}
+
+\def \rightsstatementlicensed {%
+  Permission to make digital or hard copies of part or all of this work for
   personal or classroom use is granted without fee provided that copies are
   not made or distributed for profit or commercial advantage and that copies
   bear this notice and the full citation on the first page. Copyrights for
   components of this work owned by others than ACM must be honored.
-  Abstracting with credit is permitted. To copy otherwise, or republish, to
-  post on servers or to redistribute to lists, requires prior specific
-  permission and/or a fee. Request permissions from permissions@acm.org.}
+  Abstracting with credit is permitted. To copy otherwise, to republish, to
+  post on servers, or to redistribute to lists, contact the Owner/Author.
+  Request permissions from permissions@acm.org or Publications Dept., ACM,
+  Inc., fax +1~(212) 869-0481.  Copyright \@copyrightyear\ held by Owner/Author.
+  Publication Rights Licensed to ACM.}
 
-% These are two new rights management and bibstrip text blocks.
+\publicationrights{licensed}
 
-\newcommand{\exclusivelicense}{%
+\def \rightsstatementtransferred {%
+  Permission to make digital or hard copies of part or all of this work for
+  personal or classroom use is granted without fee provided that copies are
+  not made or distributed for profit or commercial advantage and that copies
+  bear this notice and the full citation on the first page. Copyrights for
+  components of this work owned by others than ACM must be honored.
+  Abstracting with credit is permitted. To copy otherwise, to republish, to
+  post on servers, or to redistribute to lists, requires prior specific
+  permission and/or a fee. Request permissions from permissions@acm.org or
+  Publications Dept., ACM, Inc., fax +1~(212) 869-0481.}
+
+\newcommand{\reprintprice}[1]{%
+  \gdef \@reprintprice {#1}}
+
+\reprintprice{\$15.00}
+
+\def \setcopyrightdoi {%
+  \if \@emptydefp{\@copyrightdoi}%
+    \if \@notp{\@preprint}%
+      \@latex@warning{Copyright DOI has not been provided
+                      (\noexpand\copyrightdoi)}{}%
+      \gdef \@copyrightdoi {(to come)}%
+    \fi
+  \fi
+  DOI: http://dx.doi.org/10.1145/\@copyrightdoi}
+
+% Legacy commands.
+
+\newcommand{\permission}[1]{%
+  \gdef \@permission {#1}}
+
+%%%\permission{%
+%%%  Permission to make digital or hard copies of part or all of this work for
+%%%  personal or classroom use is granted without fee provided that copies are
+%%%  not made or distributed for profit or commercial advantage and that copies
+%%%  bear this notice and the full citation on the first page. Copyrights for
+%%%  components of this work owned by others than ACM must be honored.
+%%%  Abstracting with credit is permitted. To copy otherwise, to republish, to
+%%%  post on servers, or to redistribute to lists, requires prior specific
+%%%  permission and/or a fee. Request permissions from permissions@acm.org or
+%%%  Publications Dept., ACM, Inc., fax +1 (212) 869-0481.}
+
+% Here we have some alternate permission statements and copyright lines:
+
+\newcommand{\ACMCanadapermission}{%
+  \legacycopyrighterror{\ACMCanadapermission}%
   \permission{%
-    Permission to make digital or hard copies of all or part of this work for
-    personal or classroom use is granted without fee provided that copies are
-    not made or distributed for profit or commercial advantage and that copies
-    bear this notice and the full citation on the first page. Copyrights for
-    components of this work owned by others than the author(s) must be honored.
-    Abstracting with credit is permitted. To copy otherwise, or republish, to
-    post on servers or to redistribute to lists, requires prior specific
-    permission and/or a fee. Request permissions from permissions@acm.org.}
-  \toappear{%
-    \noindent \@permission \par
-    \vspace{2pt}
-    \noindent \textsl{\@conferencename}, \quad \@conferenceinfo. \par
-    \noindent Copyright is held by the owner/author(s). Publication rights licensed to ACM. \par
-    \noindent ACM \@copyrightdata \dots \@reprintprice.\par
-    \noindent http://dx.doi.org/10.1145/\@doi}}
+    Copyright \@copyrightyear\ Association for Computing Machinery.
+    ACM acknowledges that
+    this contribution was authored or co-authored by an affiliate of the
+    National Research Council of Canada (NRC).
+    As such, the Crown in Right of
+    Canada retains an equal interest in the copyright, however granting
+    nonexclusive, royalty-free right to publish or reproduce this article,
+    or to allow others to do so, provided that clear attribution
+    is also given to the authors and the NRC.}}
 
-\newcommand{\permissiontopublish}{%
+\newcommand{\ACMUSpermission}{%
+  \legacycopyrighterror{\ACMUSpermission}%
+  \permission{%
+    Copyright \@copyrightyear\ Association for
+    Computing Machinery. ACM acknowledges that
+    this contribution was authored or co-authored
+    by a contractor or affiliate
+    of the U.S. Government. As such, the Government retains a nonexclusive,
+    royalty-free right to publish or reproduce this article,
+    or to allow others to do so, for Government purposes only.}}
+
+\newcommand{\authorpermission}{%
+  \legacycopyrighterror{\authorpermission}%
   \permission{%
     Permission to make digital or hard copies of part or all of this work for
     personal or classroom use is granted without fee provided that copies are
     not made or distributed for profit or commercial advantage and that copies
     bear this notice and the full citation on the first page. Copyrights for
-    third-party components of this work must be honored. 
-    For all other uses, contact the owner/author(s).}%
+    third-party components of this work must be honored. For all other uses,
+    contact the Owner/Authorxxx.}%
   \toappear{%
     \noindent \@permission \par
     \vspace{2pt}
-    \noindent \textsl{\@conferencename}, \quad \@conferenceinfo. \par
-    \noindent Copyright is held by the owner/author(s). \par
-    \noindent ACM \@copyrightdata.\par
-    \noindent http://dx.doi.org/10.1145/\@doi}}
+    \noindent \textsl{\@conferencename}\quad \@conferenceinfo \par
+    ACM \@copyrightdata.}}
 
-% The following permission notices are
-% for the traditional copyright transfer agreement option.
-
-% Exclusive license and permission-to-publish 
-% give more complicated permission notices.
-% These are not covered here.
-
-\newcommand{\ACMCanadapermission}{%
+\newcommand{\Sunpermission}{%
+  \legacycopyrighterror{\Sunpermission}%
   \permission{%
-    ACM acknowledges that this contribution was authored or
-    co-authored by an affiliate of the Canadian National
-    Government. As such, the Crown in Right of Canada retains an equal
-    interest in the copyright. Reprint requests should be forwarded to
-    ACM.}}
-
-\newcommand{\ACMUSpermission}{%
-  \permission{%
-    ACM acknowledges that this contribution was authored or
-    co-authored by a contractor or affiliate of the United States
-    Government. As such, the United States Government retains a
-    nonexclusive, royalty-free right to publish or reproduce this
-    article, or to allow others to do so, for Government purposes
-    only.}}
+    Copyright is held by Sun Microsystems, Inc.}%
+  \toappear{%
+    \noindent \@permission \par
+    \vspace{2pt}
+    \noindent \textsl{\@conferencename}\quad \@conferenceinfo \par
+    ACM \@copyrightdata.}}
 
 \newcommand{\USpublicpermission}{%
+  \legacycopyrighterror{\USpublicpermission}%
   \permission{%
     This paper is authored by an employee(s) of the United States
-    Government and is in the public domain. Non-exclusive copying or
-    redistribution is allowed, provided that the article citation is
-    given and the authors and the agency are clearly identified as its
-    source.}%
+    Government and is in the public domain.}%
   \toappear{%
     \noindent \@permission \par
     \vspace{2pt}
-    \noindent \textsl{\@conferencename}, \quad \@conferenceinfo. \par
-    \noindent ACM \@copyrightdata.\par
-    \noindent http://dx.doi.org/10.1145/\@doi}}
+    \noindent \textsl{\@conferencename}\quad \@conferenceinfo \par
+    ACM \@copyrightdata.}}
 
 \newcommand{\authorversion}[4]{%
+  \legacycopyrighterror{\authorversion}%
   \permission{%
   Copyright \copyright\ ACM, #1. This is the author's version of the work.
   It is posted here by permission of ACM for your personal use.
   Not for redistribution. The definitive version was published in
-  #2, #3, http://dx.doi.org/10.1145/#4.}}
+  #2, #3, http://doi.acm.org/10.1145/#4.}}
+
+\def \exclusivelicense {%
+  \@latex@error{Deprecated;
+                you probably want `\noexpand\publicationrights{licensed}'}{}}
+
+\def \permissiontopublish {%
+  \@latex@error{Deprecated;
+                you probably want `\noexpand\publicationrights{author-pays}'}{}}
+
+\def \legacycopyrighterror #1{%
+  \if \@notp{\@legacycopyright}%
+    \@latex@error{Copyright permission '\noexpand#1' is deprecated; use
+                  'legacycopyright' class option to allow it}{}%
+  \fi}
 
 %                       Enunciations
 %                       ------------
@@ -836,6 +940,7 @@
 \def \@conferenceinfo {}
 \def \@copyrightyear {}
 \def \@copyrightdata {[to be supplied]}
+\def \@copyrightdoi {}
 \def \@proceedings {[Unknown Proceedings]}
 
 
@@ -853,11 +958,13 @@
 
 \let \crdata = \copyrightdata
 
-\newcommand{\doi}[1]{%
-  \gdef \@doi {#1}}
-
 \newcommand{\proceedings}[1]{%
   \gdef \@proceedings {#1}}
+
+\def \copyrightDOI #1{%
+  \gdef \@copyrightdoi {#1}}
+
+\let \copyrightdoi = \copyrightDOI
 
 %                       Lists
 %                       -----
@@ -956,9 +1063,9 @@
   \let \@mkboth = \@gobbletwo
   \let \@evenhead = \@empty
   \def \@evenfoot {\scriptsize
-                   \rlap{\textit{\@preprintfooter}}\hfil
+                   \rlap{\if \@blind \else \textit{\@preprintfooter}\fi}\hfil
                    \thepage \hfil
-                   \llap{\textit{\@formatyear}}}%
+                   \llap{\if \@blind \else \textit{\@formatyear}\fi}}%
   \let \@oddhead = \@empty
   \let \@oddfoot = \@evenfoot}
 
@@ -1047,6 +1154,9 @@
   \vskip 6pt
   \noindent \Large \@subtitletext \par
   \vskip 12pt
+  \if \@blind
+    \vskip 64pt% vspace to compensate for missing author info
+  \else
   \ifcase \@authorcount
     \@latex@error{No authors were specified for this paper}{}\or
     \@titleauthors{i}{}{}\or
@@ -1069,6 +1179,7 @@
                   \@titleauthors{vii}{viii}{ix}\@titleauthors{x}{xi}{xii}%
   \else
     \@latex@error{Cannot handle more than 12 authors}{}%
+  \fi
   \fi
   \vspace{1.75pc}
   \end{center}}
@@ -1304,8 +1415,19 @@
 
 %  2013.05.17   PCA     2.7     Change standard and author copyright text.
 
-%  2013.07.02   TU      2.8     More changes to permission/copyright notes.
-%                               Replaced ambiguous \authorpermission with
-%                               \exclusivelicense and \permissiontopublish
- 
+%                       2.8     (retracted)
 
+%  2014.07.30   PCA     2.9     Created just to replace version 2.8.
+
+%  2014.08.14   PCA     3.0     Implement new copyright command as specified
+%                                 at github.com/SIGPLAN/online/wiki/
+%                                 ACM-SIGPLAN-%28c%29-Messages
+%                               Deprecate the old commands, but allow their
+%                                 use with the 'legacycopyright' Option.
+
+%  2014.09.14   SB      3.0x    Add pldi and pldicrc options
+%                               Add support for TOPLAS-style authorname
+%                               references with square brackets.   Add blind option
+%                               that does not Print author names.  Add clearpagebib
+%                               option that creates a clearpage for the references
+%                               section.

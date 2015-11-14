@@ -1,4 +1,13 @@
-\documentclass[preprint]{sigplanconf}
+\documentclass[10pt,preprint,clearpagebib]{sigplanconf}
+
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage[hyphens]{url}
+\usepackage[svgnames]{xcolor}
+\definecolor{lcl}{RGB}{160,0,128}
+\usepackage[colorlinks=true,breaklinks,draft=false]{hyperref}
+\hypersetup{urlcolor=lcl,linkcolor=lcl}
+\newcommand{\doi}[1]{doi:~\href{http://dx.doi.org/#1}{\Hurl{#1}}}
 
 \usepackage{amssymb}
 \usepackage{multicol}
@@ -8,15 +17,13 @@
 \usepackage{graphics} 
 \usepackage{stmaryrd}
 \usepackage{amsthm}
-\usepackage[hyphens]{url}
-\usepackage{hyperref}
 \usepackage{ftnright}
 \usepackage[T1]{fontenc}
 \usepackage{semantic}
 \usepackage{enumitem}
-%\usepackage[hang,flushmargin]{footmisc} 
-%\usepackage[notquote]{hanging}
-%\usepackage{flushend}
+\usepackage[hang,flushmargin]{footmisc} 
+\usepackage[notquote]{hanging}
+\usepackage{flushend}
 
 % =================================================================================================
 
@@ -31,6 +38,30 @@
 % TODO:  -- but maybe we can have lub w.r.t variants? or something?
 % TODO: Avoid "no other rule applies" in the formal system
 % TODO: Practical evaluation (lots of downloads, lots of Github - how often people customize samples?)
+% TODO: Explain why we need option type (because T + null is a variant)
+
+% TODO: In the PLDI version, we delete all the unnecessary runtime conversions
+% but we should say that those happen for practical reasons (e.g. float -> int, or anyhing to string)
+
+
+% T :> S means that S is a subtype of T (and S can be used where T is expected)
+% TOP is the universal supertype
+% BOTTOM is the universal subtype
+
+% variant is the top type 
+%  (variant is a suprtype of everything; everything is a subtype of variant; 
+%   everything can be used where variant is expected)
+%
+% bottom is the bottom type
+%  (bottom is a subtype of everything; everything is a supertype of bottom
+%   bottom can be used where anything else is expected - but it has no values)
+%
+% define :=: when <: and :>, then take equivalence classes 
+
+% least upper bound of T1 and T2 is a supertype of both (T :> T1 and T :> T2)
+% and for all S such that S :> T1 and S :> T2, it holds that S :> T 
+
+
 
 \urlstyle{sf}
 
@@ -80,7 +111,7 @@
 \newcommand{\cmt}[1]{\textit{\sffamily\textcolor{cmtclr}{#1}}}
 
 \newcommand{\lsep}[0]{\;\; | \;\;}
-\newcommand{\narrow}[1]{\hspace{-0.85em} #1 \hspace{-0.85em}}
+\newcommand{\narrow}[1]{\hspace{-0.7em} #1 \hspace{-0.7em}}
 
 \newcommand{\tsep}[0]{\; \triangledown \;}
 \newcommand{\tytag}{\ident{tag}}
@@ -96,7 +127,8 @@
 
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
-\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
 
 % =================================================================================================
 
@@ -108,9 +140,9 @@
 \conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country} 
 \copyrightyear{20yy} 
 \copyrightdata{978-1-nnnn-nnnn-n/yy/mm} 
-\doi{nnnnnnn.nnnnnnn}
+%\doi{nnnnnnn.nnnnnnn}
 
-\titlebanner{Unpublished draft, March 2015}        % These are ignored unless
+%\titlebanner{Unpublished draft, March 2015}        % These are ignored unless
 %\preprintfooter{short description of paper}   % 'preprint' option specified.
 
 \title{F\# Data: \textnormal{Making structured data first-class citizens}}
@@ -130,25 +162,22 @@
 % =================================================================================================
 
 \begin{abstract}
-Most static type systems assume that a program runs in a closed world, but this is not the 
-case. Modern applications interact with external services and often access data in structured 
-formats such as XML, CSV and JSON. Static type systems do not understand such external data sources
-and only make accessing data more cumbersome. Should we just give up and leave the messy world of 
-external data to dynamic typing and runtime checks?
+Most modern applications interact with external services and access data in formats such as 
+XML, JSON and CSV. Static type systems do not understand external data sources and only 
+make accessing data more cumbersome. Should we give up and leave the messy world of external data 
+to dynamic typing and runtime checks? Of course, not!
 
-Of course, we should not give up! In this paper, we show how to integrate external data sources 
-into the F\# type system. As most real-world data on the web do not come with an explicit schema, 
-we develop a type inference algorithm that infers a type from representative samples. Next, we use 
-the type provider mechanism for integrating the inferred structures into the F\# type
-system. 
+We show how to integrate external data sources into the F\# type system. As most real-world data
+do not come with an explicit schema, we develop a type inference algorithm that infers a type from 
+representative sample documents and integrate it into the F\# type system using type providers.
 
-The resulting library significantly reduces the amount of code that developers need to write when 
-accessing data. It also provides additional safety guarantees. Arguably, as much safety as possible 
-if we abandon the incorrect closed world assumption.
+Our library significantly reduces the amount of code that developers need to write when 
+accessing data. It also provides additional safety guarantees, arguably, as much as possible if 
+we abandon the closed world assumption.
 \end{abstract}
 
 \category{D.3.3}{Programming Languages}{Language Constructs and Features }
-\keywords F\#, Type Providers, JSON, XML, Data, Type Inference
+\keywords F\#, Type Providers, Inference, JSON, XML
 
 
 
@@ -167,84 +196,74 @@ if we abandon the incorrect closed world assumption.
 \section{Introduction}
 \label{sec:introduction}
 
-The purpose of many modern applications is to connect multiple data sources or services and
-present the aggregated data in a new form. Mobile applications for taking notes, searching train
-schedules or finding tomorrow's weather all communicate with one or more services over the network.
-
+Applications for taking notes, searching train schedules or finding tomorrow's weather all 
+communicate with one or more services over the network and present the aggregated data. 
 Increasing number of such services provide REST-based end-points that return data as CSV, XML
-or JSON. Despite numerous schematization efforts, the services typically do not come with an explicit 
-schema. At best, the documentation provides a number of typical requests and sample responses.
+or JSON. Despite numerous schematization efforts, most services do not come with an 
+explicit schema. At best, the documentation provides sample responses for typical requests.
 
-For example, the OpenWeatherMap service provides an end-point for getting current weather for a 
-given city\footnote{See ``Current weather data'': \url{http://openweathermap.org/current}}. The page documents the input 
-URL parameters and shows one sample JSON response to illustrate the response structure.
-Using a standard library for working with JSON and HTTP, we might call the service and 
-read the temperature as follows\footnote{We abbreviate the full URL: 
-\url{http://api.openweathermap.org/data/2.5/weather?q=Prague\&units=metric}}:
-
-\noindent
+For example, OpenWeatherMap provides an end-point for getting current weather for a 
+given city\footnote{See ``Current weather data'': \url{http://openweathermap.org/current}}. 
+The documentation describes the URL parameters and shows one sample JSON to illustrate the typical
+response structure. Using a standard library for working with JSON and HTTP, we might call the 
+service and read the temperature as follows:
+%
 \begin{equation*}
 \begin{array}{l}
- \kvd{let}~\ident{data}=\ident{Http.Request}(\str{http://weather.org/?q=Prague}) \\[0.1em]
- \kvd{match}~\ident{JsonValue.Parse}(\ident{data})~\kvd{with} \\[0.1em]
- |~\ident{Record}(\ident{root})\rightarrow \\[0.1em]
- \quad \kvd{match}~\ident{Map.find}~\str{main}~\ident{root}~\kvd{with} \\[0.1em]
- \quad |~\ident{Record}(\ident{main})\rightarrow \\[0.1em]
- \quad \quad \kvd{match}~\ident{Map.find}~\str{temp}~\ident{main}~\kvd{with} \\[0.1em]
- \quad \quad |~\ident{Number}(\ident{num})\rightarrow \ident{printfn}~\str{Lovely \%f degrees!}~\ident{num} \\[0.1em]
- \quad \quad |~\_\rightarrow \ident{failwith}~\str{Incorrect format} \\[0.1em]
- \quad |~\_\rightarrow \ident{failwith}~\str{Incorrect format} \\[0.1em]
+ \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://weather.org/?q=NYC}) \\
+ \kvd{match}~\ident{JsonValue.Parse}(\ident{doc})~\kvd{with} \\
+ |~\ident{Record}(\ident{root})\rightarrow \\
+ \quad \kvd{match}~\ident{Map.find}~\str{main}~\ident{root}~\kvd{with} \\
+ \quad |~\ident{Record}(\ident{main})\rightarrow \\
+ \quad \quad \kvd{match}~\ident{Map.find}~\str{temp}~\ident{main}~\kvd{with} \\
+ \quad \quad |~\ident{Number}(\ident{num})\rightarrow \ident{printfn}~\str{Nice \%f degrees!}~\ident{num} \\
+ \quad \quad |~\_\rightarrow \ident{failwith}~\str{Incorrect format} \\
+ \quad |~\_\rightarrow \ident{failwith}~\str{Incorrect format} \\
  |~\_\rightarrow \ident{failwith}~\str{Incorrect format} 
 \end{array}
 \end{equation*}
-\vspace{0.1em}
-
-\noindent
+%
 The code assumes that the response has a particular format described in the documentation. The
 root node must be a record with a \str{main} field, which has to be another record containing
-a \str{temp} field with a numerical value. When the format is incorrect, the data access simply fails
+a numerical \str{temp} field. When the format is incorrect, the data access simply fails
 with an exception.
 
-Using the JSON type provider from the F\# Data library, we can write code with exactly the 
+Using the JSON type provider from F\# Data, we can write code with exactly the 
 same functionality in two lines:
-
-\vspace{-0.6em}
+%
 \begin{equation*}
 \begin{array}{l}
- \kvd{type}~\ident{W} = \ident{JsonProvider}\langl\str{http://weather.org/?q=Prague}\rangl \\[0.1em]
- \ident{printfn}~\str{Lovely \%f degrees!}~(\ident{W.GetSample().Main.Temp})
+ \kvd{type}~\ident{W} = \ident{JsonProvider}\langl\str{http://weather.org/?q=NYC}\rangl \\[0.1em]
+ \ident{printfn}~\str{Nice \%f degrees!}~(\ident{W.GetSample().Main.Temp})
 \end{array}
 \end{equation*}
-\vspace{0.0em}
-
-\noindent
-On the first line, $\ident{JsonProvider}\langl\str{...}\rangl$ invokes a type provider at 
+%
+Here, $\ident{JsonProvider}\langl\str{...}\rangl$ invokes a type provider at 
 compile-time with the URL as a sample. The type provider infers the structure of the response
 and provides a type with a \ident{GetSample} method that returns a parsed JSON with nested
 properties \ident{Main.Temp}, returning the temperature as a number.
 
-In the rest of the paper, we give a detailed description of the mechanism and we also discuss
-safety properties of the approach. The key novel contributions of this paper are:
+The rest of the paper describes the mechanism and discusses its safety properties. 
+The key novel contributions are:
 
 \begin{itemize}
-\item We present type providers for XML, CSV and JSON (Section~\ref{sec:providers}) 
-  that are available in the F\# Data library and we also cover practical aspects of the 
-  implementation that contributed to their industrial adoption (Section~\ref{sec:impl}). 
+\item We present F\# Data type providers for XML, CSV and JSON (\S\ref{sec:providers}) 
+  and practical aspects of their implementation that contributed to their industrial 
+  adoption (\S\ref{sec:impl}). 
 
 \item We describe a predictable type inference algorithm for structured data formats that
-  underlies the type providers (Section~\ref{sec:inference}). It is based on finding common 
-  supertype of a set of examples.
+  underlies the type providers (\S\ref{sec:inference}) based on a \emph{common supertype}
+  relation.
 
-\item We provide a minimal formal model (Section~\ref{sec:formal}) and use it to prove a
-  relativized notion of type safety for our type providers (Section~\ref{sec:safety}). Although 
-  we focus on our specific case, the relativized safety property demonstrates a new way of 
-  thinking about ML-style type safety that is needed in the context of web.
+\item We give a formal model (\S\ref{sec:formal}) and use it to prove
+  \emph{relativized type safety} for the type providers (\S\ref{sec:safety}).
+  This adapts the ML-style type safety for the context of the web.
 \end{itemize}
 
-\noindent
-Although the F\# Data library \cite{fsharp-data} has been widely adopted and is one of the most downloaded F\# libraries 
-it has not yet been presented in an academic form. Additional documentation and source code can 
-be found at \url{http://fsharp.github.io/FSharp.Data}.
+% Although the F\# Data library \cite{fsharp-data} has been widely adopted and is one of the most downloaded F\# libraries 
+% it has not yet been presented in an academic form. Additional documentation and source code can 
+% be found at \url{http://fsharp.github.io/FSharp.Data}.
+
 
 
 
@@ -554,6 +573,8 @@ here, they are returned as string literals instead\footnote{This is often used t
 numerical types in JavaScript.}.
 
 
+
+
 % =================================================================================================
 %
 %   #######                                                                                  
@@ -566,145 +587,62 @@ numerical types in JavaScript.}.
 %
 % =================================================================================================
 
+\newpage
+~
+\newpage
 \section{Structural type inference}
 \label{sec:inference}
 
 Our type inference algorithm for structured formats is based on a subtyping relation. When 
 inferring the type of a document, we infer the most specific types of individual values (CSV rows,
-JSON or XML nodes) and find a common supertype of values in the sample.
+JSON or XML nodes) and recursively find a common supertype of all child nodes or sample documents.
 
 In this section, we define the \emph{structural type} $\sigma$, which is a type of structured data.
-Note that this type is distinct from the programming language types $\tau$ (the type generates the
-latter from the former). Next, we define the subtyping relation on structural types $\sigma$ and 
+Note that this type is distinct from the programming language types $\tau$ (type providers generate 
+the latter from the former). Next, we define the subtyping relation on structural types $\sigma$ and 
 describe the algorithm for finding a common supertype. 
-
-Note that the subtyping relation between structural types $\sigma$ does not map to a subtyping 
-relation between F\#  types $\tau$. However, it does hold at runtime, meaning that an operation on 
-a supertype can be performed on its subtypes. We make the type provider mechanism and runtime aspects 
-precise in Section~\ref{sec:formal} before discussing safety in Section~\ref{sec:safety}.
 
 \subsection{Structural types}
 \label{sec:inference-types}
 
-The grammar below defines \emph{structural type} $\sigma$. We distinguish between \emph{non-nullable types}
-that always have a valid value (written as $\hat{\sigma}$) and \emph{nullable types} that encompass missing 
-and \kvd{null} values (written as $\sigma$). We write $\nu$ for record field names and $\nu_?$
-for record names, which can be empty:
+We distinguish between \emph{non-nullable types} that always have a valid value (written as 
+$\hat{\sigma}$) and \emph{nullable types} that encompass missing and \kvd{null} values 
+(written as $\sigma$). We write $\nu$ for record field names and $\nu_?$ for names that can be empty:
 %
 \begin{equation*}
 \begin{array}{rcl}
  \hat{\sigma} &\narrow{=}& \nu_?\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
-                &\narrow{|}& \ident{float} \lsep \ident{decimal} \lsep \ident{int} \lsep \ident{bit} \lsep \ident{bool} \lsep \ident{string} 
+                &\narrow{|}& \ident{float} \lsep \ident{decimal} \lsep \ident{int} \lsep \ident{bool} \lsep \ident{string} 
  \\[0.6em] 
        \sigma &\narrow{=}& ~\hat{\sigma}~ \lsep \kvd{option}\langl \hat{\sigma} \rangl \lsep [\sigma] \\[0.1em]
-              &\narrow{|}& \kvd{var}\langl\sigma_1, \ldots, \sigma_n\rangl \lsep ~\top~ \lsep \kvd{null}
+              &\narrow{|}& \kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl \lsep ~\bot~ \lsep \kvd{null}
 \end{array}
 \end{equation*}
 %
-The non-nullable types include records (consisting of an optional name and zero or more fields with
-their types) and primitive types. Records arising from XML documents are always named, while records
-used by JSON and CSV providers are always unnamed. 
+Non-nullable types include records (consisting of an optional name and fields with their types) 
+and primitive types. Records arising from XML documents are named, while records used by 
+JSON and CSV providers are unnamed. 
 
-Next, we have three numerical types -- \ident{int} for integers, \ident{decimal} for small high-precision 
-decimal numbers and \ident{float} for floating-point numbers (these are related by sub-typing relation as
-discussed in the next section). Furthermore, the \ident{bit} type is a type of values $0$ and $1$ and 
-makes it possible to infer Boolean in the CSV processing example discussed in Section~\ref{sec:providers-csv}.
+The three numerical types, \ident{int} for integers, \ident{decimal} for small precise decimal 
+numbers and \ident{float} for floating-point numbers, are related by sub-typing as discussed in 
+\S\ref{sec:inference-subtyping}.
 
-Any non-nullable type is also a nullable type, but it can be wrapped in the \kvd{option}
-constructor to explicitly permit the \kvd{null} value. These are typically mapped to the standard F\# option 
-type. A simple collection type $[\sigma]$ is also nullable and missing values or \kvd{null} are treated as 
-empty collection. The type $\kvd{null}$ is inhabited by the $\kvd{null}$ value (using an overloaded but not
-ambiguous notation) and $\top$ represents the top type.
+Any non-nullable type can be wrapped in the \kvd{option} constructor to explicitly permit the 
+\kvd{null} value. Type providers map \kvd{option} to standard F\# option type. A collection 
+type $[\sigma]$ is also nullable and missing values or \kvd{null} are treated as empty collection. 
+The type $\kvd{null}$ is inhabited by the $\kvd{null}$ value (using an overloaded notation) and 
+$\bot$ is the bottom type.
 
-Finally, a variant type \kvd{var} is annotated with the statically known types it may represent based
-on the sample document. As discussed earlier (Section~\ref{sec:providers-xml}), the variant type forces
-the user to handle the case when a value is of a different type than the ones statically known. For
-this reason, the variant type also implicitly permits the \kvd{null} value. 
-
-% --------------------------------------------------------------------------------------------------
-
-\subsection{Subtyping relation}
-\label{sec:inference-subtyping}
-
-To provide a basic intuition, the subtyping relation between structural types is illustrated in
-Figure~\ref{fig:subtyping-diagram}. We split the diagram in two parts. The upper part shows 
-non-nullable types (with records and primitive types). The lower part shows nullable types with 
-\kvd{null}, collections and optional values. We omit links between the two part, but any type
-$\hat{\sigma}$ is a subtype of $\hat{\sigma}~\kvd{option}$ (in the diagram, we abbreviate 
-$\sigma~\kvd{option}$ as $\sigma?$).
-
-The diagram shows only the basic structure and it does not explain relationships between records
-with the same name and between union types. This following definition makes this precise.
-
-
-\begin{definition}
-We write $\sigma_1 :> \sigma_2$ to denote that $\sigma_2$ is a subtype of $\sigma_1$. The 
-subtyping relation is defined as a transitive reflexive closure of the following rules:
-
-\vspace{0.5em}
-\noindent\boxed{\emph{Primitives, options, collections}}
-\begin{align}
-\label{eq:sub-prim}\tag{B1}
-\ident{float}\,:>\,\ident{decimal}\,:>\,\ident{int}\,:>\,\ident{bit}\quad&\textnormal{and}\quad\ident{bool}\,:>\,\ident{bit}\\[-0.2em]
-\label{eq:sub-null}\tag{B2}
-\sigma :> \kvd{null} \quad &(\textnormal{iff}~\sigma \neq \hat{\sigma}) \\[-0.2em]
-\label{eq:sub-opt}\tag{B3}
-\hat{\sigma}~\kvd{option} :> \hat{\sigma} \quad &(\textnormal{for all}~\hat{\sigma})\\[-0.2em]
-\label{eq:sub-top}\tag{B4}
-\sigma :> \top \quad &(\textnormal{for all}~\sigma)\\[-0.2em]
-\label{eq:sub-col}\tag{B5}
-[\sigma_1] :> [\sigma_2] \quad &(\textnormal{if}~\sigma_1 :> \sigma_2)
-\end{align}
-
-\noindent\boxed{\emph{Variant types}}
-\begin{align}
-\label{eq:sub-var-bot}\tag{U1}
-\kvd{var}\langl \sigma_1, \ldots, \sigma_n\rangl :>&~ \sigma \\
-\label{eq:sub-var-eq}\tag{U2}
-\kvd{var}\langl \sigma_1, \ldots, \sigma_n \rangl :>&~ \kvd{var}\langl \sigma_1', \ldots, \sigma_n' \rangl
-\end{align}
-
-\noindent\boxed{\emph{Record types}}
-\begin{align}
-\hspace{-1em}
-\label{eq:sub-record1}\tag{R1}
- \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em}:> \hspace{-0.1em}
- \nu_?~\{ \nu_1\!:\!\sigma_1', .., \nu_n\!:\!\sigma_n' \}
- \; (\sigma_i \hspace{-0.25em}:>\hspace{-0.25em} \sigma_i')
-\end{align}
-\vspace{-1.4em}
-\begin{align}
-\hspace{-1em}
-\label{eq:sub-record2}\tag{R2}
- \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} \hspace{-0.1em} :> \hspace{-0.1em}
- \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_m\!:\!\sigma_m \}
- \; (m \hspace{-0.1em}\geq\hspace{-0.1em} n)
-\end{align}
-\vspace{-1.0em}
-\begin{align}
-\label{eq:sub-record3}\tag{R3}
-\hspace{-1.5em}
-\begin{array}{l}
- \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
- \nu_?~\{ \nu_{\pi(1)}\!:\!\sigma_{\pi(1)}, .., \nu_{\pi(m)}\!:\!\sigma_{\pi(m)} \}
-\end{array} \qquad &(\textnormal{permutation}~\pi)
-\end{align}
-\vspace{-0.6em}
-\begin{align}
-\label{eq:sub-record4}\tag{R4}
-\hspace{-1.5em}
-\begin{array}{l}
- \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n, \nu_{n+1}\!:\!\kvd{null}, .., \nu_{n+m}\!:\!\kvd{null} \} :> \\
- \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \}
-\end{array}
-\end{align}
-\end{definition}
+A variant type \kvd{any} is annotated with the types it may represent in the sample document.
+As discussed earlier (\S\ref{sec:providers-xml}), variants force the user to handle the case when 
+a value is of a different type than the statically known ones and so it can be seen as a family of 
+top types. For the same reason, the variants also implicitly permit the \kvd{null} value. 
 
 % --------------------------------------------------------------------------------------------------
 
 \begin{figure}
 \begin{center}
-\includegraphics[scale=0.75,trim=5mm 5mm 5mm 5mm,clip]{images/hierarchy.pdf} % left bottom right top
+\includegraphics[scale=0.80,trim=5mm 5mm 5mm 5mm,clip]{images/hierarchy.pdf} % left bottom right top
 \end{center}
 \vspace{-0.5em}
 \caption{Subtype relation between structural types}
@@ -714,96 +652,222 @@ subtyping relation is defined as a transitive reflexive closure of the following
 
 % -------------------------------------------------------------------------------------------------
 
+\subsection{Subtyping relation}
+\label{sec:inference-subtyping}
+
+Figure~\ref{fig:subtyping-diagram} provides a basic intuition about the subtyping between
+structural types. The upper part shows non-nullable types (with records and primitive types) and 
+the lower part shows nullable types with \kvd{null}, collections and optional values. We omit links 
+between the two part, but any type $\hat{\sigma}$ is a subtype of $\kvd{option}\langl\hat{\sigma}\rangl$ 
+and we abbreviate $\kvd{option}\langl\sigma\rangl$ as $\sigma?$. 
+
+\begin{definition}
+We write $\sigma_1 :> \sigma_2$ to denote that $\sigma_2$ is a subtype of $\sigma_1$. The 
+subtyping relation is defined as a transitive reflexive closure of the following rules:
+
+\vspace{0.5em}
+\noindent\boxed{\emph{Primitives, options, collections}}
+\begin{align}
+\label{eq:sub-prim}\tag{B1}
+\ident{float}\,&:>\,\ident{decimal}\,:>\,\ident{int}&\\[-0.2em]
+\label{eq:sub-null}\tag{B2}
+\sigma &:> \kvd{null}  &(\textnormal{iff}~\sigma \neq \hat{\sigma}) \\[-0.2em]
+\label{eq:sub-bot}\tag{B3}
+\sigma &:> \bot  &(\textnormal{for all}~\sigma)\\[-0.2em]
+\label{eq:sub-opt}\tag{B4}
+\kvd{option}\langl\hat{\sigma}\rangl &:> \hat{\sigma}  &(\textnormal{for all}~\hat{\sigma})\\[-0.2em]
+\label{eq:sub-opt-cov}\tag{B5}
+\kvd{option}\langl\hat{\sigma_1}\rangl &:> 
+  \kvd{option}\langl\hat{\sigma_2}\rangl  &(\textnormal{if}~\hat{\sigma_1} :> \hat{\sigma_2})\\[-0.2em]
+\label{eq:sub-col}\tag{B6}
+[\sigma_1] &:> [\sigma_2]  &(\textnormal{if}~\sigma_1 :> \sigma_2)
+\end{align}
+
+\noindent\boxed{\emph{Variant types}}
+\begin{align}
+\label{eq:sub-var-bot}\tag{U1}
+\kvd{any}\langl \sigma_1, \ldots, \sigma_n\rangl :>&~ \sigma \\
+\label{eq:sub-var-eq}\tag{U2}
+\kvd{any}\langl \sigma_1, \ldots, \sigma_n \rangl :>&~ \kvd{any}\langl \sigma_1', \ldots, \sigma_n' \rangl
+\end{align}
+
+\noindent\boxed{\emph{Record types}}
+\begin{align}
+\label{eq:sub-record1}\tag{R1}
+\begin{array}{l}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
+ \nu_?~\{ \nu_1\!:\!\sigma_1', .., \nu_n\!:\!\sigma_n' \}
+\end{array} \qquad ~~~~(\textnormal{if}~\sigma_i :> \sigma_i')
+\end{align}
+\vspace{-0.8em}
+\begin{align}
+\label{eq:sub-record2}\tag{R2}
+\begin{array}{l}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., .., \nu_m\!:\!\sigma_m \}
+\end{array} \qquad (\textnormal{when}~m \geq n)
+\end{align}
+\vspace{-0.8em}
+\begin{align}
+\label{eq:sub-record3}\tag{R3}
+\begin{array}{l}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \} :> \\
+ \nu_?~\{ \nu_{\pi(1)}\!:\!\sigma_{\pi(1)}, .., \nu_{\pi(m)}\!:\!\sigma_{\pi(m)} \}
+\end{array} ~~(\pi~\textnormal{perm.})
+\end{align}
+\vspace{-0.8em}
+\begin{align}
+\label{eq:sub-record4}\tag{R4}
+\begin{array}{l}
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n, \nu_{n+1}\!:\!\kvd{null} \} :> \\
+ \nu_?~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \}
+\end{array}
+\end{align}
+\end{definition}
+
+% --------------------------------------------------------------------------------------------------
+
 \begin{figure*}[t]
 \noindent
 \begin{equation*}
+\boxed{
+\begin{array}{c}
+\begin{array}{rclcl}
+ \tytag &\narrow{=}& \ident{bool} \\
+        &\narrow{\lsep}& \ident{string} &\narrow{\lsep}& \ident{number}  \\
+        &\narrow{\lsep}& \ident{any}  &\narrow{\lsep}& \ident{collection} \\
+        &\narrow{\lsep}& \ident{record} &\narrow{\lsep}& \ident{named}\;~\nu 
+\end{array}
+%
+\quad\;\;\;
+%
+\begin{array}{rcl}
+ \tytagof(\ident{string}) &\narrow{=}& \ident{string}\\
+ \tytagof(\ident{bool}) &\narrow{=}& \ident{bool}\\
+ \tytagof([\sigma]) &\narrow{=}& \ident{collection}\\
+ \tytagof(\hat{\sigma}~\kvd{option}) &\narrow{=}& \tytagof(\hat{\sigma})
+\end{array}
+%
+\;\;
+%
+\begin{array}{rcl}
+ \tytagof(\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl) &\narrow{=}& \ident{any}\\
+ \tytagof(\{ \nu_1 : \sigma_1, \; \ldots \; , \nu_n : \sigma_n \}) &\narrow{=}& \ident{rec-anon}\\
+ \tytagof(\nu\; \{ \nu_1 : \sigma_1, \; \ldots \; , \nu_n : \sigma_n \}) &\narrow{=}& \ident{rec-named}~\nu \\
+ \multicolumn{3}{c}{ \tytagof(\sigma) = \ident{number}\quad \sigma \in\{ \ident{int},\ident{decimal},\ident{float} \}  } 
+\end{array}
+%
+\\[3em]
+%
+\begin{array}{rcll}
+ \addopt{\hat{\sigma}} &\narrow{=}& \hat{\sigma}~\kvd{option} &(\textnormal{non-nullable types})\\
+ \addopt{\sigma} &\narrow{=}& \sigma &(\textnormal{otherwise})
+\end{array}
+\qquad\qquad
+\begin{array}{rcll}
+ \dropopt{\hat{\sigma}~\kvd{option}} &\narrow{=}& \hat{\sigma} &(\textnormal{option})\\
+ \dropopt{\sigma} &\narrow{=}& \sigma &(\textnormal{otherwise})
+\end{array}
+\end{array}
+}
+\end{equation*}
+
+\begin{equation*}
 \hspace{3em}
 \inference[(record-1)\;]
-  { (\nu_i = \nu'_j \Leftrightarrow (i = j) \wedge (i \leq k))
+  { (\nu_i = \nu'_j) \Leftrightarrow (i = j) \wedge (i \leq k)
       \qquad \forall i\in\{ 1 .. k \}.(\sigma_i \tsep \sigma'_i \vdash \sigma''_i) }
   { \begin{array}{l}
-    \nu? \; \{ \nu_1 : \sigma_1,  \; \ldots \;, \nu_k : \sigma_k, \; \ldots \;, \nu_n : \tau_n \} \tsep
-    \nu? \; \{ \nu'_1 : \sigma'_1, \; \ldots \;, \nu'_k : \sigma'_k, \; \ldots \;, \nu'_m : \tau'_m \} \vdash\\
-    \nu? \; \{ \nu_1 : \sigma''_1, \; \ldots \; , \nu_k : \sigma''_k, 
-                            \nu_{k+1} : \addopt{\sigma_{k+1}}, \ldots, \nu_n : \addopt{\sigma_n},
-                            \nu'_{k+1} : \addopt{\sigma'_{k+1}}, \ldots, \nu'_m : \addopt{\sigma'_m} \}
+    \nu_? \; \{ \nu_1 \!:\! \sigma_1,  \; \ldots \;, \nu_k \!:\! \sigma_k, \; \ldots \;, \nu_n \!:\! \tau_n \} \tsep
+    \nu_? \; \{ \nu'_1 \!:\! \sigma'_1, \; \ldots \;, \nu'_k \!:\! \sigma'_k, \; \ldots \;, \nu'_m \!:\! \tau'_m \} \vdash\\
+    \nu_? \; \{ \nu_1 \!:\! \sigma''_1, \; \ldots \; , \nu_k \!:\! \sigma''_k, 
+                            \nu_{k+1} \!:\! \addopt{\sigma_{k+1}}, \ldots, \nu_n \!:\! \addopt{\sigma_n},
+                            \nu'_{k+1} \!:\! \addopt{\sigma'_{k+1}}, \ldots, \nu'_m \!:\! \addopt{\sigma'_m} \}
     \end{array} }
 \end{equation*}
+\vspace{-1.75em}
 
 % union with something else
 \begin{equation*}
-\textnormal{\footnotesize{(union-1)}}\;\;
+\textnormal{\footnotesize{(var-1)}}\;\;
 \inference
-  {\exists i . \tytagof(\sigma_i) = \tytagof(\sigma) & \sigma \tsep \sigma_i \vdash \sigma_i' & \tytagof(\sigma)\neq\ident{union}}
-  {\sigma \tsep (\sigma_1 + \ldots + \sigma_n) \vdash (\sigma_1 + \ldots + \dropopt{\sigma_i'} + \ldots + \sigma_n)}
-\quad\quad
+  {\exists i . \tytagof(\sigma_i) = \tytagof(\sigma) & \sigma \tsep \sigma_i \vdash \sigma_i' & \tytagof(\sigma)\neq\ident{any}}
+  {\sigma \tsep \kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl \vdash 
+    \kvd{any}\langl\sigma_1, \ldots, \dropopt{\sigma_i'}, \ldots, \sigma_n\rangl}
+\;\;
 \inference
-  {\nexists i . \tytagof(\sigma_i) = \tytagof(\sigma) & \tytagof(\sigma)\neq\ident{union}}
-  {\sigma \tsep (\sigma_1 + \ldots + \sigma_n) \vdash (\sigma_1 + \ldots + \sigma_n + \dropopt{\sigma})}
+  {\nexists i . \tytagof(\sigma_i) = \tytagof(\sigma) & \tytagof(\sigma)\neq\ident{any}}
+  {\sigma \tsep \kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl \vdash 
+    \kvd{any}\langl\sigma_1, \ldots, \sigma_n, \dropopt{\sigma}\rangl}
 \end{equation*}
+\vspace{-1.75em}
 
 % two union types
 \begin{equation*}
-\inference[(union-2)\;]
-  { \tytagof(\sigma_i) = \tytagof(\sigma'_i) \quad 
-    \sigma_i \tsep \sigma_i' \vdash \sigma''_i \qquad (\forall i\in \{ 1 .. k \}) }
+\begin{array}{l}
+\inference[(var-2)\;]
+  { (\forall i\in \{ 1 .. k \})\quad \tytagof(\sigma_i) = \tytagof(\sigma'_i) \quad 
+    \sigma_i \tsep \sigma_i' \vdash \sigma''_i}
   { \begin{array}{l}
-    (\sigma_1  + \ldots + \sigma_k +  \ldots + \sigma_n) \tsep 
-    (\sigma'_1 + \ldots + \sigma'_k + \ldots + \sigma'_m) \vdash\\
-    (\sigma''_1 + \ldots + \sigma''_k + \sigma_{k+1} + \ldots + \sigma_{n} + \sigma'_{k+1} + \ldots + \sigma'_{m}) 
+    \kvd{any}\langl \sigma_1, \ldots, \sigma_k,  \ldots, \sigma_n\rangl \tsep 
+    \kvd{any}\langl \sigma'_1, \ldots, \sigma'_k, \ldots, \sigma'_m\rangl \vdash\\
+    \kvd{any}\langl \sigma''_1, \ldots, \sigma''_k, \sigma_{k+1}, \ldots, \sigma_{n}, \sigma'_{k+1}, \ldots, \sigma'_{m}\rangl
     \end{array} }
-%
-\qquad\quad
-\inference[(union-3)\;]
-  {(\textnormal{no other rule applies})}
-  {\sigma_1 \tsep \sigma_2 \vdash \dropopt{\sigma_1} + \dropopt{\sigma_2}}
+\end{array}    
+\begin{array}{l}
+\inference[(var-3)\;]
+  {(\forall i\in\{1,2\}) & \tytagof(\sigma_1) \neq \tytagof(\sigma_2) \\ 
+   \tytagof(\sigma_i) \neq \ident{any} & \nexists\sigma_i' . (\sigma_i = \kvd{option}\langl\sigma_i'\rangl)  }
+  {\sigma_1 \tsep \sigma_2 \vdash \kvd{any}\langle\dropopt{\sigma_1}, \dropopt{\sigma_2}\rangle}
+\end{array}  
 \end{equation*}
+\vspace{-1.75em}
 
 \begin{equation*}
-\hspace{1em}
 \inference[(order-1)\;]
-  { \nu? \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \tsep \sigma \vdash \sigma' }
-  { \nu? \; \{ \nu_{\pi(1)} : \sigma_{\pi(1)}, \ldots, \nu_{\pi(n)} : \sigma_{\pi(n)} \} \tsep \sigma \vdash \sigma' }
+  { \nu_? \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \tsep \sigma \vdash \sigma' }
+  { \nu_? \; \{ \nu_{\pi(1)} : \sigma_{\pi(1)}, \ldots, \nu_{\pi(n)} : \sigma_{\pi(n)} \} \tsep \sigma \vdash \sigma' }
 \quad
 \inference[(order-2)\;]
-  { \sigma_1 + \ldots + \sigma_n \tsep \sigma \vdash \sigma' }
-  { \sigma_{\pi(1)} + \ldots + \sigma_{\pi(n)} \tsep \sigma \vdash \sigma' }
-\qquad (\pi~\textnormal{permutation})  
+  { \kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl \tsep \sigma \vdash \sigma' }
+  { \kvd{any}\langl\sigma_{\pi(1)}, \ldots, \sigma_{\pi(n)}\rangl \tsep \sigma \vdash \sigma' }
+\quad (\pi~\textnormal{perm.})  
 \end{equation*}
+\vspace{-1.75em}
 
 \begin{equation*}
 \hspace{3em}
-% collection types
+% option types
+\inference[(opt)\;]
+  {\hat{\sigma_1} \tsep \sigma_2 \vdash \sigma}
+  {\kvd{option}\langl\hat{\sigma_1}\rangl \tsep \sigma_2 \vdash \kvd{option}\langl\dropopt{\sigma}\rangl}
+\qquad
+% primitive types
+\inference[(prim)\;]
+  {\sigma_1 :> \sigma_2 &
+   \tytagof(\sigma_1) = \tytagof(\sigma_2) = \ident{number} }
+  {\sigma_1 \tsep \sigma_2 \vdash \sigma_1}\quad
+\end{equation*}
+\vspace{-2em}
+
+% all rules are symmetric and reflexive
+\begin{equation*}
 \inference[(list)\;]
   {\sigma_1 \tsep \sigma_2 \vdash \sigma}
   {[\sigma_1] \tsep [\sigma_2] \vdash [\sigma]}
-\qquad\qquad
-% primitive types
-\inference[(prim)\;]
-  {\sigma_1 :> \sigma_2}
-  {\sigma_1 \tsep \sigma_2 \vdash \sigma_1}\quad
-\begin{array}{l}
-  (\textnormal{when}\,~\sigma_1, \sigma_2 \in \{\ident{bit}, \ident{int}, \ident{decimal}, \ident{float} \} \\
-   \quad~~\;\textnormal{or}\,~\sigma_1, \sigma_2 \in \{\ident{bit}, \ident{bool} \})
-\end{array}   
-\end{equation*}
-
-% all rules are symmetric and reflexive
-\noindent
-\begin{equation*}
-\hspace{4.75em}
+\quad
 \inference[(sym)\;]
   {\sigma_1 \tsep \sigma_2 \vdash \sigma}
   {\sigma_2 \tsep \sigma_1 \vdash \sigma}
 %
-\qquad\quad
+\quad
 \begin{array}{l}
  \textnormal{\footnotesize{(refl)}}\;\; \sigma \tsep \sigma \vdash \sigma\\[0.6em]
- % top type
- \textnormal{\footnotesize{(top)}}\;\; \top \tsep \sigma \vdash \sigma
+ % bottom type
+ \textnormal{\footnotesize{(bot)}}\;\; \bot \tsep \sigma \vdash \sigma
 \end{array}
 %
-\qquad\quad 
+\quad
 % null and nullable
  \begin{array}{l}
  \textnormal{\footnotesize{(null-1)}}\;\; \sigma \tsep \kvd{null} \vdash \sigma \quad(\sigma :> \kvd{null}) \\[0.6em]
@@ -820,23 +884,19 @@ subtyping relation is defined as a transitive reflexive closure of the following
 \noindent
 Here is a summary of the key aspects of the definition:
 \begin{itemize}
-\item For numeric types (\ref{eq:sub-prim}), we infer a single most precise numeric type that 
-  can represent all values from a sample dataset, so we order types by the ranges they represent;
+\item Numeric types (\ref{eq:sub-prim}) ar ordered by the range of values they represent;
   \ident{int} is a 32-bit integer, \ident{decimal} has a range of about $-1^{29}$ to $1^{29}$ and 
-  \ident{float} is a double-precision floating-point.
+  \ident{float} is a floating-point number.
 
-\item The \ident{bit} type is a subtype of both \ident{int} and \ident{bool} (\ref{eq:sub-prim}). 
-  Thus, a sample $0,1$ has a type \ident{bit}; $0,1,\kvd{true}$ is \ident{bool} and
-  $0,1,2$ becomes \ident{int} (for a sample $0,1,2, \kvd{true}$ we would need a variant type).
+\item The \kvd{null} type is a subtype of all nullable types (\ref{eq:sub-null}), i.e. all 
+  types excluding non-nullable types $\hat{\sigma}$. Any non-nullable type is a 
+  subtype of its optional version (\ref{eq:sub-opt}) and both options and collections are 
+  covariant (\ref{eq:sub-opt-cov}, \ref{eq:sub-col}).
 
-\item The \kvd{null} type is a subtype of all nullable types (\ref{eq:sub-null}), that is all 
-  $\sigma$ types excluding non-nullable types $\hat{\sigma}$). Any non-nullable type is also a 
-  subtype of its optional version (\ref{eq:sub-opt}).
-
-\item There is a top type (\ref{eq:sub-top}) and variants can be seen as the bottom because
-  any type $\sigma$ is a subtype of a variant (\ref{eq:sub-var-bot}). There is no \emph{single} 
-  bottom type -- there is a range of distinct variant types, but any variant is a subtype
-  of any other variant (\ref{eq:sub-var-eq}).
+\item There is a bottom type (\ref{eq:sub-bot}) and variants behave as top types, because
+  any type $\sigma$ is a subtype of any variant (\ref{eq:sub-var-bot}). There is a range of
+  variants (no \emph{single} top type), but any variant is a subtype of any other variant 
+  (\ref{eq:sub-var-eq}).
 
 \item As usual, the subtyping on records is covariant (\ref{eq:sub-record1}), subtype can have additional 
   fields (\ref{eq:sub-record2}) and fields can  be reordered (\ref{eq:sub-record3}). The interesting rule 
@@ -845,119 +905,64 @@ Here is a summary of the key aspects of the definition:
 \end{itemize}
 
 \noindent
-If we were proposing a type system for type-checking programs, the use of multiple variant types
-(which all are subtypes of each other) would not add any value and we could introduce a single 
-bottom type instead. However, our purpose is different -- we aim to make reading structured data
-easier and, as shown in Section~\ref{sec:providers-xml}, the types forming a variant provide a
-useful information about the sample document.
+If we were type-checking programs, defining variants as a family of top types (which are all 
+subtypes of each other) would not add any value over having a single top type. Our purpose 
+is different. We simplify reading structured data and, as shown in \S\ref{sec:providers-xml}, 
+the types forming a variant provide a valuable information about the sample document.
 
-Another important rule is (\ref{eq:sub-record4}), which allows subtype to have fewer record 
-elements. In some cases, this allows us to infer records rather than variants. For example, given 
+A particularly important rule is (\ref{eq:sub-record4}), which allows subtype to have fewer record 
+elements. This allows us to prefer records over variants. For example, given 
 $\{ \ident{name}\!:\!\ident{string} \}$ and $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int} \}$,
-we can find a common supertype $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int}~\kvd{option} \}$
-which is also a record. This is more precise and more usable type than another common supertype
-$\kvd{var}\langl \{ \ident{name}:\ident{string} \}, \{ \ident{name}:\ident{string}, \ident{age}:\ident{int} \}\rangl$.
-The next section describes precisely how our inference algorithm works.
+we find a common supertype $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int}~\kvd{option} \}$.
+This is a least upper bound (clarified below) and more usable than another common supertype 
+$\kvd{var}\langl \{ \ident{name}\!:\!\ident{string} \}, \{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int} \}\rangl$.
 
-It is worth noting that some of the aspects (such as 3 different numeric types and handling of 
-the \kvd{null} type) are specific to F\#. Similar problems will appear with most real-world
-languages and systems. JVM and OCaml all haves multiple numeric types, but they would handle \kvd{null}
-differently. 
-
-We could also be more or less strict about missing data -- we choose to handle missing values 
-silently when we can (\kvd{null} becomes an empty collection), but we are explicit in other cases 
-(we infer \ident{string}~\kvd{option} as a hint to the user rather than treating \kvd{null} as an 
-empty string). These choices are based on experience with using F\# Data in practice
-and might differ for other languages.
+Some of the aspects of our system (numeric types, handling of \kvd{null} and treatment of
+missing data) are based on common F\# practices and might differ for other languages. For example, 
+OCaml also has multiple numeric types, but would likely always handle \kvd{null} explicitly.
 
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure*}
 \begin{equation*}
 \begin{array}{l}
- \ident{asInt}(i) \,\reduce i\\
- \ident{asInt}(d) \reduce i\quad(i = \lfloor d \rfloor)\\
- \ident{asInt}(f) \reduce i\quad(i = \lfloor f \rfloor) \\
- \ident{asInt}(t) \,\reduce i\quad(t~\text{\small represents}~i) \\
- \ident{asInt}(\kvd{true}) \reduce 1\\
- \ident{asInt}(\kvd{false}) \reduce 0\\
-\end{array}
-\;
+\ident{getField}(\nu,\nu_i, \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
+\ident{getField}(\bullet, \nu_i, \{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
+\ident{getField}(\nu,\nu', \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )\\
+\ident{getField}(\bullet, \nu', \{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )
+\\[0.5em]
+\hspace{-0.5em}
 \begin{array}{l}
- \ident{asDec}(i) \,\reduce d\quad(d = i)\\
- \ident{asDec}(d) \reduce d\\
- \ident{asDec}(f) \reduce d\quad(d = \lfloor f \rfloor) \\
- \ident{asDec}(t) \,\reduce d\quad(t~\text{\small represents}~d) \\
- \ident{asDec}(\kvd{true}) \reduce 1.0\\
- \ident{asDec}(\kvd{false}) \reduce 0.0\\
+\ident{asDec}(i) \,\reduce d\quad(d = i)\\
+\ident{asDec}(d) \reduce d
+\\[0.5em]
+\ident{isNull}(\kvd{null}) \reduce \kvd{true} \\
+\ident{isNull}(\_) \reduce \kvd{false} 
 \end{array}
-\;
 \begin{array}{l}
- \ident{asFloat}(i) \,\reduce f\quad(f = i)\\
- \ident{asFloat}(d) \reduce f\quad(f = d)\\
- \ident{asFloat}(f) \reduce f\\
- \ident{asFloat}(t) \,\reduce f\quad(t~\text{\small represents}~f) \\
- \ident{asFloat}(\kvd{true}) \reduce 1.0\\
- \ident{asFloat}(\kvd{false}) \reduce 0.0\\
+\\
+\ident{asFloat}(i) \,\reduce f\quad(f = i)\\
+\ident{asFloat}(d) \reduce f\quad(f = d)\\
+\ident{asFloat}(f) \reduce f\\
 \end{array}
-\;
+\end{array}
+~
 \begin{array}{l}
- \ident{asStr}(i) \,\reduce t\quad(t~\text{\small represents}~i)\\
- \ident{asStr}(d) \reduce t\quad(t~\text{\small represents}~d)\\
- \ident{asStr}(f) \reduce t\quad(t~\text{\small represents}~f)\\
- \ident{asStr}(t) \,\reduce t\\
- \ident{asStr}(\kvd{true}) \reduce \str{true}\\
- \ident{asStr}(\kvd{false}) \reduce \str{false}\\
+\ident{isTag}(\ident{string}, t) \reduce \kvd{true} \\
+\ident{isTag}(\ident{bool}, s) \reduce \kvd{true} \quad(\textnormal{when}~s\in{\kvd{true},\kvd{false}} )\\
+\ident{isTag}(\ident{number}, s) \reduce \kvd{true} \quad(\textnormal{when}~s=i, s=d ~\textnormal{or}~ s=f) \\
+\ident{isTag}(\ident{collection}, [s_1; \ldots; s_n]) \reduce \kvd{true} \\
+\ident{isTag}(\ident{collection}, \kvd{null}) \reduce \kvd{true} \\
+\ident{isTag}(\ident{record}, \{ \nu_1\mapsto s_1, \ldots, \nu_n\mapsto s_n \}) \reduce \kvd{true} \\
+\ident{isTag}(\ident{named}~\nu, \nu\;\{ \nu_1\mapsto s_1, \ldots, \nu_n\mapsto s_n \}) \reduce \kvd{true} \\
+\ident{isTag}(\_, \_) \reduce \kvd{false} \\
 \end{array}
 \end{equation*}
-%
+\vspace{-1em}
 \begin{equation*}
-\hspace{-1.5em}
-\begin{array}{l}
- \ident{asBool}(1) \reduce \kvd{true}\\
- \ident{asBool}(1.0) \reduce \kvd{true}\\
- \ident{asBool}(\str{true}) \reduce \kvd{true}\\
- \ident{asBool}(\str{1}) \reduce \kvd{true}
- \\[0.6em]
- \ident{isNull}(\kvd{null}) \reduce \kvd{true} \\
- \ident{isNull}(\_) \reduce \kvd{false} 
-\end{array}
-\hspace{2.6em}
-\begin{array}{l}
- \ident{asBool}(0) \reduce \kvd{false}\\
- \ident{asBool}(0.0) \reduce \kvd{false}\\
- \ident{asBool}(\str{false}) \reduce \kvd{false}\\
- \ident{asBool}(\str{0}) \reduce \kvd{false}\\
- \ident{asBool}(b) \reduce b
- \\[0.6em]
- \ident{getChildren}(\kvd{null}) \reduce [~]
-\end{array}
-\hspace{3.0em}
-\begin{array}{l}
- \ident{getField}(\nu,\nu_i, \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
- \ident{getField}(\bot, \nu_i, \{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
- \ident{getField}(\nu,\nu', \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )\\
- \ident{getField}(\bot, \nu', \{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )
- \\[0.6em]
- \ident{getChildren}([s_1; \ldots; s_n]) \reduce [s_1; \ldots; s_n]
-\end{array}
-\end{equation*}
-%
-\begin{equation*}
-\hspace{-1.5em}
-\begin{array}{l}
- \ident{isTag}(\ident{string}, t) \reduce \kvd{true} \\
- \ident{isTag}(\ident{bool}, v) \reduce \kvd{true} \quad(\textnormal{when}~v\in{0,1,0.0, 1.0, \kvd{true},\kvd{false}} )\\
- \ident{isTag}(\ident{number}, v) \reduce \kvd{true} \quad(\textnormal{when}~v=i, v=d, v=f) \\
- \ident{isTag}(\ident{collection}, [s_1; \ldots; s_n]) \reduce \kvd{true} \\
-\end{array}
-\hspace{1.8em}
-\begin{array}{l}
- \ident{isTag}(\ident{collection}, \kvd{null}) \reduce \kvd{true} \\
- \ident{isTag}(\ident{rec-anon}, \{ \nu_1\mapsto s_1, \ldots, \nu_n\mapsto s_n \}) \reduce \kvd{true} \\
- \ident{isTag}(\ident{rec-named}~\nu, \nu\;\{ \nu_1\mapsto s_1, \ldots, \nu_n\mapsto s_n \}) \reduce \kvd{true} \\
- \ident{isTag}(\_, \_) \reduce \kvd{false} \\
-\end{array}
+ \hspace{5.6em}
+ \ident{getChildren}([s_1; \ldots; s_n]) \reduce [s_1; \ldots; s_n]  \qquad\quad
+ \ident{getChildren}(\kvd{null}) \reduce [~] 
 \end{equation*}
 
 \caption{Reduction rules for conversion functions}
@@ -969,18 +974,10 @@ and might differ for other languages.
 \subsection{Common supertype relation}
 \label{sec:inference-commonsuper}
 
-As mentioned earlier, the structural type inference relies on a finding common supertype. However,
-the partially ordered set of types does not have a unique greatest lower bound. For example, record types
-$\{\ident{a}\!:\!\ident{int}\}$ and $\{\ident{b}\!:\!\ident{bool}\}$ have common supertypes
-$\{\ident{?a}\!:\!\ident{int}, \ident{?b}\!:\!\ident{bool}\}$ and 
-$\kvd{var}\langl\{\ident{a}\!:\!\ident{int}\}, \{\ident{b}:\ident{bool}\}\rangl$
-
-NOT TRUE
-which are unrelated.
-
- Our inference algorithm always prefers records over unions (Theorem~\ref{thm:no-unions}). 
-The definition of the \emph{common supertype} relation uses a number of auxiliary definitions 
-that are explained in the discussion that follows.
+Given two structural types, the \emph{common supertype} relation finds a least upper bound
+(Theorem~\ref{thm:lub}). When possible, it avoid variant types and prefers records 
+(Corollary~\ref{thm:no-unions}), which is important for usability as discussed earlier
+(\S\ref{sec:providers-json}). 
 
 \begin{definition}
 A \emph{common supertype} of types $\sigma_1$ and $\sigma_2$ is a type $\sigma$, written 
@@ -989,201 +986,164 @@ Figure~\ref{fig:subtyping-cst}.
 \end{definition}
 
 \noindent
-When finding a common supertype of two records (\emph{record-1}), we return a record type that has the union
-of fields of the two arguments. We assume that the names of the first $k$ fields are the same and the
-remaining fields have different names. To get a record with the right order of elements, we provide the
-(\emph{order}) rule. The types of shared fields become common supertypes of their 
-respective types (recursively). Fields that are present in only one record are marked as optional using
-the following helper definition:
-%
-\begin{equation*}
-\begin{array}{rcll}
- \addopt{\hat{\sigma}} &\narrow{=}& \hat{\sigma}~\kvd{option} \qquad&(\textnormal{non-nullable types})\\
- \addopt{\sigma} &\narrow{=}& \sigma &(\textnormal{otherwise})
-\end{array}
-\end{equation*}
-%
-Finding a common supertype of when one type is a union is more complicated. Our definition aims to 
-use a flat structure (avoid nesting unions) and limit the number of cases. This is done by grouping
-types that have a common supertype which is not a union type. For example, rather than inferring 
-$\ident{int} + (\ident{bool} + \ident{decimal})$, our algorithm will find the common supertype of
-$\ident{int}$ and $\ident{decimal}$ (which is \ident{decimal}) and it will produce just $\ident{decimal}+\ident{bool}$.
+When finding a common supertype of records (\emph{record-1}), we return a record that has the 
+union of their fields. The types of shared fields become common supertypes of their respective 
+types while fields that are present in only one record are marked as optional. The (\emph{order-1})
+rule lets us reorder fields.
 
-To identify which types have a common supertype which is not a union, we group the types by a 
-\emph{tag}, which is defined as:
-%
-\begin{equation*}
-\begin{array}{rcl}
- \tytag &\narrow{=}&  \ident{string} \lsep \ident{bool} \lsep \ident{number} \lsep \ident{union} \lsep \ident{collection} \\
-        &\narrow{\lsep}& \ident{rec-anon} \lsep \ident{rec-named}\;~\nu 
-\end{array}
-\end{equation*}
-%
-The tag of a type is obtained using a function $\tytagof{(-)} : \sigma \rightarrow \tytag$:
-%
-\begin{equation*}
-\begin{array}{rcl}
- \tytagof(\ident{string}) &\narrow{=}& \ident{string}\\
- \tytagof(\ident{bool}) &\narrow{=}& \ident{bool}\\
- \tytagof(\ident{decimal}) = \tytagof(\ident{float}) &\narrow{=}& \ident{number}\\
- \tytagof(\ident{int}) = \tytagof(\ident{bit}) &\narrow{=}& \ident{number}\\
- \tytagof([\sigma]) &\narrow{=}& \ident{collection}\\
-\end{array}
-\end{equation*}
-\begin{equation*}
-\begin{array}{rcl}
- \tytagof(\sigma + \ldots + \sigma) &\narrow{=}& \ident{union}\\
- \tytagof(\{ \nu_1 : \sigma_1, \; \ldots \; , \nu_n : \sigma_n \}) &\narrow{=}& \ident{rec-anon}\\
- \tytagof(\nu\; \{ \nu_1 : \sigma_1, \; \ldots \; , \nu_n : \sigma_n \}) &\narrow{=}& \ident{rec-named}~\nu \\
- \tytagof(\hat{\sigma}~\kvd{option}) &\narrow{=}& \tytagof(\hat{\sigma})
-\end{array}
-\end{equation*}
-%
-The function is undefined for the $\top$ and $\kvd{null}$ types, but this is not a 
-problem because these types never need to be used as arguments in Figure~\ref{fig:subtyping-cst}.
-The $\top$ type is always eliminated using the (\emph{top}) rule and the \kvd{null} type
-is eliminated using either (\emph{null-1}) or (\emph{null-2}).
+Although all variants are mutual subtypes, we find one that best represents the sample. We avoid
+nested variants and limit the number of cases. This is done by grouping types 
+that have a common supertype which is not a variant. For example, rather than inferring 
+$\kvd{any}\langl\ident{int}, \kvd{any}\langl\ident{bool}, \ident{decimal}\rangl\rangl$, 
+our algorithm finds the common supertype of $\ident{int}$ and $\ident{decimal}$ and produces 
+$\kvd{any}\langl\ident{decimal},\ident{bool}\rangl$.
 
-The handling of unions is specified using three rules. When adding a non-union type to a 
-union (\emph{union-1}), the union may or may not contain a case with the same tag as the new type.
-If it does, the new type is combined with the existing one, otherwise a new case is added.
-When combining two unions (\emph{union-2}), we group the cases that have a shared tags.
-Finally, the last rule (\emph{union-3}) covers the case when we are combining two non-union types.
-As discussed earlier, union implicitly permits \kvd{null} values and so we use the following 
-auxiliary function which makes nullable types non-nullable (when possible) to simplify the type:
-%
-\begin{equation*}
-\begin{array}{rcll}
- \dropopt{\hat{\sigma}~\kvd{option}} &\narrow{=}& \hat{\sigma} &(\textnormal{option})\\
- \dropopt{\sigma} &\narrow{=}& \sigma &(\textnormal{otherwise})
-\end{array}
-\end{equation*}
-%
-The remaining rules are straightforward. For collections, we find the common supertype of 
-its elements (\emph{list}); for compatible primitive types, we choose one of the two (\emph{prim})
+To identify types that have a common supertype which is not a variant, we group the types by
+a tag. The tag of a type is obtained using a function $\tytagof{(-)} : \sigma \rightarrow \tytag$.
+The function is not defined for $\bot$ and $\kvd{null}$ as those are hanled by the 
+(\emph{bot}) and (\emph{null-1}) or (\emph{null-2}) rules, respectively.
+
+The handling of variants is specified using three rules. When combining a non-variant and a
+variant (\emph{var-1}), the variant may or may not already contain a case with the tag of the other
+type. If it does, the two types are combined, otherwise a new case is added.
+When combining two variants (\emph{var-2}), we group the cases that have a shared tags.
+Finally, (\emph{var-3}) covers the case when we are combining two distinct non-variant types.
+As unions implicitly permit \kvd{null} values, we use an auxiliary function $\dropopt{-}$ to
+make nullable types non-nullable (when possible) to simplify the type.
+
+The remaining rules are straightforward. For collections and options, we find the common supertype 
+of the contained value(s); for compatible primitive types, we choose their supertype (\emph{prim})
 and a common supertype with \kvd{null} is either the type itself (\emph{null-1}) or an option 
- (\emph{null-2}).
+(\emph{null-2}).
 
 \paragraph{Properties.}
-The common supertype relation finds a single supertype (among multiple candidates).
-The following theorems specify that the found type is uniquely defined (up to reordering of 
-fields in records and union cases) and is, indeed, a common supertype.
-%
-\begin{theorem}[Uniqueness]
+
+We say that two types are equivalent if they are mutual subtypes. The partially ordered set of 
+types does not have a \emph{unique} least upper bound, but it does have a least upper bound
+with respect to this equivalence. The common supertype relation is a function 
+(Theorem~\ref{thm:func}) and finds the least upper bound (Theorem~\ref{thm:lub}). 
+
+\begin{definition}
+Types $\sigma_1$, $\sigma_2$ are \emph{equivalent}, written $\sigma_1 \equiv \sigma_2$ iff
+they are mutual subtypes, i.e. $\sigma_1 <: \sigma_2 \wedge \sigma_1 :> \sigma_2$.
+An equivalence class of a type $\sigma$ is $\mathcal{E}(\sigma) = \{ \sigma' \;|\; \sigma\equiv\sigma' \}$.
+\end{definition}
+
+\noindent
+The equivalence class $\mathcal{E}$ sheds light on the structure of structural types. It defines
+a lattice with bottom $\{ \bot \}$ and top (set of all variant types). It also joins records with
+reordered fields (of same names and types) and types that contain other equivalent types (e.g.~a
+records with variants as fields).
+
+\begin{theorem}[Function]
+\label{thm:func}
 \raggedright
-If $\sigma_1 \triangledown \sigma_2 \vdash \sigma$ and $\sigma_1 \triangledown \sigma_2 \vdash \sigma'$
+For all $\sigma_1$ and $\sigma_2$ there exists exactly one $\sigma$ such that 
+$\sigma_1 \triangledown \sigma_2 \vdash \sigma$.
+Furthermore, if $\sigma_1 \triangledown \sigma_2 \vdash \sigma'$
 then it holds that $\sigma :> \sigma'$ and $\sigma' :> \sigma$.
 \end{theorem}
 \begin{proof}
-The assumptions and shapes of the types to be unified in the rules in Figure~\ref{fig:subtyping-cst} 
-are disjoint, with the exception of (\emph{order}), (\emph{sym}) and (\emph{refl}). These rules 
-always produce types that are subtypes of each other. This property is preserved by rules that use the
-common supertype relation recursively.
+The pre-conditions of rules in Figure~\ref{fig:subtyping-cst} are disjoint, with the exception 
+of (\emph{order}), (\emph{sym}) and (\emph{refl}). These rules produce types that are subtypes
+of each other and this property is preserved by rules that use the common supertype relation 
+recursively.
 \end{proof}
 
-\begin{theorem}[Common supertype]
+\begin{theorem}[Least upper bound]
+\label{thm:lub}
 \raggedright
-If $\sigma_1 \triangledown \sigma_2 \vdash \sigma$ then it holds that $\sigma :> \sigma_1$ and $\sigma :> \sigma_2$.
+If $\sigma_1 \triangledown \sigma_2 \vdash \sigma$ then $\sigma$ is a least upper bound, i.e. 
+$\sigma :> \sigma_1$ and $\sigma :> \sigma_2$ and for all $\sigma'$ such that $\sigma' :> \sigma_1$
+and $\sigma' :> \sigma_2$, it holds that $\sigma' :> \sigma$.
 \end{theorem}
 \begin{proof}
-By induction over the common supertype derivation $\vdash$.
+By induction over $\vdash$. Note that the algorithm never produces nested variant or nested
+option. When one type is variant, the only common supertype is also a variant (\emph{var-2}); 
+for (\emph{var-3}) no other common supertype exists because the two types have distinct 
+tags and are not options.
 \end{proof}
 
-\noindent
-We stated earlier that the common supertype relation minimises the use of union types 
-(by preferring common numeric types or common record types when possible). This property
-can be stated and proved formally:
-%
-\begin{theorem}
+\begin{corollary}
 \label{thm:no-unions}
-Given $\sigma_1, \sigma_2$ if there is s $\sigma$ such that $\sigma :> \sigma_1$ and 
-$\sigma :> \sigma_2$ and $\sigma$ is not a union type, then $\sigma_1 \tsep \sigma_2 \vdash \sigma'$ 
-and $\sigma'$ is not a union type.
-\end{theorem}
+Given $\sigma_1, \sigma_2, \sigma$ such that $\sigma :> \sigma_1$ and $\sigma :> \sigma_2$ and 
+$\sigma$ is not a variant, then $\sigma_1 \tsep \sigma_2 \vdash \sigma'$ 
+and $\sigma' \equiv \sigma$.
+\end{corollary}
 \begin{proof}
-The only rule that introduces an union type is (\emph{union-3}), which is used only when 
-no other inference rule can be applied.
+Consequence of Theorem~\ref{thm:lub} and the fact that the set of all variants is the
+top element of $\mathcal{E}$.
 \end{proof}
 
+
+
+% ==================================================================================================
+% 
+%    #######
+%    #        ####  #####  #    #   ##   #      # ######   ##   ##### #  ####  #    #
+%    #       #    # #    # ##  ##  #  #  #      #     #   #  #    #   # #    # ##   #
+%    #####   #    # #    # # ## # #    # #      #    #   #    #   #   # #    # # #  #
+%    #       #    # #####  #    # ###### #      #   #    ######   #   # #    # #  # #
+%    #       #    # #   #  #    # #    # #      #  #     #    #   #   # #    # #   ##
+%    #        ####  #    # #    # #    # ###### # ###### #    #   #   #  ####  #    #
+%
 % ==================================================================================================
 
 \section{Formalising type providers}
 \label{sec:formal}
 
-In this section, we build the necessary theoretical framework for proving the relativised type safety 
-property of F\# Data type providers in Section~\ref{sec:safety}. We start by discussing the runtime 
-representation of structural values and runtime conversions (Section~\ref{sec:formal-convert}). Then 
-we embed these into a formal model of an F\# subset that is necessary for discussing type providers 
-(Section~\ref{sec:formal-ff}) and we describe how F\# Data type providers turn an inferred 
-structural type into actual F\# code (Section~\ref{sec:formal-tp}).
+In this section, we build the necessary theoretical framework for proving relativised type safety 
+of our type providers (\S\ref{sec:safety}). We start by discussing the runtime representation of 
+structural values and runtime conversions (\S\ref{sec:formal-convert}), we embed these into a 
+formal model of an F\# subset (\S\ref{sec:formal-ff}) and we describe how our type providers 
+turn an inferred structural type into actual F\# code (\S\ref{sec:formal-tp}).
 
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Structural values and conversions}
 \label{sec:formal-convert}
 
-In the model presented here, we represent JSON, XML and CSV documents using the same 
-\emph{structural value}\footnote{Here, we diverge from the actual implementation in F\# Data which 
-uses a different implementation for each format (reusing existing libraries).}. Structural values are 
-first-order and can be one of the primitive values (Boolean \kvd{true} or \kvd{false}, string $t$, 
-integer $i$, decimal $d$ and floating-point number $f$), a missing value (\kvd{null}), a collection 
-and a record (named or unnamed):
+We represent JSON, XML and CSV documents using the same \emph{structural value}\footnote{Here, we 
+diverge from the actual implementation in F\# Data which uses a different implementation for each 
+format (reusing existing libraries).}. Structural values are first-order and can be one of the 
+following cases:
 %
 \begin{equation*}
 \begin{array}{lcl}
- s  &\narrow{=}& i \lsep d \lsep f \lsep t \lsep \kvd{true} \lsep \kvd{false} \lsep \kvd{null} \\[0.1em]
-    &\narrow{|}& [s_1; \ldots; s_n] \\[0.1em]
-    &\narrow{|}& \{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \}\\[0.1em]
-    &\narrow{|}& \nu~\{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \} \\
+ s &\narrow{=}& i \lsep d \lsep f \lsep t \lsep \kvd{true} \lsep \kvd{false} \lsep \kvd{null} \\[0.1em]
+   &\narrow{|}& [s_1; \ldots; s_n] \lsep \nu_?\{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \}
 \end{array}
 \end{equation*}
-
-\noindent
+%
 The first few cases represent primitive values ($i$ for integers, $d$ for decimals, $f$ for floating
-point numbers and $t$ for strings). A collection is written as a list of values in square brackets, 
-separated by semicolons. A record can optionally start with its name $\nu$, followed by a sequence of 
-field assignments $\nu_i \mapsto s_i$ written in curly brackets.
+point numbers and $t$ for strings) and the missing value \kvd{null}. A collection is written as a 
+list of values in square brackets, separated by semicolons. A record starts with an optional name 
+$\nu_?$, followed by a sequence of field assignments $\nu_i \mapsto s_i$ written in curly brackets.
 
-As suggested by subtyping, our system permits certain runtime conversions (\emph{e.g.}~a numerical 
-value \num{1} can be treated as \kvd{true}). These are captured by the following operations:
+As indicated by the subtyping, our system permits certain runtime conversions (e.g.~an integer
+\num{1} can be treated as a floating-point \num{1.0}). The following primitive operations 
+implement the conversions and other helpers:
 %
 \begin{equation*}
 \begin{array}{lcl}
- op &\narrow{=}& \ident{asInt}(s) \lsep \ident{asDec}(s) \lsep \ident{asFloat}(s) \lsep \ident{asBool}(s)  \\
-    &\narrow{|}& \ident{asStr}(s) \lsep \ident{getChildren}(s) \lsep \ident{getField}(\nu?, \nu, s)\\
-    &\narrow{|}& \ident{isNull}(s) \lsep \ident{isTag}(\ident{tag}, s)
+ op  &\narrow{=}& \ident{asDec}(s) \lsep \ident{asFloat}(s) \lsep \ident{getChildren}(s) \\
+     &\narrow{|}& \ident{getField}(\nu?, \nu, s) \lsep \ident{isNull}(s) \lsep \ident{isTag}(\ident{tag}, s)
 \end{array}
 \end{equation*}
 %
-The reduction rules for these operations are defined in Figure~\ref{fig:op-conversions}. It is important
-to note that the relativised property we prove about F\# Data specifies \emph{sufficient}, but
-not \emph{necessary} conditions. That is, a type provided based on a sample is guaranteed to work 
-correctly on certain inputs, but may also handle several additional inputs.
+The type providers generate code that uses these operations at runtime. Their behavior is defined
+by the reduction rules in Figure~\ref{fig:op-conversions}. The conversion functions (\ident{asDec}
+and \ident{asFloat}) only perform conversions required by the subtyping relation. As noted later
+(\S\ref{?}), our actual implementation is more lax. 
 
-The conversion functions follow this approach. They perform conversions required by the subtyping relation
-(\emph{e.g.}~integer is converted to decimal or a float) but also attempt additional conversions.
+The \ident{getField} operation is used to access a field of a record. The operation ensures that
+the actual record name matches the expected name (we write $\bullet$ for the name of an unnamed 
+record). The \ident{getChildren} operation will used to turn \kvd{null} into an empty collction.
 
-\begin{itemize}
-\item \textbf{Widening operations.} The widening operations are required by the subtyping. These include
-  converting to a wider numerical type (integer to decimal and float, decimal to float, converting 0 and 
-  1 to Boolean).
-
-\item \textbf{Conversions.} Additional conversions are not strictly required, but prove useful in practice.
-  These include converting to a smaller numerical type (such as float to integer) written as $i=\lfloor f\rfloor$,
-  which is not defined in case of arithmetic overflow; conversion to and from string values written as
-  ``$t$~represents~$i$'', which parses or formats a non-string value and also treating of decimals 
-  0.0 and 1.0 as Booleans.
-
-\item \textbf{Structural operations.} Aside from primitives, the \ident{getChildren} operation returns treats
-  \kvd{null} as an empty collection. The \ident{getField} function is defined separately for named and unnamed
-  records (we write $\bot$ for a name of an unnamed record). Accessing a field of a named record checks that 
-  the expected record name matches the actual.
-
-\item \textbf{Helper functions.} The semantics also defines two helper functions. The \ident{isNull} function
-  is used to check whether value is \kvd{null} and \ident{isTag} is used to test whether a value can be treated 
-  as a value of type associated with the specified tag (as defined in Section~\ref{sec:inference-commonsuper}).
-  The last line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases.
-\end{itemize}
+Finally, we also define two helper functions. The \ident{isNull} operation is used to check whether 
+value is \kvd{null} and \ident{isTag} is used to test whether a value can be treated as a value of 
+a type associated with the specified tag (as defined in Figure~\ref{fig:subtyping-cst}).
+The last line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1195,10 +1155,6 @@ The conversion functions follow this approach. They perform conversions required
  \inference
  { \kvd{type}~C(\overline{x:\tau})=\ldots \kvd{member}~N_i : \tau_i = e_i \ldots }
  { (\kvd{new}~C(\overline{v})).N_i \reduce e_i[\overline{x} \leftarrow \overline{v}] }\\
- \\
- \textnormal{\footnotesize{(ctx)}}&
- \hspace{-0.4em}
-  E[e] \reduce E[e'] \qquad\qquad(\textnormal{when}~e \reduce e')\\
  \\
  \textnormal{\footnotesize{(cond1)}}&
  \hspace{-0.4em}
@@ -1239,6 +1195,10 @@ The conversion functions follow this approach. They perform conversions required
  \textnormal{\footnotesize{(map)}}&
  \hspace{-0.4em}
  \ident{List.map}~(\lambda x.e)~[v_1; \ldots] ~\reduce~ [e[x\leftarrow v_1]; \ldots] \\
+ \\
+ \textnormal{\footnotesize{(ctx)}}&
+ \hspace{-0.4em}
+  E[e] \reduce E[e'] \qquad\qquad(\textnormal{when}~e \reduce e')\\
 \end{array}
 \end{equation*}
 
@@ -1252,15 +1212,14 @@ The conversion functions follow this approach. They perform conversions required
 \subsection{Featherweight F\#}
 \label{sec:formal-ff}
 
-The semantics fragment introduced in the previous section discusses values and operations that are used by
-F\# Data. This section adds a minimal subset of the standard F\# language.
+The semantics fragment in the previous section discusses values and operations that are used by
+F\# Data. This section adds a minimal subset of F\#. Type providers provide classes and so we focus
+on the F\# object model and combine aspects of standard ML \cite{sml} and Featherweight Java \cite{fwjava}. 
 
-We focus on the object system (which is what F\# type providers produce) and so the following combines 
-standard ML \cite{sml} features with Featherweight Java \cite{fwjava} classes. However, we only need classes with properties and
-without inheritance. A class has a single implicit constructor and the declaration closes over 
-constructor parameters. To avoid including all of ML, we only select constructs for working with options and lists
-that we need later.
-%
+We only need classes with parameter-less members and without inheritance. A class has a single 
+implicit constructor and the declaration closes over constructor parameters. To avoid including all 
+of ML, we only pick constructs for working with options and lists that we need later.
+
 \begin{equation*}
 \begin{array}{rcl}
  \tau &\narrow{=}& \ident{int} \lsep \ident{decimal} \lsep \ident{float} \lsep \ident{bool} \lsep \ident{string} \\[0.0em]
@@ -1268,44 +1227,47 @@ that we need later.
  L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
  M &\narrow{=}& \kvd{member}~N:\tau=e \\[0.6em]
  v &\narrow{=}& s \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep [v_1; \ldots; v_n] \\[0.0em]
- e &\narrow{=}& op \lsep e.N \lsep \kvd{new}~C(\overline{e}) \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3}\\
-   &\narrow{|}& \ident{Some}(e)\lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
-   &\narrow{|}& \kvd{match}~e~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2 \\
-   &\narrow{|}& [e_1;\ldots;e_n]\lsep \ident{List.map}~(\lambda x\rightarrow e_1)~e_2
+ e &\narrow{=}& s \lsep op \lsep e.N \lsep \kvd{new}~C(\overline{e}) \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3}\\
+   &\narrow{|}& \ident{None} \lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
+   &\narrow{|}& \ident{Some}(e) \lsep [e_1;\ldots;e_n]\lsep \ident{List.map}~(\lambda x\rightarrow e_1)~e_2\\
+   &\narrow{|}& \kvd{match}~e~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2
 \end{array}
 \end{equation*}
 
 \noindent
-In the above definition, $\tau$ denotes types including a type of all structural values $s$ called
-\ident{StructVal}. A class definition $L$ consists of a constructor and zero or more members. Values $v$ include 
-previously defined structural values $s$ and values for the option and list type; finally expressions $e$ include 
-previously defined operations $op$, class construction, member access, conditionals and expressions for working 
-with option values and lists. We include \ident{List.map} as a special construct to avoid making the language too complex.
+The type \ident{StructVal} is a type of all structural values $s$. A class
+definition $L$ consists of a constructor and zero or more members. Values $v$ include 
+previously defined structural values $s$ and values for the option and list type; finally 
+expressions $e$ include previously defined operations $op$, class construction, member access, 
+conditionals and expressions for working with option values and lists. We include 
+\ident{List.map} as a special construct to avoid making the language too complex.
 
 Next, we define the reduction relation and (a fragment of) type checking for Featherweight F\#.
 The language presented here is intentionally incomplete. We only define parts needed to prove
-the relativized safety property in Section~\ref{sec:safety}.
+the relativized safety property (\S\ref{sec:safety}).
 
-\paragraph{Reduction.} The reduction relation is of the form $e \reduce e'$. We also write 
+\paragraph{Reduction.}
+The reduction relation is of the form $e \reduce e'$. We also write 
 $e \reduce^{*} e'$ to denote the reflexive and transitive closure of $\reduce$. The reduction rules
-for primitive functions $op$ were discussed earlier in Figure~\ref{fig:op-conversions}. The rules 
-for other expressions defined above are provided in Figure~\ref{fig:ff-reduction}.
+for operations $op$ were discussed earlier. Figure~\ref{fig:ff-reduction} shows the remaining
+rules.
 
 The (\emph{ctx}) rule performs a reduction inside a sub-expression specified by an evaluation context.
-This models the eager evaluation order of F\#. An evaluation context $E$ is defined as:
+This models the eager evaluation of F\#. An evaluation context $E$ is defined as:
 
 \vspace{0.5em}
 \noindent
 \begin{equation*}
+\begin{array}{l}
+\hspace{-0.5em}
 \begin{array}{rcl}
- E &\narrow{=}& f(E) \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e}) \lsep \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2 \\[0.1em]
-   &\narrow{|}& \ident{Some}(E) \lsep \kvd{match}~E~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\[0.1em]
-   &\narrow{|}& [\overline{v};E;\overline{e}] \lsep \kvd{match}~E~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2 \\[0.1em]
-   &\narrow{|}& \ident{map}~(\lambda x\rightarrow e)~E \lsep [\cdot] 
- \\[0.6em]
- f &\narrow{\in}& \{\; \ident{asInt}, \ident{asDec}, \ident{asFloat}, \ident{asBool}, \ident{asStr}, \\[0.1em]
-              && ~~\; \ident{getField}, \ident{getChildren}, \ident{isNull}, \ident{isTag} \;\}
-\end{array} 
+ E &\narrow{=}& [\overline{v};E;\overline{e}] \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e}) \lsep \ident{Some}(E) \\[0.1em]
+   &\narrow{|}& \ident{map}~(\lambda x\rightarrow e)~E \lsep \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2 \lsep f(E)\\[0.1em]
+   &\narrow{|}& \kvd{match}~E~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\[0.1em]
+   &\narrow{|}& \kvd{match}~E~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2
+\end{array} \\[2.5em]
+f \in \{ \ident{asDec}, \ident{asFloat}, \ident{getField}, \ident{getChildren}, \ident{isNull}, \ident{isTag} \}
+\end{array}
 \end{equation*}
 
 \noindent
@@ -1315,34 +1277,42 @@ in list initialization.
 
 We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
 values $\overline{v}$ in expression. The (\emph{member}) rule reduces a member access using a class 
-definition in the assumption to obtain the body of the expression. Finally, the remaining six rules
-provide standard reductions for conditionals and pattern matching.
+definition in the assumption to obtain the body of a member. The remaining six rules
+give standard reductions for conditionals and pattern matching.
 
-The language is sufficient for our purpose, but simple. It does not provide recursion
-and so all expressions reduce to a value in a finite number of steps or get stuck due to an error
-condition. An error condition can be a wrong argument passed to conditional, pattern matching or
-one of the conversion functions from Figure~\ref{fig:op-conversions}.
+The language is simple, but sufficient for our purpose. All expressions reduce to a value in a 
+finite number of steps or get stuck due to an error condition. An error condition can be a wrong 
+argument passed to conditional, pattern matching or one of the conversion functions from 
+Figure~\ref{fig:op-conversions}.
 
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure}
 \begin{equation*}
-\qquad
 \inference
-  {~}
-  {L; \Gamma \vdash s : \ident{StructVal}}
-\qquad  
+  {L; \Gamma \vdash e_1 : \ident{StructVal}}
+  {L; \Gamma \vdash [e_1; \ldots; e_n]:\ident{StructVal}}
+\quad  
 \inference
   {~}
   {L; \Gamma \vdash n : \ident{int}}
 \end{equation*}
-
 \begin{equation*}
 \inference
-  {L; \Gamma \vdash e : C & \kvd{type}~C(\overline{x:\tau}) = ..\;\kvd{member}~N_i : \tau_i = e_i\;.. \in L}
+  {L; \Gamma \vdash e_1 : \tau}
+  {L; \Gamma \vdash [e_1; \ldots; e_n]:\ident{list}\langl\tau\rangl}
+\quad
+\inference
+  {~}
+  {L; \Gamma \vdash s : \ident{StructVal}}
+\end{equation*}
+\vspace{0.5em}
+\begin{equation*}
+\inference
+  {L; \Gamma \vdash e : C \\ \kvd{type}~C(\overline{x:\tau}) = ..\;\kvd{member}~N_i : \tau_i = e_i\;.. \in L}
   {L; \Gamma \vdash e.N_i:\tau_i}
 \end{equation*}
-
+\vspace{0.25em}
 \begin{equation*}
 \inference
   {L; \Gamma \vdash e_i : \tau_i & \kvd{type}~C(x_1:\tau_1, \ldots, x_n:\tau_n) = \ldots \in L}
@@ -1356,101 +1326,32 @@ one of the conversion functions from Figure~\ref{fig:op-conversions}.
 % -------------------------------------------------------------------------------------------------
 
 \paragraph{Type checking.} 
-The type checking rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
+Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
 $L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
-The rules demonstrate the key difference between our language and standard ML or Featherweight Java:
+The rules demonstrate the key differences from Standard ML and Featherweight Java:
 %
-\begin{itemize}[noitemsep]
-\item[--] All structural values $s$ have a type \ident{StructVal}. Some of those have other types
-  (primitive integers, decimals, floats, strings and Booleans as illustrated by the rule for $n$).
+\begin{itemize}
+\item[--] All structural values $s$ have the type \ident{StructVal}, but some have other types
+  (Booleans, strings, integers, etc.) as illustrated by the rule for $n$.
   For other values, \ident{StructVal} is the only type -- this includes records and \kvd{null}.
-\item[--] A list containing other structural values $[s_1; \ldots; s_n]$ has a type \ident{StructVal}.  
+\item[--] A list containing other structural values $[s_1; \ldots; s_n]$ has a type \ident{StructVal},
   but can also have the $\ident{list}\langl\tau\rangl$ type. Conversely, lists that contain
   non-structural values like objects or options are not of type \ident{StructVal}.
-\item[--] Primitive operations $op$ are treated as functions, accepting \ident{StructVal} and producing
-  an appropriate type as the result.
-\item[--] The two rules for checking class construction and member access are similar to corresponding
+\item[--] Operations $op$ (omitted) are treated as functions, accepting 
+  \ident{StructVal} and producing an appropriate result type.
+\item[--] Rules for checking class construction and member access are similar to corresponding
   rules of Featherweight Java.  
 \end{itemize}
 %
 An important part of Featherweight Java that is omitted here is the checking of type declarations
-(ensuring the bodies of members are well-typed). We omit this, because it is not needed for the
-relativized safety theorem, which considers only classes generated by our type provider (which 
-are correct by construction).
+(ensuring the bodies of members are well-typed). We omit this, because we consider only classes 
+generated by our type providers (which are correct by construction).
 
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure*}
-\begin{multicols}{2}
-% Primitive structural types become corresponding F# types and conversion is inserted
-\noindent
 \begin{equation*}
-\begin{array}{l}
- \sem{\sigma_p}_e = \tau_p,op(e),\emptyset\quad\textnormal{where} \\[0.4em]
-\quad\sigma_p, \tau_p, op\in  \{~ (\ident{bit}, \ident{bool}, \ident{asBool}),  (\ident{bool}, \ident{bool}, \ident{asBool})\\[0.2em]
-\hspace{2.9em} (\ident{int}, \ident{int}, \ident{asInt}), (\ident{decimal},\ident{decimal},\ident{asDec}),\\[0.2em]
-\hspace{2.9em} (\ident{float},\ident{float},\ident{asFloat}), (\ident{string},\ident{string},\ident{asStr}) ~\}\\[0.6em]
-\end{array}
-\end{equation*}
-%
-% Records become classes
-\begin{equation*}
-\begin{array}{l}
- \sem{\nu?\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}}_e = \\[0.1em]
- \quad C, \kvd{new}~C(e), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
- \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n  \\[0.1em]
- \qquad M_i = \kvd{member}~\nu_i:\tau_i=e_i\\[0.1em]
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_{e'},\;\; e'=\ident{getField}(\nu?, \nu_i, e)\\[0.6em]
-\end{array}
-\end{equation*}
-%
-% Collections
-\begin{equation*}
-\begin{array}{l}
- \sem{\,[\sigma]\,}_e = \ident{list}\langl\tau\rangl, \ident{List.map}~(\lambda x\rightarrow e')~(\ident{getChildren}(e)), L\\[0.4em]
- \quad \textnormal{where}~~\tau, e', L = \sem{\hat{\sigma}}_x
-\end{array}
-\end{equation*}
-
-% Option values
-\noindent
-\begin{equation*}
-\begin{array}{l}
- \sem{\hat{\sigma}\;\,\kvd{option}}_e = \\[0.2em]
- \hspace{1.25em} \ident{option}\langl\tau\rangl, \kvd{if}~\ident{isNull}~e~\kvd{then}~\ident{None}~\kvd{else}~\ident{Some}(e'), L\\[0.2em] 
- \hspace{1.25em} \textnormal{where}~\tau, e', L = \sem{\hat{\sigma}}_e
-\end{array}
-\end{equation*}
-%
-% Sum type
-\begin{equation*}
-\begin{array}{l}
- \sem{\sigma_1 + \ldots + \sigma_n}_e = \\[0.1em]
- \quad C, \kvd{new}~C(e), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
- \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n \\[0.1em]
- \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\[0.1em]
- \hspace{5.8em}  \kvd{if}~\ident{isNull}(v)~\kvd{then}~\ident{None}~\kvd{else} \\
- \hspace{5.8em}  \kvd{if}~\ident{isTag}(t_i, v)~\kvd{then}~
-     \ident{Some}(e_i)~\kvd{else}~\ident{None} \\[0.1em]
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; t_i = \tytagof{(\sigma_i)},\;\; \nu_i=\nameoftag{(t_i)}
-\end{array}
-\end{equation*}
-%
-% Anything else
-\begin{equation*}
-\begin{array}{l}
- \sem{\top}_v = \sem{\kvd{null}}_v = \ident{StructVal}, v, \emptyset
-\end{array}
-\end{equation*}
-\end{multicols}
-
-\vspace{-0.5em}
-\noindent
-\begin{equation*}
-\qquad
-\qquad
+\quad\qquad\boxed{
 \begin{array}{rcl}
  \nameoftag(\ident{string}) &\narrow{=}& \ident{String} \\
  \nameoftag(\ident{bool}) &\narrow{=}& \ident{Boolean} \\
@@ -1462,10 +1363,84 @@ are correct by construction).
 \end{array}
 \qquad
 \begin{array}{rcl}
- \nameoftag(\ident{rec-anon}) &\narrow{=}& \ident{Record} \\
- \nameoftag(\ident{rec-named}\;\nu) &\narrow{=}& \nu \\
+ \nameoftag(\ident{record}) &\narrow{=}& \ident{Record} \\
+ \nameoftag(\ident{named}\;\nu) &\narrow{=}& \nu \\
+\end{array}
+}
+\end{equation*}
+
+\begin{multicols}{2}
+% Primitive structural types become corresponding F# types and conversion is inserted
+\noindent
+\begin{equation*}
+\begin{array}{l}
+ \sem{\sigma_p}_e = \tau_p,op(e),\emptyset\quad\textnormal{where}~\tau_p = \sigma_p \\[0.2em]
+\quad\sigma_p, op\in  \{~(\ident{decimal},\ident{asDec}), (\ident{float},\ident{asFloat})~\}
 \end{array}
 \end{equation*}
+%
+% Records become classes
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,\nu_? \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,}_e = \\[0.1em]
+ \quad C, \kvd{new}~C(e), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
+ \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n  \\[0.1em]
+ \qquad M_i = \kvd{member}~\nu_i:\tau_i=e_i\\[0.1em]
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_{e'},\;\; e'=\ident{getField}(\nu_?, \nu_i, e)\\[0.6em]
+\end{array}
+\end{equation*}
+%
+% Collections
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,[\sigma]\,}_e = \ident{list}\langl\tau\rangl, e_b, L \;\;\textnormal{where}\\[0.4em]
+ \qquad e_b = \ident{List.map}~(\lambda x\rightarrow e')~(\ident{getChildren}(e)) \\[0.1em]
+ \qquad \tau, e', L = \sem{\hat{\sigma}}_x
+\end{array}
+\end{equation*}
+%
+% Anything else
+\begin{equation*}
+\begin{array}{l}
+ \sem{\bot}_e = \sem{\kvd{null}}_e = \ident{StructVal}, e, \emptyset
+\end{array}
+\end{equation*}
+
+\noindent
+\begin{equation*}
+\hspace{-2.5em}
+\begin{array}{l}
+ \sem{\sigma_p}_e = \tau_p,e,\emptyset\quad\textnormal{where}~\tau_p = \sigma_p \\[0.2em]
+\quad\sigma_p \in  \{~ \ident{string},\ident{bool},\ident{int}~\}\\[0.6em]
+\end{array}
+\end{equation*}
+%
+% Sum type
+\begin{equation*}
+\hspace{-2.5em}
+\begin{array}{l}
+ \sem{\,\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl\,}_e = \\[0.1em]
+ \quad C, \kvd{new}~C(e), L_1\cup\ldots\cup L_n\cup\{ L \}\;\;\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
+ \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n \\[0.1em]
+ \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\[0.1em]
+ \hspace{5.8em}  \kvd{if}~\ident{isTag}(t_i, v)~\kvd{then}~
+     \ident{Some}(e_i)~\kvd{else}~\ident{None} \\[0.1em]
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; t_i = \tytagof{(\sigma_i)},\;\; \nu_i=\nameoftag{(t_i)}
+\end{array}
+\end{equation*}
+%
+% Option values
+\begin{equation*}
+\hspace{-2.5em}
+\begin{array}{l}
+ \sem{\hat{\sigma}\;\,\kvd{option}}_e = \\[0.2em]
+ \hspace{1.25em} \ident{option}\langl\tau\rangl, \kvd{if}~\ident{isNull}~e~\kvd{then}~\ident{None}~\kvd{else}~\ident{Some}(e'), L\\[0.2em] 
+ \hspace{1.25em} \textnormal{where}~\tau, e', L = \sem{\hat{\sigma}}_e
+\end{array}
+\end{equation*}
+\end{multicols}
 
 \caption{Type provider -- generation of featherweight F\# types from inferred structural types}
 \label{fig:tp-generation}
@@ -1477,32 +1452,32 @@ are correct by construction).
 \subsection{Type providers}
 \label{sec:formal-tp}
 
-So far, we defined the type inference algorithm for structured data formats which produces a structural
-type $\sigma$ based on one or more sample documents (Section~\ref{sec:inference}). In Section~\ref{sec:formal-ff},
-we defined a simplified model of F\# language and evaluation, which also included conversions that
-model the F\# Data library runtime (Section~\ref{sec:formal-tp}). In this section, we define how
-the type providers work, which links the two aspects discussed so far.
+So far, we defined the type inference algorithm which produces a structural type $\sigma$ from one 
+or more sample documents (\S\ref{sec:inference}) and we defined a simplified model of evaluation
+of F\# language (\S\ref{sec:formal-ff}) and F\# Data runtime (\S\ref{sec:formal-tp}). Next, we 
+define how the type providers work, linking the two parts.
 
-The type providers for XML, CSV and JSON all work in the same way. They take sample documents and infer a common
-supertype $\sigma$ from the samples. From $\sigma$, they then generate F\# types that are then exposed to the
-programmer\footnote{The actual implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. 
-Here, we treat the code as actually generated. This is an acceptable simplification, because F\# Data type providers do not 
-rely on laziness that is available through erased types.}. 
+All F\# Data type providers take (one or more) sample documents, infer a common supertype $\sigma$
+and then use $\sigma$ to generate F\# types that are exposed to the programmer\footnote{The actual 
+implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
+the code as actually generated. This is an acceptable simplification, because F\# Data type providers 
+do not rely on laziness that is available through erased types.}. 
 
 \paragraph{Type provider mapping.}
-When generating types, the type provider produces an F\# type $\tau$, expression that wraps a structural 
-document value (of type \ident{StructVal}) as a value of type $\tau$ and a collection of class definitions. 
-We express it using the following mapping:
+When generating types, the type provider produces an F\# type $\tau$, an expression that wraps 
+the input document (of type \ident{StructVal}) as a value of type $\tau$ and a collection of class 
+definitions. We express it using the following mapping:
 %
 \begin{equation*}
-\sem{-}_e : \sigma \rightarrow \tau \times e' \times L
+\sem{-}_{-} : (\sigma\times e) \rightarrow (\tau \times e' \times L)
 \end{equation*}
 %
-The semantics is parameterized by an expression $e$, which represents code to obtain a structural value that is
-being wrapped. Then, given an inferred structural type $\sigma$, the type provider produces an F\# type $\tau$,
-an expression $e'$ which constructs a value of type $\tau$ using $e$ and also a set of class definitions $L$.
+The mapping $\sem{\sigma}_e$ takes a inferred structural type $\sigma$ and an expression $e$, 
+which represents code to obtain a structural value that is being wrapped. It returns an F\# type 
+$\tau$, an expression $e'$ which constructs a value of type $\tau$ using $e$ and also a set of 
+generated class definitions $L$.
 
-Figure~\ref{fig:tp-generation} shows the rules that define $\sem{-}_e$. Primitive types are all
+Figure~\ref{fig:tp-generation} shows the rules that define $\sem{-}_{-}$. Primitive types are all
 handled by a single rule. For a given structural type, it returns the corresponding F\# type -- the types are
 mapped directly with the exception of \ident{bit}, which becomes an F\# \ident{bool}. The generated code calls
 an appropriate conversion function from Figure~\ref{fig:op-conversions} on the input.
@@ -1634,6 +1609,17 @@ This uses the common supertype relation to find a common type for all values (st
 This operation is used at the top-level (when calling type provider with multiple samples)
 and also when inferring the type of a collection.
 
+
+% ==================================================================================================
+%
+%    #######
+%       #    #   # #####  ######     ####    ##   ###### ###### ##### #   #
+%       #     # #  #    # #         #       #  #  #      #        #    # #
+%       #      #   #    # #####      ####  #    # #####  #####    #     #
+%       #      #   #####  #              # ###### #      #        #     #
+%       #      #   #      #         #    # #    # #      #        #     #
+%       #      #   #      ######     ####  #    # #      ######   #     #
+%
 % ==================================================================================================
 
 \section{Relativized type safety}
@@ -2040,7 +2026,6 @@ languages are beginning to adopt mechanisms similar to F\# type providers.
 ?
 We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
 including Jomo Fisher, Keith Battocchi and Kenji Takeda.
-
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
