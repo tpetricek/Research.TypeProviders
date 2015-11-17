@@ -1,14 +1,13 @@
-\documentclass[10pt,preprint,clearpagebib]{sigplanconf}
+\documentclass[10pt,preprint,blind,clearpagebib]{sigplanconf}
 
 \usepackage{listings}
 \usepackage{enumitem}
 \usepackage[hyphens]{url}
 \usepackage[svgnames]{xcolor}
-\definecolor{lcl}{RGB}{160,0,128}
+\definecolor{lcl}{RGB}{140,0,100}
 \usepackage[colorlinks=true,breaklinks,draft=false]{hyperref}
-\hypersetup{urlcolor=lcl,linkcolor=lcl}
+\hypersetup{urlcolor=lcl,linkcolor=lcl,citecolor=lcl}
 \newcommand{\doi}[1]{doi:~\href{http://dx.doi.org/#1}{\Hurl{#1}}}
-
 \usepackage{amssymb}
 \usepackage{multicol}
 \usepackage{xcolor}
@@ -27,41 +26,12 @@
 
 % =================================================================================================
 
-% TODO: Adapt XML example 
-% TODO: Switch from sum types to variant types
 % TODO: Discuss 'stability' of the inference (minor change in schema does not cause dramatic cahnges)
-% TODO: Say that any variant is a subtype of any other variant 
-% TODO: Say that anything is a subtype of variant
 % TODO: Say that variant is a last-resort thing
-% TODO: Double check that bottom/top are used correctly
-% TODO: Explain (even more) that there is no least upper bound, which is why Theorem 3 is good enough
-% TODO:  -- but maybe we can have lub w.r.t variants? or something?
-% TODO: Avoid "no other rule applies" in the formal system
 % TODO: Practical evaluation (lots of downloads, lots of Github - how often people customize samples?)
 % TODO: Explain why we need option type (because T + null is a variant)
-
 % TODO: In the PLDI version, we delete all the unnecessary runtime conversions
 % but we should say that those happen for practical reasons (e.g. float -> int, or anyhing to string)
-
-
-% T :> S means that S is a subtype of T (and S can be used where T is expected)
-% TOP is the universal supertype
-% BOTTOM is the universal subtype
-
-% variant is the top type 
-%  (variant is a suprtype of everything; everything is a subtype of variant; 
-%   everything can be used where variant is expected)
-%
-% bottom is the bottom type
-%  (bottom is a subtype of everything; everything is a supertype of bottom
-%   bottom can be used where anything else is expected - but it has no values)
-%
-% define :=: when <: and :>, then take equivalence classes 
-
-% least upper bound of T1 and T2 is a supertype of both (T :> T1 and T :> T2)
-% and for all S such that S :> T1 and S :> T2, it holds that S :> T 
-
-
 
 \urlstyle{sf}
 
@@ -143,7 +113,7 @@
 %\doi{nnnnnnn.nnnnnnn}
 
 %\titlebanner{Unpublished draft, March 2015}        % These are ignored unless
-%\preprintfooter{short description of paper}   % 'preprint' option specified.
+%\preprintfooter{short description of paper}        % 'preprint' option specified.
 
 \title{F\# Data: \textnormal{Making structured data first-class citizens}}
 %\subtitle{Subtitle Text, if any}
@@ -162,10 +132,10 @@
 % =================================================================================================
 
 \begin{abstract}
-Most modern applications interact with external services and access data in formats such as 
-XML, JSON and CSV. Static type systems do not understand external data sources and only 
-make accessing data more cumbersome. Should we give up and leave the messy world of external data 
-to dynamic typing and runtime checks? Of course, not!
+Most modern applications interact with external services and access data in structured formats such 
+as XML, JSON and CSV. Static type systems do not understand such formats making accessing data more 
+cumbersome. Should we give up and leave the messy world of external data to dynamic typing and 
+runtime checks? Of course, not!
 
 We show how to integrate external data sources into the F\# type system. As most real-world data
 do not come with an explicit schema, we develop a type inference algorithm that infers a type from 
@@ -210,7 +180,7 @@ service and read the temperature as follows:
 %
 \begin{equation*}
 \begin{array}{l}
- \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://weather.org/?q=NYC}) \\
+ \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://api.owm.org/?q=NYC}) \\
  \kvd{match}~\ident{JsonValue.Parse}(\ident{doc})~\kvd{with} \\
  |~\ident{Record}(\ident{root})\rightarrow \\
  \quad \kvd{match}~\ident{Map.find}~\str{main}~\ident{root}~\kvd{with} \\
@@ -233,12 +203,12 @@ same functionality in two lines:
 %
 \begin{equation*}
 \begin{array}{l}
- \kvd{type}~\ident{W} = \ident{JsonProvider}\langl\str{http://weather.org/?q=NYC}\rangl \\[0.1em]
+ \kvd{type}~\ident{W} = \ident{JsonProvider}\langl\str{http://api.owm.org/?q=NYC}\rangl \\[0.1em]
  \ident{printfn}~\str{Nice \%f degrees!}~(\ident{W.GetSample().Main.Temp})
 \end{array}
 \end{equation*}
 %
-Here, $\ident{JsonProvider}\langl\str{...}\rangl$ invokes a type provider at 
+$\ident{JsonProvider}\langl\str{...}\rangl$ invokes a type provider at 
 compile-time with the URL as a sample. The type provider infers the structure of the response
 and provides a type with a \ident{GetSample} method that returns a parsed JSON with nested
 properties \ident{Main.Temp}, returning the temperature as a number.
@@ -260,11 +230,6 @@ The key novel contributions are:
   This adapts the ML-style type safety for the context of the web.
 \end{itemize}
 
-% Although the F\# Data library \cite{fsharp-data} has been widely adopted and is one of the most downloaded F\# libraries 
-% it has not yet been presented in an academic form. Additional documentation and source code can 
-% be found at \url{http://fsharp.github.io/FSharp.Data}.
-
-
 
 
 % =================================================================================================
@@ -283,23 +248,21 @@ The key novel contributions are:
 \label{sec:providers}
 
 We start with an informal overview that shows how F\# Data type providers simplify working with 
-JSON, XML and CSV. We also introduce the necessary aspects of F\# 3.0 type providers along the 
+JSON, XML and CSV. We introduce the necessary aspects of F\# type providers along the 
 way. The examples in this section illustrate a number of key properties of our type inference 
 algorithm:
 
 \begin{itemize}
-\item Our mechanism is robust and predictable. This is important as the user directly works with 
-  the inferred types and should understand why a specific type was inferred from a given 
-  sample\footnote{In particular, we do not use probabilistic methods where adding additional 
-  sample could change the shape of the type.}.
+\item Our mechanism is predictable. The user directly works with the inferred types and should 
+  understand why a specific type was inferred from a given sample\footnote{In particular, we do 
+  not use probabilistic methods where adding additional sample could change the shape of the type.}.
 
-\item Our inference mechanism prefers records over unions. This better supports developer tooling --
+\item Our inference mechanism prefers records. This supports developer tooling --
   most F\# editors provide code completion hints on ``.'' and so types with properties (records)
   are easier to use than types that require pattern matching.
 
-\item Finally, we handle a number of practical concerns that may appear overly complicated, but
-  are important in the real world. This includes support for different numerical types, \kvd{null}
-  values and missing data and also different ways of representing Booleans in CSV files.
+\item Finally, we handle a number of practical concerns important in the real world. This includes 
+  support for different numerical types, \kvd{null} values and missing data.
 \end{itemize}
 
 % --------------------------------------------------------------------------------------------------
@@ -307,50 +270,45 @@ algorithm:
 \subsection{Working with JSON documents}
 \label{sec:providers-json}
 
-The JSON format used in the example in Section~\ref{sec:introduction} is a popular format for data
-exchange on the web based on data structures used in JavaScript. The following is the definition 
-of the \ident{JsonValue} type used earlier to represent parsed JSON:
+The JSON format used in \S\ref{sec:introduction} is a populardata exchange format based on 
+JavaScript data structures. The following is the definition of \ident{JsonValue} 
+used earlier to represent JSON:
 %
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{JsonValue} = \\[0.1em]
- \quad|~\ident{Null} \\[0.1em]
- \quad|~\ident{Number}~\kvd{of}~\ident{decimal} \\[0.1em]
- \quad|~\ident{String}~\kvd{of}~\ident{string} \\[0.1em]
- \quad|~\ident{Boolean}~\kvd{of}~\ident{bool} \\[0.1em]
- \quad|~\ident{Record}~\kvd{of}~\ident{Map}\langl\ident{string}, \ident{JsonValue}\rangl \\[0.1em]
- \quad|~\ident{Array}~\kvd{of}~\ident{JsonValue}[] \\[0.1em]
+ \quad|~ \ident{Number}~\kvd{of}~\ident{decimal} ~~|~ \ident{Null} \\[0.1em]
+ \quad|~ \ident{String}~\kvd{of}~\ident{string} \qquad\, |~ \ident{Boolean}~\kvd{of}~\ident{bool} \\[0.1em]
+ \quad|~ \ident{Record}~\kvd{of}~\ident{Map}\langl\ident{string}, \ident{JsonValue}\rangl \\[0.1em]
+ \quad|~ \ident{Array}~\kvd{of}~\ident{JsonValue}[] \\[0.1em]
 \end{array}
 \end{equation*}
 %
-The OpenWeatherMap example in the introduction used only a (nested) record containing a numerical
-value. To demonstrate other aspects of the JSON type provider, we look at a more complex example
-that also involves \kvd{null} value and an array:
+The earlier example used only a nested record containing a number. To demonstrate other 
+aspects of the JSON type provider, we look at an example that also involves an array:
 %
 {\small{
 \begin{verbatim}
-  [ { "name": "Jan", "age": 25 },
-    { "name": "Alexander", "age": 3.5 },
-    { "name": "Tomas" } ]
+  [ { "name":"Jan", "age":25 }, { "name":"Tomas" },
+    { "name":"Alexander", "age":3.5 } ]
 \end{verbatim}
 }}
 %
 \noindent
-Say we want to print the names of people in the list with an age if it is available. As before, 
-the standard approach would be to pattern match on the parsed \ident{JsonValue}. The code would 
-check that the top-level node is a \ident{Array}, iterate over the elements checking that each is
-a \ident{Record} with certain properties and throw an exception or skip values in incorrect format.
-The standard approach can be made nicer by defining helper functions. However, we still need to
-specify names of fields as strings, which is error prone and can not be statically checked.
+Say we want to print the names with an age if it is available. The standard approach would 
+be to pattern match on the parsed \ident{JsonValue}, check that the top-level node is a \ident{Array}
+and iterate over the elements checking that each is a \ident{Record} with certain properties. We
+would throw an exception or skip values in incorrect format. Even if we defined helper functions, 
+we would still need to specify field names as strings, which is error prone and can not be 
+statically checked.
 
-Assuming the \strf{people.json} file contains the above example and \ident{data} is a string value
-that contains another data set in the same format, we can print names and ages as follows:
+Assuming \strf{people.json} is the above example and \ident{data} is a string containing
+JSON in the same format, we can write:
 %
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{People}~=~\ident{JsonProvider}\langl\str{people.json}\rangl\hspace{1em} \\[0.6em]
- \kvd{let}~\ident{items}~=~\ident{People.Parse}(\ident{data})\\[0.1em]
- \kvd{for}~\ident{item}~\kvd{in}~\ident{items}~\kvd{do}\\[0.1em]
+ \kvd{for}~\ident{item}~\kvd{in}~\ident{People.Parse}(\ident{data})~\kvd{do}\\[0.1em]
  \quad\ident{printf}~\str{\%s }~\ident{item.Name}\\[0.1em]
  \quad\ident{Option.iter}~(\ident{printf}~\str{(\%f)})~\ident{item.Age}
 \end{array}
@@ -361,24 +319,23 @@ type-checked. In contrast to the earlier example, we now use a local file \strf{
 sample for the type inference, but then processes data from another source. 
 
 \paragraph{Type providers.}
-The notation $\ident{JsonProvider}\langl\str{people.json}\rangl$ on the first line passes a 
-\emph{static parameter} to the type provider. Static parameters are resolved at compile-time, 
-so the file name has to be a constant. The provider analyzes the sample and generates
-a type that we name \ident{People}. In editors that use the F\# Compiler Service, the 
-type provider is also executed at development-time and so the same provided types are
-used in code completion.
+The notation $\ident{JsonProvider}\langl\str{people.json}\rangl$ passes a \emph{static parameter} 
+to the type provider. Static parameters are resolved at compile-time and have to be constant. 
+The provider analyzes the sample and generates a type that we name \ident{People}. In most F\# 
+editors, the type provider is also executed at development-time and the provided types are 
+used in auto-completion.
 
-The \ident{JsonProvider} uses a type inference algorithm (Section~\ref{sec:inference})  and
+The \ident{JsonProvider} uses a type inference algorithm (\S\ref{sec:inference})  and
 infers the following types from the sample:
 %
 \begin{equation*}
 \begin{array}{l}
- \kvd{type}~\ident{Entity}~=  \\[0.1em]
- \quad \kvd{member}~\ident{Name}~:~\ident{string} \\[0.1em]
- \quad \kvd{member}~\ident{Age}~:~\ident{option}\langl \ident{decimal}\rangl \\[0.6em]
- \kvd{type}~\ident{People}~=  \\[0.1em]
- \quad \kvd{member}~\ident{GetSample}~:~\ident{unit}~\rightarrow~\ident{Entity}[] \\[0.1em]
- \quad \kvd{member}~\ident{Parse}~:~\ident{string}~\rightarrow~\ident{Entity}[] \\[0.1em]
+ \kvd{type}~\ident{Entity}~=  \\
+ \quad \kvd{member}~\ident{Name}~:~\ident{string} \\
+ \quad \kvd{member}~\ident{Age}~:~\ident{option}\langl \ident{decimal}\rangl \\[0.5em]
+ \kvd{type}~\ident{People}~=  \\
+ \quad \kvd{member}~\ident{GetSample}~:~\ident{unit}~\rightarrow~\ident{Entity}[] \\
+ \quad \kvd{member}~\ident{Parse}~:~\ident{string}~\rightarrow~\ident{Entity}[] \\
 \end{array}
 \end{equation*}
 %
@@ -387,30 +344,29 @@ sample values and is inferred as \ident{string}. The field \ident{Age} is marked
 because the value is missing in one sample. The two sample ages are an integer $25$ and a 
 decimal $3.5$ and so the common inferred type is \ident{decimal}.
 
-The type \ident{People} provides two methods for reading data. \ident{GetSample} returns the
+The type \ident{People} has two methods for reading data. \ident{GetSample} parses the
 sample used for the inference and \ident{Parse} parses a JSON string containing data in the same 
-format as the sample. Since the sample JSON is a collection of records, both methods return an 
-array of \ident{Entity} values.
+format as the sample. Both methods return an array of \ident{Entity} values.
 
 \paragraph{Error handling.}
 In addition to the structure of the types, the type provider also specifies what code should be 
-executed at run-time in place of \ident{item.Name} and other operations. This is done through a 
-\emph{type erasure} mechanism demonstrated in Section~\ref{sec:providers-csv}. In this example,
-the runtime behaviour is the same as in the hand-written sample in Section~\ref{sec:introduction} --
-a member access throws an exception if the document does not have the expected format.
+executed at run-time in place of \ident{item.Name} and other operations. The runtime behaviour is 
+the same as in the earlier hand-written sample (\S\ref{sec:introduction}). A member access 
+throws an exception if the document does not have the expected format.
 
-Informally, the safety property discussed in Section~\ref{sec:safety} states that if the inputs
-are subtypes of some of the provided samples (\emph{i.e.}~the samples are representative), then
+Informally, the safety property (\S\ref{sec:safety}) states that if the inputs
+are subtypes of some of the provided samples (i.e.~the samples are representative), then
 no exceptions will occur. In other words, we cannot avoid all failures, but we can prevent some.
-If the OpenWeatherMap changes the response format, the sample in Section~\ref{sec:introduction}
+If the OpenWeatherMap changes the response format, the sample in \S\ref{sec:introduction}
 will not re-compile and the user knows that the code needs to be changed. What this means for
-the traditional ML type safety is discussed in Section~\ref{sec:safety-discuss}.
+the traditional ML type safety is discussed in \S\ref{sec:safety-discuss}.
 
 \paragraph{The role of records.}
 The sample code is easy to write thanks to the fact that most F\# editors provide code completion
 when ``.'' is typed. The developer does not need to look at the sample JSON file to see what fields
-are available for a person. To support this scenario, our inference algorithm prefers records
-(we also treat XML elements and CSV rows as records).
+are available for a person. To support this scenario, our inference algorithm prefers records 
+(we also treat XML elements and CSV rows as records) and only infers types that require pattern 
+matching as the last resort.
 
 In the above example, this is demonstrated by the fact that \ident{Age} is marked as optional.
 An alternative is to provide two different record types (one with \ident{Name} and other with 
@@ -418,14 +374,14 @@ An alternative is to provide two different record types (one with \ident{Name} a
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Processing XML data, alternative}
+\subsection{Processing XML documents}
 \label{sec:providers-xml}
 
-In XML, documents are formed by (possibly) nested elements with attributes. We can view elements
-as records (unlike in JSON, the records are named) with a field for each attribute and an additional
-special field for the nested contents (which may be a collection of elements).
+XML documents are formed by nested elements with attributes. We can view elements as records with 
+a field for each attribute and an additional special field for the nested contents (which is a 
+collection of elements).
 
-As an example, consider a simple extensible document format where a root element
+Consider a simple extensible document format where a root element
 {\ttfamily\small <doc>} can contain a number of document element, one of which is
 {\ttfamily\small <heading>} representing headings:
 %
@@ -442,11 +398,10 @@ As an example, consider a simple extensible document format where a root element
 }}
 %
 \noindent
-The F\# Data library has been primarilly designed to allow easy reading of data. For example,
-say we want to print all headings that appear in the document. The sample shows a part of the 
-possible document structure (in particular the {\ttfamily\small <heading>} element we want to
-read), but it does not show all possible elements (say, {\ttfamily\small <table>}). Assuming the
-above document is \strf{sample.doc}, we can write:
+The F\# Data library has been designed primarilly to simplify reading of data. For example,
+say we want to print all headings in the document. The sample shows a part of the document structure 
+(in particular the {\ttfamily\small <heading>} element), but it does not show all possible elements 
+(say, {\ttfamily\small <table>}). Assuming the above document is \strf{sample.doc}, we can write:
 %
 \noindent
 \begin{equation*}
@@ -461,16 +416,16 @@ above document is \strf{sample.doc}, we can write:
 \end{equation*}
 %
 The example iterates over a collection of elements \ident{elem} returned by \ident{root.Doc}. 
-Our system provides a typed access to elements known from the sample document and so we can
-write \ident{elem.Heading}.
+The type provides a typed access to elements known from the sample document and so we can
+write \ident{elem.Heading}, which returns an optional value.
 
 \paragraph{Open world and variant types.}
-In the above example, The system does not infer a union type representing a choice between
-heading, paragraph and image. By its nature, the XML format is extensible and the sample cannot 
-include all possible examples\footnote{Even when the document structure is defined using XML 
-Schema, documents may contain elements prefixed with other namespaces.}. The type of \ident{elem}
-is thus a \emph{variant} type annotated with the three statically known possibilities (heading,
-paragraph, image). The variant is mapped to the following F\# type:
+In the above example, we do not infer a union type representing a choice between 
+heading, paragraph and image. By its nature, XML is extensible and the sample cannot include all 
+possible nodes\footnote{Even when the document structure is defined using XML Schema, documents may 
+contain elements prefixed with other namespaces.}. The type of \ident{elem} is thus a top type (we 
+call it \emph{variant}) annotated with the statically known possibilities (heading, paragraph, image). 
+It is mapped to the following F\# type:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -485,93 +440,45 @@ The type provides a nice access to the elements known statically from the sample
 the \emph{open-world assumption} -- the user also needs to handle the case when the value is none 
 of the statically known elements. 
 
-One perhaps surprising consequence of the use of variant types is that the above code will work
-correctly on document that contains elements other than those in the sample document. This would 
-arguably not be desirable design for data types in a programming language, but it is extremely
-useful when reading data from external data sources. It is also worth noting that our type 
+As a consequence, the variant type can be seen as the top type. The above code will work
+correctly on document that contains any elements, including those not listed in the sample. This
+is extremely useful when reading data from external data sources, because the sample document only
+needs to contain values relevant to the application. It is also worth noting that our type 
 inference attempts to minimze the number of variant types that appear in the resulting type --
-a variant is not used if there is another option.
-
-% --------------------------------------------------------------------------------------------------
-
-\subsection{Reading CSV files}
-\label{sec:providers-csv}
-
-In the CSV file format, the structure is a collection of rows (records) consisting of fields 
-(with names specified by the first row). The inference needs to infer the types of fields.
-For example:
-%
-{\small{
-\begin{verbatim}
-  Ozone, Temp, Date,       Autofilled
-  41,    67,   2012-05-01, 0
-  36.3,  72,   2012-05-02, 1
-  12.1,  74,   3 kveten,   0
-  17.5,  #N/A, 2012-05-04, 0
-\end{verbatim}
-}}
-%
-\noindent
-One difference between JSON and CSV formats is that in CSV, the literals have no data types.
-In JSON, strings are \str{quoted} and Booleans are \kvd{true} and \kvd{false}. This is not the
-case for CSV and so we need to infer not just the structure, but also the primitive types.
-
-Assuming the sample is saved as \strf{airdata.csv}, the following snippet prints all
-rows from another file that were not autofilled:
-%
-\begin{equation*}
-\begin{array}{l}
- \kvd{type}~\ident{AirCsv}~=~\ident{CsvProvider}\langl\str{airdata.csv}\rangl\hspace{1em} \\[0.6em]
- \kvd{let}~\ident{air}~=~\ident{AirCsv.Parse}(\ident{data})\\[0.1em]
- \kvd{for}~\ident{row}~\kvd{in}~\ident{air.Rows}~\kvd{do}\\[0.1em]
- \quad\kvd{if}~\ident{not}~\ident{row.Autofilled}~\kvd{then}\\[0.1em]
- \quad\quad \ident{printf}~\str{\%s: \%d}~\ident{row.Date row.Ozone}\\
-\end{array}
-\end{equation*}
-%
-The type of the record (\ident{row}) is, again, inferred from the sample. The \ident{Date} column
-uses mixed formats and is inferred as \ident{string} (although we support many date formats and 
-``May 3'' would work). More interestingly, we also infer \ident{Autofilled} as Boolean, because 
-the sample contains only $0$ and $1$ values and using those for Booleans is a common CSV convention.
-Finally, the fields \ident{Ozone} and \ident{Temp} have types \ident{decimal} and
-$\ident{option}\langl\ident{int}\rangl$.
+a variant is not used if there is another option (Corollary~\ref{thm:no-unions}).
 
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Summary}
-The previous three sections demonstrated the F\# Data type providers for JSON, CSV and XML.
-A reader interested in more examples is invited to look at documentation on the F\# Data web 
-site\footnote{Available at \url{http://fsharp.github.io/FSharp.Data/}}.
+In addition to JSON and XML (\S\ref{sec:providers-json}, \S\ref{sec:providers-xml}), F\# Data also 
+implements a type provider for CSV. We treat CSV data as lists of records (with field for each 
+column) and so handling of CSV is just a special case of our inference algorithm.
 
-It should be noted that we did not attempt to present the library using well-structured ideal 
-samples, but instead used data sets that demonstrate typical issues that are frequent in real 
-world inputs (missing data, inconsistent encoding of Booleans and heterogeneous structures).
-
-From looking at just the previous three examples, these may appear arbitrary, but our experience
-suggests that they are the most common issues. The following JSON response with government debt
-information returned by the World Bank API demonstrates all three problems:
+Throughout the introduction, we used data sets that demonstrate typical issues that are frequent
+in real-world inputs (missing data, inconsistent encoding of primitive values and heterogeneous 
+structures). In our experience, these are the most common issues. The following JSON response with 
+government debt information returned by the World Bank API\footnote{Available at 
+\url{http://data.worldbank.org}} demonstrates all three problems:
 %
 {\small{
 \begin{verbatim}
   [ { "page": 1, "pages": 5 },
     [ { "indicator": "GC.DOD.TOTL.GD.ZS",
-        "date": "2012",
-        "value": null },
+        "date": "2012", "value": null },
       { "indicator": "GC.DOD.TOTL.GD.ZS",
-        "date": "2010",
-        "value": "35.1422970266502" } ] ]
+        "date": "2010", "value": "35.14229" } ] ]
 \end{verbatim}
 }}
 %
 \noindent
 First of all, the top-level element is a collection containing two values of different kind.
 The first is a record with meta-data about the current page and the second is an array with data. 
-The JSON type provider infers this as heterogeneous collection with properties \ident{Record}
-for the former and \ident{Array} for the latter. Second, the \ident{value} is \kvd{null} for some
-records. Third, numbers can be represented in JSON as numeric literals (without quotes), but
-here, they are returned as string literals instead\footnote{This is often used to avoid non-standard
-numerical types in JavaScript.}.
-
+The actual implementation supports a concept of heterogeneous collections (omitted in this paper
+for space reasons) and provides a type with properties \ident{Record} for the former and 
+\ident{Array} for the latter. Second, the \ident{value} is \kvd{null} for some records. Third, 
+numbers can be represented in JSON as numeric literals (without quotes), but here, they are 
+returned as string literals instead\footnote{This is often used to avoid non-standard numerical 
+types of JavaScript.}.
 
 
 
@@ -587,20 +494,17 @@ numerical types in JavaScript.}.
 %
 % =================================================================================================
 
-\newpage
-~
-\newpage
 \section{Structural type inference}
 \label{sec:inference}
 
 Our type inference algorithm for structured formats is based on a subtyping relation. When 
-inferring the type of a document, we infer the most specific types of individual values (CSV rows,
-JSON or XML nodes) and recursively find a common supertype of all child nodes or sample documents.
+inferring the type, we infer the most specific types of individual values (CSV rows, JSON or XML 
+nodes) and recursively find a common supertype of all child nodes or all sample documents.
 
-In this section, we define the \emph{structural type} $\sigma$, which is a type of structured data.
-Note that this type is distinct from the programming language types $\tau$ (type providers generate 
-the latter from the former). Next, we define the subtyping relation on structural types $\sigma$ and 
-describe the algorithm for finding a common supertype. 
+We first define the type of structured data $\sigma$. Note that this type is distinct 
+from the programming language types $\tau$ (type providers generate the latter from the former). 
+Next, we define the subtyping relation on structural types $\sigma$ and describe the algorithm 
+for finding a common supertype. 
 
 \subsection{Structural types}
 \label{sec:inference-types}
@@ -608,7 +512,8 @@ describe the algorithm for finding a common supertype.
 We distinguish between \emph{non-nullable types} that always have a valid value (written as 
 $\hat{\sigma}$) and \emph{nullable types} that encompass missing and \kvd{null} values 
 (written as $\sigma$). We write $\nu$ for record field names and $\nu_?$ for names that can be empty:
-%
+
+\noindent
 \begin{equation*}
 \begin{array}{rcl}
  \hat{\sigma} &\narrow{=}& \nu_?\; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
@@ -628,15 +533,15 @@ numbers and \ident{float} for floating-point numbers, are related by sub-typing 
 \S\ref{sec:inference-subtyping}.
 
 Any non-nullable type can be wrapped in the \kvd{option} constructor to explicitly permit the 
-\kvd{null} value. Type providers map \kvd{option} to standard F\# option type. A collection 
-type $[\sigma]$ is also nullable and missing values or \kvd{null} are treated as empty collection. 
-The type $\kvd{null}$ is inhabited by the $\kvd{null}$ value (using an overloaded notation) and 
-$\bot$ is the bottom type.
+\kvd{null} value. Type providers map \kvd{option} to standard F\# option. A collection $[\sigma]$ 
+is also nullable and missing values or \kvd{null} are treated as empty collections. The type 
+$\kvd{null}$ is inhabited by the $\kvd{null}$ value (using an overloaded notation) and $\bot$ 
+is the bottom type.
 
 A variant type \kvd{any} is annotated with the types it may represent in the sample document.
 As discussed earlier (\S\ref{sec:providers-xml}), variants force the user to handle the case when 
 a value is of a different type than the statically known ones and so it can be seen as a family of 
-top types. For the same reason, the variants also implicitly permit the \kvd{null} value. 
+top types. For the same reason, variants also implicitly permit the \kvd{null} value. 
 
 % --------------------------------------------------------------------------------------------------
 
@@ -657,41 +562,38 @@ top types. For the same reason, the variants also implicitly permit the \kvd{nul
 
 Figure~\ref{fig:subtyping-diagram} provides a basic intuition about the subtyping between
 structural types. The upper part shows non-nullable types (with records and primitive types) and 
-the lower part shows nullable types with \kvd{null}, collections and optional values. We omit links 
-between the two part, but any type $\hat{\sigma}$ is a subtype of $\kvd{option}\langl\hat{\sigma}\rangl$ 
-and we abbreviate $\kvd{option}\langl\sigma\rangl$ as $\sigma?$. 
+the lower part shows nullable types with \kvd{null}, collections and optional values. We 
+abbreviate $\kvd{option}\langl\sigma\rangl$ as $\sigma?$ and we omit links between the two parts;
+any type $\hat{\sigma}$ is a subtype of $\kvd{option}\langl\hat{\sigma}\rangl$.
 
 \begin{definition}
 We write $\sigma_1 :> \sigma_2$ to denote that $\sigma_2$ is a subtype of $\sigma_1$. The 
 subtyping relation is defined as a transitive reflexive closure of the following rules:
 
-\vspace{0.5em}
-\noindent\boxed{\emph{Primitives, options, collections}}
+\noindent
 \begin{align}
-\label{eq:sub-prim}\tag{B1}
-\ident{float}\,&:>\,\ident{decimal}\,:>\,\ident{int}&\\[-0.2em]
-\label{eq:sub-null}\tag{B2}
-\sigma &:> \kvd{null}  &(\textnormal{iff}~\sigma \neq \hat{\sigma}) \\[-0.2em]
-\label{eq:sub-bot}\tag{B3}
-\sigma &:> \bot  &(\textnormal{for all}~\sigma)\\[-0.2em]
-\label{eq:sub-opt}\tag{B4}
-\kvd{option}\langl\hat{\sigma}\rangl &:> \hat{\sigma}  &(\textnormal{for all}~\hat{\sigma})\\[-0.2em]
-\label{eq:sub-opt-cov}\tag{B5}
-\kvd{option}\langl\hat{\sigma_1}\rangl &:> 
-  \kvd{option}\langl\hat{\sigma_2}\rangl  &(\textnormal{if}~\hat{\sigma_1} :> \hat{\sigma_2})\\[-0.2em]
-\label{eq:sub-col}\tag{B6}
-[\sigma_1] &:> [\sigma_2]  &(\textnormal{if}~\sigma_1 :> \sigma_2)
+  \label{eq:sub-prim}\tag{P1}
+  \ident{float}\,:>\,\ident{decimal}\,&:>\,\ident{int}&\\[-0.2em]
+  \label{eq:sub-null}\tag{P2}
+  \sigma &:> \kvd{null}  &(\textnormal{iff}~\sigma \neq \hat{\sigma}) 
 \end{align}
 
-\noindent\boxed{\emph{Variant types}}
+\noindent
 \begin{align}
-\label{eq:sub-var-bot}\tag{U1}
-\kvd{any}\langl \sigma_1, \ldots, \sigma_n\rangl :>&~ \sigma \\
-\label{eq:sub-var-eq}\tag{U2}
-\kvd{any}\langl \sigma_1, \ldots, \sigma_n \rangl :>&~ \kvd{any}\langl \sigma_1', \ldots, \sigma_n' \rangl
+  \label{eq:sub-opt}\tag{P3}
+  \kvd{option}\langl\hat{\sigma}\rangl &:> \hat{\sigma}  &(\textnormal{for all}~\hat{\sigma})\\[-0.2em]
+  \label{eq:sub-opt-cov}\tag{P4}
+  \kvd{option}\langl\hat{\sigma_1}\rangl &:> 
+    \kvd{option}\langl\hat{\sigma_2}\rangl  &(\textnormal{if}~\hat{\sigma_1} :> \hat{\sigma_2}) \\[-0.2em]
+  \label{eq:sub-col}\tag{P5}
+  [\sigma_1] &:> [\sigma_2]  &(\textnormal{if}~\sigma_1 :> \sigma_2) \\[-0.2em]
+  \label{eq:sub-bot}\tag{P6}
+  \sigma &:> \bot  &(\textnormal{for all}~\sigma)\\[-0.2em]
+  \label{eq:sub-var-top}\tag{P7}
+  \kvd{any}\langl \sigma_1, \ldots, \sigma_n\rangl &:> \sigma 
 \end{align}
 
-\noindent\boxed{\emph{Record types}}
+\noindent
 \begin{align}
 \label{eq:sub-record1}\tag{R1}
 \begin{array}{l}
@@ -785,7 +687,7 @@ subtyping relation is defined as a transitive reflexive closure of the following
                             \nu'_{k+1} \!:\! \addopt{\sigma'_{k+1}}, \ldots, \nu'_m \!:\! \addopt{\sigma'_m} \}
     \end{array} }
 \end{equation*}
-\vspace{-1.75em}
+\vspace{-2em}
 
 % union with something else
 \begin{equation*}
@@ -800,7 +702,7 @@ subtyping relation is defined as a transitive reflexive closure of the following
   {\sigma \tsep \kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl \vdash 
     \kvd{any}\langl\sigma_1, \ldots, \sigma_n, \dropopt{\sigma}\rangl}
 \end{equation*}
-\vspace{-1.75em}
+\vspace{-2em}
 
 % two union types
 \begin{equation*}
@@ -821,7 +723,7 @@ subtyping relation is defined as a transitive reflexive closure of the following
   {\sigma_1 \tsep \sigma_2 \vdash \kvd{any}\langle\dropopt{\sigma_1}, \dropopt{\sigma_2}\rangle}
 \end{array}  
 \end{equation*}
-\vspace{-1.75em}
+\vspace{-2em}
 
 \begin{equation*}
 \inference[(order-1)\;]
@@ -833,7 +735,7 @@ subtyping relation is defined as a transitive reflexive closure of the following
   { \kvd{any}\langl\sigma_{\pi(1)}, \ldots, \sigma_{\pi(n)}\rangl \tsep \sigma \vdash \sigma' }
 \quad (\pi~\textnormal{perm.})  
 \end{equation*}
-\vspace{-1.75em}
+\vspace{-2em}
 
 \begin{equation*}
 \hspace{3em}
@@ -884,9 +786,9 @@ subtyping relation is defined as a transitive reflexive closure of the following
 \noindent
 Here is a summary of the key aspects of the definition:
 \begin{itemize}
-\item Numeric types (\ref{eq:sub-prim}) ar ordered by the range of values they represent;
-  \ident{int} is a 32-bit integer, \ident{decimal} has a range of about $-1^{29}$ to $1^{29}$ and 
-  \ident{float} is a floating-point number.
+\item Numeric types (\ref{eq:sub-prim}) are ordered by the range they represent;
+  \ident{int} is a 32-bit integer, \ident{decimal} has a range of $-1^{29}$ to $1^{29}$ and 
+  \ident{float} is a floating-point number (but imprecise).
 
 \item The \kvd{null} type is a subtype of all nullable types (\ref{eq:sub-null}), i.e. all 
   types excluding non-nullable types $\hat{\sigma}$. Any non-nullable type is a 
@@ -894,20 +796,19 @@ Here is a summary of the key aspects of the definition:
   covariant (\ref{eq:sub-opt-cov}, \ref{eq:sub-col}).
 
 \item There is a bottom type (\ref{eq:sub-bot}) and variants behave as top types, because
-  any type $\sigma$ is a subtype of any variant (\ref{eq:sub-var-bot}). There is a range of
-  variants (no \emph{single} top type), but any variant is a subtype of any other variant 
-  (\ref{eq:sub-var-eq}).
+  any type $\sigma$ is a subtype of any variant (\ref{eq:sub-var-top}). There is a range of
+  variants (no \emph{single} top type), but any variant is a subtype of any other variant.
 
-\item As usual, the subtyping on records is covariant (\ref{eq:sub-record1}), subtype can have additional 
-  fields (\ref{eq:sub-record2}) and fields can  be reordered (\ref{eq:sub-record3}). The interesting rule 
-  is the last one (\ref{eq:sub-record4}).  Together with covariance, it states that a subtype can omit some 
-  fields, provided that their types are nullable.
+\item As usual, the subtyping on records is covariant (\ref{eq:sub-record1}), subtype can have 
+  additional fields (\ref{eq:sub-record2}) and fields can  be reordered (\ref{eq:sub-record3}). 
+  The interesting rule is (\ref{eq:sub-record4}); together with covariance, it states that a 
+  subtype can omit some fields, provided that their types are nullable.
 \end{itemize}
 
 \noindent
 If we were type-checking programs, defining variants as a family of top types (which are all 
-subtypes of each other) would not add any value over having a single top type. Our purpose 
-is different. We simplify reading structured data and, as shown in \S\ref{sec:providers-xml}, 
+mutual subtypes) would not add any value over having a single top type, but our purpose is 
+different. We simplify reading structured data and, as shown earlier (\S\ref{sec:providers-xml}), 
 the types forming a variant provide a valuable information about the sample document.
 
 A particularly important rule is (\ref{eq:sub-record4}), which allows subtype to have fewer record 
@@ -924,45 +825,54 @@ OCaml also has multiple numeric types, but would likely always handle \kvd{null}
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure*}
+\noindent
 \begin{equation*}
 \begin{array}{l}
+\ident{asFloat}(i) \,\reduce f\quad(f = i)\\
+\ident{asFloat}(d) \reduce f\quad(f = d)\\
+\ident{asFloat}(f) \reduce f
+\\[0.5em]
+\ident{asDec}(i) \,\reduce d\quad(d = i)\\
+\ident{asDec}(d) \reduce d
+\end{array}
+\qquad
+\begin{array}{l}
+\ident{hasType}(\nu_? \{ \nu_1 \!:\! \sigma_1, \ldots, \nu_n \!:\! \sigma_n \}, \nu'_? \{ \nu'_1\mapsto s_1, \ldots, \nu'_m\mapsto s_m \}) \reduce (\nu_? = \nu'_?) ~\wedge \\
+  \quad (~ ((\nu_1 = \nu'_1) \wedge \ident{hasType}(\sigma_1, s_1)) \vee\ldots\vee ((\nu_1 = \nu'_m) \wedge \ident{hasType}(\sigma_1, s_m)) \vee \ldots \vee\\
+  \quad ~\; ((\nu_n = \nu'_1) \wedge \ident{hasType}(\sigma_n, s_1)) \vee\ldots\vee ((\nu_n = \nu'_m) \wedge \ident{hasType}(\sigma_n, s_m))~)
+\\[0.5em]
+\ident{hasType}([\sigma], [s_1; \ldots; s_n]) \reduce \ident{hasType}(\sigma, s_1)\wedge\ldots\wedge\ident{hasType}(\sigma, s_n) \\
+\ident{hasType}([\sigma], \kvd{null}) \reduce \kvd{true} \\  
+\end{array}  
+\end{equation*}
+%
+\vspace{-0.5em}
+%
+\begin{equation*}
+\begin{array}{l}
+\ident{isNull}(\kvd{null}) \reduce \kvd{true} \\
+\ident{isNull}(\_) \reduce \kvd{false} 
+\\[0.5em]
 \ident{getField}(\nu,\nu_i, \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
 \ident{getField}(\bullet, \nu_i, \{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
 \ident{getField}(\nu,\nu', \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )\\
 \ident{getField}(\bullet, \nu', \{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )
 \\[0.5em]
-\hspace{-0.5em}
-\begin{array}{l}
-\ident{asDec}(i) \,\reduce d\quad(d = i)\\
-\ident{asDec}(d) \reduce d
-\\[0.5em]
-\ident{isNull}(\kvd{null}) \reduce \kvd{true} \\
-\ident{isNull}(\_) \reduce \kvd{false} 
-\end{array}
-\begin{array}{l}
-\\
-\ident{asFloat}(i) \,\reduce f\quad(f = i)\\
-\ident{asFloat}(d) \reduce f\quad(f = d)\\
-\ident{asFloat}(f) \reduce f\\
-\end{array}
+\ident{getChildren}([s_1; \ldots; s_n]) \reduce [s_1; \ldots; s_n]  \\  
+\ident{getChildren}(\kvd{null}) \reduce [~] 
 \end{array}
 ~
 \begin{array}{l}
-\ident{isTag}(\ident{string}, t) \reduce \kvd{true} \\
-\ident{isTag}(\ident{bool}, s) \reduce \kvd{true} \quad(\textnormal{when}~s\in{\kvd{true},\kvd{false}} )\\
-\ident{isTag}(\ident{number}, s) \reduce \kvd{true} \quad(\textnormal{when}~s=i, s=d ~\textnormal{or}~ s=f) \\
-\ident{isTag}(\ident{collection}, [s_1; \ldots; s_n]) \reduce \kvd{true} \\
-\ident{isTag}(\ident{collection}, \kvd{null}) \reduce \kvd{true} \\
-\ident{isTag}(\ident{record}, \{ \nu_1\mapsto s_1, \ldots, \nu_n\mapsto s_n \}) \reduce \kvd{true} \\
-\ident{isTag}(\ident{named}~\nu, \nu\;\{ \nu_1\mapsto s_1, \ldots, \nu_n\mapsto s_n \}) \reduce \kvd{true} \\
-\ident{isTag}(\_, \_) \reduce \kvd{false} \\
+\ident{hasType}(\ident{string}, t) \reduce \kvd{true} \\
+\ident{hasType}(\ident{bool}, s) \reduce \kvd{true} \quad(\textnormal{when}~s\in{\kvd{true},\kvd{false}} )\\
+\ident{hasType}(\ident{float}, s) \reduce \kvd{true} \quad(\textnormal{when}~s=i, s=d ~\textnormal{or}~ s=f) \\
+\ident{hasType}(\ident{decimal}, s) \reduce \kvd{true} \quad(\textnormal{when}~s=i ~\textnormal{or}~ s=f) \\
+\ident{hasType}(\ident{int}, i) \reduce \kvd{true}\\
+\ident{hasType}(\kvd{option}\langl\sigma\rangl, s) \reduce \ident{hasType}(\sigma,s) \\
+\ident{hasType}(\kvd{option}\langl\sigma\rangl, s) \reduce \kvd{true} \\
+\ident{hasType}(\kvd{any}\langl\ldots\rangl, s) \reduce \kvd{true} \\
+\ident{hasType}(\_, \_) \reduce \kvd{false} \\
 \end{array}
-\end{equation*}
-\vspace{-1em}
-\begin{equation*}
- \hspace{5.6em}
- \ident{getChildren}([s_1; \ldots; s_n]) \reduce [s_1; \ldots; s_n]  \qquad\quad
- \ident{getChildren}(\kvd{null}) \reduce [~] 
 \end{equation*}
 
 \caption{Reduction rules for conversion functions}
@@ -975,7 +885,7 @@ OCaml also has multiple numeric types, but would likely always handle \kvd{null}
 \label{sec:inference-commonsuper}
 
 Given two structural types, the \emph{common supertype} relation finds a least upper bound
-(Theorem~\ref{thm:lub}). When possible, it avoid variant types and prefers records 
+(Theorem~\ref{thm:lub}). When possible, it avoids variant types and prefers records 
 (Corollary~\ref{thm:no-unions}), which is important for usability as discussed earlier
 (\S\ref{sec:providers-json}). 
 
@@ -996,19 +906,17 @@ nested variants and limit the number of cases. This is done by grouping types
 that have a common supertype which is not a variant. For example, rather than inferring 
 $\kvd{any}\langl\ident{int}, \kvd{any}\langl\ident{bool}, \ident{decimal}\rangl\rangl$, 
 our algorithm finds the common supertype of $\ident{int}$ and $\ident{decimal}$ and produces 
-$\kvd{any}\langl\ident{decimal},\ident{bool}\rangl$.
-
-To identify types that have a common supertype which is not a variant, we group the types by
-a tag. The tag of a type is obtained using a function $\tytagof{(-)} : \sigma \rightarrow \tytag$.
-The function is not defined for $\bot$ and $\kvd{null}$ as those are hanled by the 
-(\emph{bot}) and (\emph{null-1}) or (\emph{null-2}) rules, respectively.
+$\kvd{any}\langl\ident{decimal},\ident{bool}\rangl$. To identify types that have a common supertype 
+which is not a variant, we group the types by a tag. The tag of a type is obtained using a function 
+\tytagof{(-)}. The function is not defined on $\bot$ and $\kvd{null}$ as those are hanled by the 
+(\emph{bot}) and (\emph{null-1}) or (\emph{null-2}).
 
 The handling of variants is specified using three rules. When combining a non-variant and a
 variant (\emph{var-1}), the variant may or may not already contain a case with the tag of the other
 type. If it does, the two types are combined, otherwise a new case is added.
 When combining two variants (\emph{var-2}), we group the cases that have a shared tags.
 Finally, (\emph{var-3}) covers the case when we are combining two distinct non-variant types.
-As unions implicitly permit \kvd{null} values, we use an auxiliary function $\dropopt{-}$ to
+As variants implicitly permit \kvd{null} values, we use an auxiliary function $\dropopt{-}$ to
 make nullable types non-nullable (when possible) to simplify the type.
 
 The remaining rules are straightforward. For collections and options, we find the common supertype 
@@ -1017,11 +925,10 @@ and a common supertype with \kvd{null} is either the type itself (\emph{null-1})
 (\emph{null-2}).
 
 \paragraph{Properties.}
-
-We say that two types are equivalent if they are mutual subtypes. The partially ordered set of 
-types does not have a \emph{unique} least upper bound, but it does have a least upper bound
-with respect to this equivalence. The common supertype relation is a function 
-(Theorem~\ref{thm:func}) and finds the least upper bound (Theorem~\ref{thm:lub}). 
+The partially ordered set of types does not have a \emph{unique} least upper bound, but it does 
+have a least upper bound with respect to an equivalence between mutual subtypes. The common 
+supertype relation is well-defined (Theorem~\ref{thm:func}) and finds the least upper bound 
+(Theorem~\ref{thm:lub}). 
 
 \begin{definition}
 Types $\sigma_1$, $\sigma_2$ are \emph{equivalent}, written $\sigma_1 \equiv \sigma_2$ iff
@@ -1033,7 +940,7 @@ An equivalence class of a type $\sigma$ is $\mathcal{E}(\sigma) = \{ \sigma' \;|
 The equivalence class $\mathcal{E}$ sheds light on the structure of structural types. It defines
 a lattice with bottom $\{ \bot \}$ and top (set of all variant types). It also joins records with
 reordered fields (of same names and types) and types that contain other equivalent types (e.g.~a
-records with variants as fields).
+lists containing variant values).
 
 \begin{theorem}[Function]
 \label{thm:func}
@@ -1046,8 +953,7 @@ then it holds that $\sigma :> \sigma'$ and $\sigma' :> \sigma$.
 \begin{proof}
 The pre-conditions of rules in Figure~\ref{fig:subtyping-cst} are disjoint, with the exception 
 of (\emph{order}), (\emph{sym}) and (\emph{refl}). These rules produce types that are subtypes
-of each other and this property is preserved by rules that use the common supertype relation 
-recursively.
+of each other and this property is preserved by rules that use $\triangledown$ recursively.
 \end{proof}
 
 \begin{theorem}[Least upper bound]
@@ -1092,21 +998,19 @@ top element of $\mathcal{E}$.
 \section{Formalising type providers}
 \label{sec:formal}
 
-In this section, we build the necessary theoretical framework for proving relativised type safety 
-of our type providers (\S\ref{sec:safety}). We start by discussing the runtime representation of 
-structural values and runtime conversions (\S\ref{sec:formal-convert}), we embed these into a 
-formal model of an F\# subset (\S\ref{sec:formal-ff}) and we describe how our type providers 
-turn an inferred structural type into actual F\# code (\S\ref{sec:formal-tp}).
+In this section, we build the theoretical framework for proving relativised type safety of 
+structural type providers. We discuss the runtime representation of documents and 
+primitive operations (\S\ref{sec:formal-convert}), we embed these into a formal model of an F\# 
+subset (\S\ref{sec:formal-ff}) and we describe how structural type providers turn
+inferred structural types into F\# types (\S\ref{sec:formal-tp}).
 
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Structural values and conversions}
 \label{sec:formal-convert}
 
-We represent JSON, XML and CSV documents using the same \emph{structural value}\footnote{Here, we 
-diverge from the actual implementation in F\# Data which uses a different implementation for each 
-format (reusing existing libraries).}. Structural values are first-order and can be one of the 
-following cases:
+We represent JSON, XML and CSV documents using the same \emph{structural value}. Structural 
+values are first-order and can be one of the following cases:
 %
 \begin{equation*}
 \begin{array}{lcl}
@@ -1116,9 +1020,9 @@ following cases:
 \end{equation*}
 %
 The first few cases represent primitive values ($i$ for integers, $d$ for decimals, $f$ for floating
-point numbers and $t$ for strings) and the missing value \kvd{null}. A collection is written as a 
-list of values in square brackets, separated by semicolons. A record starts with an optional name 
-$\nu_?$, followed by a sequence of field assignments $\nu_i \mapsto s_i$ written in curly brackets.
+point numbers and $t$ for strings) and the \kvd{null} value. A collection is written as a 
+list of values in square brackets. A record starts with an optional name $\nu_?$, followed by a 
+sequence of field assignments $\nu_i \mapsto s_i$.
 
 As indicated by the subtyping, our system permits certain runtime conversions (e.g.~an integer
 \num{1} can be treated as a floating-point \num{1.0}). The following primitive operations 
@@ -1127,27 +1031,31 @@ implement the conversions and other helpers:
 \begin{equation*}
 \begin{array}{lcl}
  op  &\narrow{=}& \ident{asDec}(s) \lsep \ident{asFloat}(s) \lsep \ident{getChildren}(s) \\
-     &\narrow{|}& \ident{getField}(\nu?, \nu, s) \lsep \ident{isNull}(s) \lsep \ident{isTag}(\ident{tag}, s)
+     &\narrow{|}& \ident{getField}(\nu?, \nu, s) \lsep \ident{isNull}(s) \lsep \ident{hasType}(\sigma, s)
 \end{array}
 \end{equation*}
 %
-The type providers generate code that uses these operations at runtime. Their behavior is defined
-by the reduction rules in Figure~\ref{fig:op-conversions}. The conversion functions (\ident{asDec}
-and \ident{asFloat}) only perform conversions required by the subtyping relation. As noted later
-(\S\ref{?}), our actual implementation is more lax. 
+The operations are used in code generated by type providers. Their behavior is defined
+by the rules in Figure~\ref{fig:op-conversions}. The conversion functions (\ident{asDec}
+and \ident{asFloat}) only perform conversions required by the subtyping relation (our actual 
+implementation is more lax and performs additional conversions).
 
 The \ident{getField} operation is used to access a field of a record. The operation ensures that
 the actual record name matches the expected name (we write $\bullet$ for the name of an unnamed 
-record). The \ident{getChildren} operation will used to turn \kvd{null} into an empty collction.
+record). The \ident{getChildren} operation returns elements of a list and turns \kvd{null} into 
+an empty collction.
 
 Finally, we also define two helper functions. The \ident{isNull} operation is used to check whether 
-value is \kvd{null} and \ident{isTag} is used to test whether a value can be treated as a value of 
-a type associated with the specified tag (as defined in Figure~\ref{fig:subtyping-cst}).
-The last line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases.
+value is \kvd{null} and \ident{hasType} is a runtime type test. The most complex case is handling 
+of records where we check that for each field $\nu_1, \ldots, \nu_n$ in the type, the actual record 
+value has a field of the same name with a matching type. The last line defines a ``catch all'' 
+pattern, which returns \kvd{false} for all remaining cases. Although not elenegantly, the rules 
+can be expressed using just Featherweight F\#, discussed in the next section.
 
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure}
+\noindent
 \begin{equation*}
 \begin{array}{rl}
  \textnormal{\footnotesize{(member)}}&
@@ -1155,6 +1063,9 @@ The last line defines a ``catch all'' pattern, which returns \kvd{false} for all
  \inference
  { \kvd{type}~C(\overline{x:\tau})=\ldots \kvd{member}~N_i : \tau_i = e_i \ldots }
  { (\kvd{new}~C(\overline{v})).N_i \reduce e_i[\overline{x} \leftarrow \overline{v}] }\\
+ \\
+ \textnormal{\footnotesize{(eq1)}}&
+ v=v\reduce\kvd{true} \qquad \textnormal{\footnotesize{(eq2)}}~~v=v'\reduce\kvd{false}\\
  \\
  \textnormal{\footnotesize{(cond1)}}&
  \hspace{-0.4em}
@@ -1194,7 +1105,7 @@ The last line defines a ``catch all'' pattern, which returns \kvd{false} for all
  \\
  \textnormal{\footnotesize{(map)}}&
  \hspace{-0.4em}
- \ident{List.map}~(\lambda x.e)~[v_1; \ldots] ~\reduce~ [e[x\leftarrow v_1]; \ldots] \\
+ \ident{map}~(\lambda x.e)~[v_1; \ldots] ~\reduce~ [e[x\leftarrow v_1]; \ldots] \\
  \\
  \textnormal{\footnotesize{(ctx)}}&
  \hspace{-0.4em}
@@ -1212,25 +1123,31 @@ The last line defines a ``catch all'' pattern, which returns \kvd{false} for all
 \subsection{Featherweight F\#}
 \label{sec:formal-ff}
 
-The semantics fragment in the previous section discusses values and operations that are used by
-F\# Data. This section adds a minimal subset of F\#. Type providers provide classes and so we focus
-on the F\# object model and combine aspects of standard ML \cite{sml} and Featherweight Java \cite{fwjava}. 
+We now extend the semantics discussed so far and add a minimal subset of F\# needed to model F\# 
+Data. Type providers use classes and so we focus on the F\# object model and combine aspects of SML 
+\cite{sml} and Featherweight Java \cite{fwjava}. 
 
 We only need classes with parameter-less members and without inheritance. A class has a single 
 implicit constructor and the declaration closes over constructor parameters. To avoid including all 
 of ML, we only pick constructs for working with options and lists that we need later.
-
+%
 \begin{equation*}
 \begin{array}{rcl}
  \tau &\narrow{=}& \ident{int} \lsep \ident{decimal} \lsep \ident{float} \lsep \ident{bool} \lsep \ident{string} \\[0.0em]
       &\narrow{|}& C \lsep \ident{StructVal} \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl \\[0.6em]
  L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
- M &\narrow{=}& \kvd{member}~N:\tau=e \\[0.6em]
+ M &\narrow{=}& \kvd{member}~N:\tau=e
+\end{array}
+\end{equation*}
+
+\noindent
+\begin{equation*}
+\begin{array}{rcl}
  v &\narrow{=}& s \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep [v_1; \ldots; v_n] \\[0.0em]
  e &\narrow{=}& s \lsep op \lsep e.N \lsep \kvd{new}~C(\overline{e}) \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3}\\
    &\narrow{|}& \ident{None} \lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
-   &\narrow{|}& \ident{Some}(e) \lsep [e_1;\ldots;e_n]\lsep \ident{List.map}~(\lambda x\rightarrow e_1)~e_2\\
-   &\narrow{|}& \kvd{match}~e~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2
+   &\narrow{|}& \ident{Some}(e) \lsep [e_1;\ldots;e_n]\lsep \ident{map}~(\lambda x\rightarrow e_1)~e_2\\
+   &\narrow{|}& e = e \lsep \kvd{match}~e~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2
 \end{array}
 \end{equation*}
 
@@ -1240,7 +1157,7 @@ definition $L$ consists of a constructor and zero or more members. Values $v$ in
 previously defined structural values $s$ and values for the option and list type; finally 
 expressions $e$ include previously defined operations $op$, class construction, member access, 
 conditionals and expressions for working with option values and lists. We include 
-\ident{List.map} as a special construct to avoid making the language too complex.
+\ident{map} as a special construct to avoid making the language too complex.
 
 Next, we define the reduction relation and (a fragment of) type checking for Featherweight F\#.
 The language presented here is intentionally incomplete. We only define parts needed to prove
@@ -1261,12 +1178,13 @@ This models the eager evaluation of F\#. An evaluation context $E$ is defined as
 \begin{array}{l}
 \hspace{-0.5em}
 \begin{array}{rcl}
- E &\narrow{=}& [\overline{v};E;\overline{e}] \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e}) \lsep \ident{Some}(E) \\[0.1em]
-   &\narrow{|}& \ident{map}~(\lambda x\rightarrow e)~E \lsep \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2 \lsep f(E)\\[0.1em]
+ E &\narrow{=}& [\overline{v};E;\overline{e}] \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e})\\[0.1em]
+   &\narrow{|}& \ident{map}~(\lambda x\rightarrow e)~E \lsep \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2 \\[0.1em]
+   &\narrow{|}& \ident{Some}(E) \lsep f(E) \lsep E = e \lsep v = E \\[0.1em]
    &\narrow{|}& \kvd{match}~E~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\[0.1em]
    &\narrow{|}& \kvd{match}~E~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2
-\end{array} \\[2.5em]
-f \in \{ \ident{asDec}, \ident{asFloat}, \ident{getField}, \ident{getChildren}, \ident{isNull}, \ident{isTag} \}
+\end{array} \\[3em]
+f \in \{ \ident{asDec}, \ident{asFloat}, \ident{getField}, \ident{getChildren}, \ident{isNull}, \ident{hasType} \}
 \end{array}
 \end{equation*}
 
@@ -1276,18 +1194,19 @@ as denoted by $\overline{v}, E, \overline{e}$ in constructor arguments or $\over
 in list initialization.
 
 We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
-values $\overline{v}$ in expression. The (\emph{member}) rule reduces a member access using a class 
+values $\overline{v}$ in an expression. The (\emph{member}) rule reduces a member access using a class 
 definition in the assumption to obtain the body of a member. The remaining six rules
 give standard reductions for conditionals and pattern matching.
 
-The language is simple, but sufficient for our purpose. All expressions reduce to a value in a 
+We omit expressions $e \vee e$ and $e \wedge e$ that are used in Figure~\ref{fig:op-conversions}, 
+but those can be easily defined as syntactic sugar using \kvd{if}. All expressions reduce to a value in a 
 finite number of steps or get stuck due to an error condition. An error condition can be a wrong 
-argument passed to conditional, pattern matching or one of the conversion functions from 
-Figure~\ref{fig:op-conversions}.
+argument passed to conditional, pattern matching or one of the primitives from Figure~\ref{fig:op-conversions}.
 
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure}
+\noindent  
 \begin{equation*}
 \inference
   {L; \Gamma \vdash e_1 : \ident{StructVal}}
@@ -1344,12 +1263,13 @@ The rules demonstrate the key differences from Standard ML and Featherweight Jav
 \end{itemize}
 %
 An important part of Featherweight Java that is omitted here is the checking of type declarations
-(ensuring the bodies of members are well-typed). We omit this, because we consider only classes 
-generated by our type providers (which are correct by construction).
+(ensuring the members are well-typed). We consider only classes generated by our type providers 
+and those are well-typed by construction.
 
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure*}
+\noindent
 \begin{equation*}
 \quad\qquad\boxed{
 \begin{array}{rcl}
@@ -1395,7 +1315,7 @@ generated by our type providers (which are correct by construction).
 \begin{equation*}
 \begin{array}{l}
  \sem{\,[\sigma]\,}_e = \ident{list}\langl\tau\rangl, e_b, L \;\;\textnormal{where}\\[0.4em]
- \qquad e_b = \ident{List.map}~(\lambda x\rightarrow e')~(\ident{getChildren}(e)) \\[0.1em]
+ \qquad e_b = \ident{map}~(\lambda x\rightarrow e')~(\ident{getChildren}(e)) \\[0.1em]
  \qquad \tau, e', L = \sem{\hat{\sigma}}_x
 \end{array}
 \end{equation*}
@@ -1425,7 +1345,7 @@ generated by our type providers (which are correct by construction).
  \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
  \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n \\[0.1em]
  \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\[0.1em]
- \hspace{5.8em}  \kvd{if}~\ident{isTag}(t_i, v)~\kvd{then}~
+ \hspace{5.8em}  \kvd{if}~\ident{hasType}(\sigma_i, v)~\kvd{then}~
      \ident{Some}(e_i)~\kvd{else}~\ident{None} \\[0.1em]
  \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; t_i = \tytagof{(\sigma_i)},\;\; \nu_i=\nameoftag{(t_i)}
 \end{array}
@@ -1454,59 +1374,62 @@ generated by our type providers (which are correct by construction).
 
 So far, we defined the type inference algorithm which produces a structural type $\sigma$ from one 
 or more sample documents (\S\ref{sec:inference}) and we defined a simplified model of evaluation
-of F\# language (\S\ref{sec:formal-ff}) and F\# Data runtime (\S\ref{sec:formal-tp}). Next, we 
+of F\# (\S\ref{sec:formal-ff}) and F\# Data runtime (\S\ref{sec:formal-tp}). In this section, we 
 define how the type providers work, linking the two parts.
 
 All F\# Data type providers take (one or more) sample documents, infer a common supertype $\sigma$
-and then use $\sigma$ to generate F\# types that are exposed to the programmer\footnote{The actual 
+and then use it to generate F\# types that are exposed to the programmer\footnote{The actual 
 implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
 the code as actually generated. This is an acceptable simplification, because F\# Data type providers 
 do not rely on laziness that is available through erased types.}. 
 
 \paragraph{Type provider mapping.}
-When generating types, the type provider produces an F\# type $\tau$, an expression that wraps 
-the input document (of type \ident{StructVal}) as a value of type $\tau$ and a collection of class 
-definitions. We express it using the following mapping:
+The type provider produces an F\# type $\tau$ together with an expression that wraps an input
+value (of type \ident{StructVal}) as a value of type $\tau$ and a collection of class definitions. 
+We express it using the following mapping:
 %
 \begin{equation*}
 \sem{-}_{-} : (\sigma\times e) \rightarrow (\tau \times e' \times L)
 \end{equation*}
 %
-The mapping $\sem{\sigma}_e$ takes a inferred structural type $\sigma$ and an expression $e$, 
+The mapping $\sem{\sigma}_e$ takes an inferred structural type $\sigma$ and an expression $e$, 
 which represents code to obtain a structural value that is being wrapped. It returns an F\# type 
 $\tau$, an expression $e'$ which constructs a value of type $\tau$ using $e$ and also a set of 
 generated class definitions $L$.
 
 Figure~\ref{fig:tp-generation} shows the rules that define $\sem{-}_{-}$. Primitive types are all
-handled by a single rule. For a given structural type, it returns the corresponding F\# type -- the types are
-mapped directly with the exception of \ident{bit}, which becomes an F\# \ident{bool}. The generated code calls
-an appropriate conversion function from Figure~\ref{fig:op-conversions} on the input.
-
-Handling of records is more interesting. We generate a new class $C$ that takes a structural value as constructor
+handled by two rules -- for \ident{decimal} and \ident{float}, we insert a call to an appropriate 
+conversion function from Figure~\ref{fig:op-conversions}.
+Handling of records is more interesting. We generate a class $C$ that takes a structural value as constructor
 parameter. For each record field, we generate a new member with the same name as the field\footnote{The actual
-F\# Data implementation also capitalizes the names.} The body of the member calls \ident{getField} and then
-passes this expression to $\sem{\sigma_i}$ which adds additional wrapping that maps the field (structural value
-of type $\sigma_i$) into an F\# type $\tau_i$. The returned expression creates a new instance of $C$ and
-the mapping returns the class $C$ together with all recursively generated definitions.
+F\# Data implementation also capitalizes the names.}. The body of the member calls \ident{getField} and then
+wraps this expression using $\sem{\sigma_i}$ which maps the field (structural value of type $\sigma_i$) into 
+an F\# value of type $\tau_i$. The returned expression creates a new instance of $C$ and the mapping returns 
+the class $C$ together with all recursively generated definitions. Note that the class
+name $C$ is not directly accessed by the user and so we can use arbitrary name, although the actual 
+implementation in F\# Data attempts to infer a reasonable name\footnote{For example, in 
+\ident{\{\str{person}:\{\str{name}:\str{Tomas}\}\}}, the nested record will be named \ident{Person}
+based on the name of the parent record field.}.
 
 A collection type becomes an F\# $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{getChildren}
-(which turns \kvd{null} values into empty lists) and then uses \ident{List.map} to convert all nested values to 
-an F\# type $\tau$. The handling of option type is similar -- it checks if the original value is \kvd{null} and
-if no, it wraps the recursively generated conversion expression $e'$ in the \ident{Some} constructor.
+(which turns \kvd{null} into an empty list) and then uses \ident{map} to convert nested values to 
+values of an F\# type $\tau$. The handling of option type is similar; if the value is not \kvd{null},
+we wrap the recursively generated conversion expression $e'$ in the \ident{Some} constructor.
 
-As discussed earlier, union types are also generated as classes with properties. Given a union type $\sigma_1 + \ldots + \sigma_n$,
-we get corresponding F\# types $\tau_i$ and generate $n$ members of type $\ident{option}\langl \tau_i\rangl$.
-Each member return \ident{Some} when the value is not \kvd{null} and has the right structure (checked by 
-\ident{isTag}). The type inference algorithm also guarantees that there is only one case for each type tag 
-(Section~\ref{sec:inference-commonsuper}) and there are no nested union types. Thus, checking for a tag is
-sufficient and we can also use the tag to identify the name of the generated member (using the
-\ident{nameof} function).
+As discussed earlier, variant types are also generated as F\# classes with properties. Given a variant
+$\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl$, we get corresponding F\# types $\tau_i$ and generate 
+$n$ members of type $\ident{option}\langl \tau_i\rangl$. When the member is accessed, we need to perform
+a runtime type test using \ident{hasType} to ensure that the value has the right type (similarly to runtime 
+type conversions from the top type in languages like Java). If the type matches, a \ident{Some} value is 
+returned. The type inference algorithm also guarantees that there is only one case for each type tag 
+(\S\ref{sec:inference-commonsuper}) and so we can use the tag when naming the generated member 
+(using the \ident{nameof} function).
 
 \paragraph{Example 1.}
-To illustrate how the type provision mechanism works, we now consider two simple examples. First, assume 
-that the inferred type is a record with two fields (one optional) such as 
-$\ident{Person}~\{~\ident{Age}:\ident{int}~\kvd{option}, \ident{Name}:\ident{string}~ \}$. Applying the
-rules from Figure~\ref{fig:tp-generation} produces the following class:
+To illustrate how the mechanism works, we consider two examples. First, assume 
+that the inferred type is a record  
+$\{~\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}~ \}$. 
+The rules from Figure~\ref{fig:tp-generation} produce the following class:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -1521,93 +1444,81 @@ rules from Figure~\ref{fig:tp-generation} produces the following class:
 %
 The body of the \ident{Age} member is produced by the case for optional types applied to an expression
 $\ident{getField}(\ident{Person},\ident{Age},v)$. If the returned field is not \kvd{null}, then the member
-calls \ident{asInt} (produced by the case for primitive types) and wraps the result in the \ident{Some}
-constructor. Note that \ident{getField} is defined even when the field does not exist, but returns \ident{null}.
-This lets us treat missing fields as optional fields. The \ident{Name} member is similar, but does not 
-perform any checks. 
-For completeness, a type corresponding to the record is \ident{Person} and given a 
-structural value $s$, we create a \ident{Person} value by calling $\kvd{new}~\ident{Person}(s)$.
+calls \ident{asInt} (produced by the case for primitive types) and wraps the result in \ident{Some}.
+Note that \ident{getField} is defined even when the field does not exist, but it returns 
+\kvd{null}. This lets us treat missing fields as optional. An F\# type corresponding to the (structural)
+record is \ident{Person} and given a structural value $s$, we create a \ident{Person} value by calling 
+$\kvd{new}~\ident{Person}(s)$.
 
-\paragraph{Example 2.} The second example illustrates the remaining parts of the type provision,
-including collections and union types. Reusing the \ident{Person} type from the previous example,
-consider a collection $[\ident{Person}+\ident{string}]$, which contains a mix of \ident{Person} and string values.
-
-\noindent
+\paragraph{Example 2.} The second example illustrates the remaining types including collections and 
+variants. Reusing \ident{Person} from the previous example, consider 
+$[\kvd{any}\langl\ident{Person},\ident{string}\rangl]$, a collection which contains a mix 
+of \ident{Person} and string values:
+%
 \begin{equation*}
 \begin{array}{l}
- \kvd{type}~\ident{PersonOrString}(\ident{v}:\ident{StructVal})~= \\[0.1em]
+ \kvd{type}~\ident{PersonOrString}(v:\ident{StructVal})~= \\[0.1em]
  \quad \kvd{member}~\ident{Person}~:~\ident{option}\langl\ident{Person}\rangl~= \\[0.1em]
- \qquad \kvd{if}~\ident{isNull}(v)~\kvd{then}~\ident{None}~\kvd{else} \\[0.1em]
- \qquad \kvd{if}~\ident{isTag}(\ident{rec-named Person}, v)~\kvd{then}~\\[0.1em]
- \qquad\quad \ident{Some}(\kvd{new}~\ident{Person}(v))~\kvd{else}~\ident{None} \\[0.1em]
+ \qquad \kvd{if}~\ident{hasType}(\{\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}\}, v)~\\[0.1em]
+ \qquad\quad \kvd{then}~\ident{Some}(\kvd{new}~\ident{Person}(v))~\kvd{else}~\ident{None} \\[0.1em]
  \quad \kvd{member}~\ident{String}~:~\ident{option}\langl\ident{string}\rangl~= \\[0.1em]
- \qquad \kvd{if}~\ident{isNull}(v)~\kvd{then}~\ident{None}~\kvd{else} \\[0.1em]
- \qquad \kvd{if}~\ident{isTag}(\ident{string}, v)~\kvd{then}~\\[0.1em]
- \qquad\quad \ident{Some}(\ident{asStr}(v))~\kvd{else}~\ident{None}
+ \qquad \kvd{if}~\ident{hasType}(\ident{string}, v)~\\[0.1em]
+ \qquad\quad \kvd{then}~\ident{Some}(\ident{asStr}(v))~\kvd{else}~\ident{None}
 \end{array}
 \end{equation*}
-
-\noindent
-The type provider generates the above type and the collection type is mapped to an F\# type 
-$\ident{list}\langl\ident{PersonOrString}\rangl$. Given a structural document value $s$, the code
-to obtain the wrapped F\# value is:
+%
+The type provider maps the structural type to an F\# type $\ident{list}\langl\ident{PersonOrString}\rangl$. 
+Given a structural document value $s$, the code to obtain the wrapped F\# value is:
 %
 \begin{equation*}
-\ident{List.map}~(\lambda x\rightarrow\kvd{new}~\ident{PersonOrString}(x))~(\ident{getChildren}(s))
+\ident{map}~(\lambda x\rightarrow\kvd{new}~\ident{PersonOrString}(x))~(\ident{getChildren}(s))
 \end{equation*}
 %
-The \ident{PersonOrString} type contains one member for each of the union case. In the body, they
-check that the value is not \kvd{null} and that it has the right structure (using the \ident{isTag}
-function). This checks that the value is a record named \ident{Person} or a string, respectively.
-If the conditions are satisfied, the value is converted to the F\# type corresponding to the case
-and wrapped in \ident{Some}.
+The \ident{PersonOrString} type contains one member for each of the variant case. In the body, they
+check that the value has the correct type using \ident{hasType}. This also implicitly handles \kvd{null}
+by returning \kvd{false}. As discussed earlier, variants provide easy access to the known cases
+(\ident{string} or \ident{Person}), but they are robust with respect to unexpected inputs.
 
 % --------------------------------------------------------------------------------------------------
 
 \subsection{Inferring types from values}
 \label{sec:formal-inferval}
 
-Before concluding the section on formalizing type providers, there is one more missing piece. The
-common supertype algorithm in Section~\ref{sec:inference} discusses the core of the type inference for
-structural values, but we have not yet clarified how exactly it is used. We address this in the present
-section.
+The common supertype algorithm (\S\ref{sec:inference}) is at the core of the type inference 
+for structural values, but we have not yet clarified how it is used. Given a JSON, XML or CSV 
+document, F\# Data constructs a structural value $s$ from the sample. The following defines a mapping 
+$\semalt{s_1,\ldots,s_n}$ which turns a collection of sample values $s_1, \ldots, s_n$ into a 
+structural type $\sigma$:
 
-Given a JSON, XML or CSV document, the F\# Data implementation constructs a structural value $s$
-from the sample (this is straightforward, but Section~\ref{sec:impl-parsing} discusses some interesting 
-aspects). The following defines a mapping $\semalt{-}$ which turns a sample value $s$ into a structural
-type $\sigma$:
-%
+\noindent
 \begin{equation*}
-\begin{array}{rclcrcl}
- \semalt{0} &\narrow{=}& \ident{bit} &\qquad& \semalt{1} &\narrow{=}& \ident{bit} \\
- \semalt{i} &\narrow{=}& \ident{int} && \semalt{d} &\narrow{=}& \ident{decimal} \\
- \semalt{f} &\narrow{=}& \ident{float} && \semalt{t} &\narrow{=}& \ident{string} \\
- \semalt{b} &\narrow{=}& \ident{bool} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} \\[0em]
+\begin{array}{rclcrclcrcl}
+ \semalt{i} &\narrow{=}& \ident{int} && \semalt{d} &\narrow{=}& \ident{decimal} && \semalt{b} &\narrow{=}& \ident{bool}\\
+ \semalt{f} &\narrow{=}& \ident{float} && \semalt{t} &\narrow{=}& \ident{string} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null}\\
 \end{array}
 \end{equation*}
 \noindent
-\vspace{-0.2em}
+\vspace{-0.5em}
 \begin{equation*}
 \begin{array}{l}
+ \semalt{s_1, \ldots, s_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
+ \qquad\sigma_0 = \bot,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{s_i} \vdash \sigma_i
+ \\[0.5em]
  \semalt{[s_1; \ldots; s_n]} = [\semalt{s_1, \ldots, s_n}]
  \\[0.5em]
  \semalt{\nu?~\{ \nu_1 \mapsto s_1, \ldots, \nu_n \mapsto s_n \}} =\\[0.1em]
  \qquad\nu?~\{ \nu_1:\semalt{s_1}, \ldots, \nu_n :\semalt{s_n} \}
- \\[0.5em]
- \semalt{s_1, \ldots, s_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
- \qquad\sigma_0 = \top,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{s_i} \vdash \sigma_i
 \end{array}
 \end{equation*}
 %
-Primitive values are mapped to their corresponding types, with the exception of $0$ and $1$, which
-are inferred as \ident{bit}. For records, we return a type with field types inferred based on 
-individual values. 
+We overload the notation and write $\semalt{s}$ when inferring type from a single value. Primitive 
+values are mapped to their corresponding types. For records, we return a type with field types 
+inferred based on individual values. 
 
-The interesting part is inferring type based on multiple samples. We overload
-the notation and write $\semalt{s_1, \ldots, s_n}$ for a type inferred from multiple samples.
-This uses the common supertype relation to find a common type for all values (starting with $\top$).
-This operation is used at the top-level (when calling type provider with multiple samples)
-and also when inferring the type of a collection.
+When infering a value from multiple samples, we use the common supertype relation to find a common 
+type for all values (starting with $\bot$). This operation is used at the top-level (when calling 
+a type provider with multiple samples) and also when inferring the type of a collection.
+
 
 
 % ==================================================================================================
@@ -1625,28 +1536,26 @@ and also when inferring the type of a collection.
 \section{Relativized type safety}
 \label{sec:safety}
 
-Informally, the safety property of F\# Data type providers states that, given representative sample
+Informally, the safety property for structural type providers states that, given representative sample
 documents, any code that can be written using the provided types is guaranteed to work. We call this 
-\emph{relativized safety}, because we cannot avoid \emph{all} errors. In particular, the user can 
-always use the type provider with an input that has a different structure than any of the samples -- and in 
-this case, it is expected that the code will fail at runtime (throw an exception in the actual 
-implementation or by getting stuck in our model).
+\emph{relativized safety}, because we cannot avoid \emph{all} errors. In particular, one can always
+provide an input that has a different structure than any of the samples. In this case, it is expected 
+that the code will throw an exception in the implementation (or get stuck in our model).
 
-The key question is, what is a representative sample? Given a set of sample documents, 
-the provided type is guaranteed to work if the inferred type of the input is a subtype of any of the
-sample documents. Going back to Section~\ref{sec:inference-subtyping}, this means that:
+More formally, given a set of sample documents, code using the provided type is guaranteed to work if 
+the inferred type of the input is a subtype of any of the samples. Going back to 
+\S\ref{sec:inference-subtyping}, this means that:
 %
 \begin{itemize}[noitemsep]
-\item[--] Input can contain smaller numerical values (for example, if a sample contains float, the input can contain an integer).
-\item[--] Records in the actual input can have additional fields
-\item[--] Records in the actual input can have fewer fields, provided that the type of the fields is marked as optional in the sample
-\item[--] Union types in the input can have both fewer or more cases
-\item[--] When we have a union type in the sample, the actual input can also contain just values of one of the union cases
+\item[--] Input can contain smaller numerical values (e.g., if a sample contains float, the input can contain an integer)
+\item[--] Records in the input can have additional fields
+\item[--] Records in the input can have fewer fields, provided that the type of the field is missing in some of the samples
+\item[--] When a variant is inferred from the sample, the actual input can also contain any other value  
 \end{itemize}
 %
 The following lemma states that the provided code (generated in Figure~\ref{fig:tp-generation})
-works correctly on inputs $s'$ that is a subtype of the sample $s$. More formally, we require that the 
-provided expression (using $s'$ as the input) can be reduced to a value and, if it is a class,
+works correctly on an input $s'$ that is a subtype of the sample $s$. More formally, the provided
+provided expression (with input $s'$) can be reduced to a value and, if it is a class,
 all its members can also be reduced to values.
 
 \begin{lemma}[Correctness of provided types]
@@ -1657,18 +1566,18 @@ then $e \reduce^{*} v$ and if $\tau$ is a class ($\tau=C$) then for all members 
 class $C$, it holds that $e.N_i \reduce^{*} v$.
 \end{lemma}
 \begin{proof}
-By induction over the structure of $\sem{-}_e$. For primitives, the conversion functions accept all subtypes.
-For other cases, analyse the the provided code to see that it can work on all subtypes (\emph{e.g.}~\ident{getChildren}
-works on \kvd{null} values, \ident{getField} returns \kvd{null} when a field is missing and, when \ident{isTag} returns
-\ident{true}, then a value has the structure required by the corresponding case).
+By induction over the structure of $\sem{-}_-$. For primitives, the conversion functions accept all subtypes.
+For other cases, analyse the provided code to see that it can work on all subtypes (\emph{e.g.}~\ident{getChildren}
+works on \kvd{null} values, \ident{getField} returns \kvd{null} when a field is missing and, for variants,
+the value has the correct type as guaranteed by \ident{hasType}.
 \end{proof}
 
 \noindent
-Now that we know that the provided types are correct with respect to the subtyping relation, we can
-look at the main theorem of the paper. It states that, for any input (which is a subtype of any of the
-samples) and any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
+This shows that the provided types are correct with respect to the subtyping relation. Next, the
+main theorem of the paper states that, for any input (which is a subtype of any of the samples) and 
+any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 
-Using the standard approach to syntactic type safety  \cite{syntactic}, we prove the type preservation 
+Using the standard syntactic type safety  \cite{syntactic}, we prove type preservation 
 (reduction does not change type) and progress (an expression that is not a value can be reduced).
 
 \begin{theorem}[Relativized safety]
@@ -1677,10 +1586,10 @@ Assume $s_1, \ldots, s_n$ are samples, $\sigma=\semalt{s_1, \ldots, s_n}$ is an 
 type and $\tau,e,L = \sem{\sigma}_x$ are a type, expression and class definitions generated by a 
 type provider.
 
-Then for all new inputs $s'$ such that $\exists i.(\semalt{s_i} :> \semalt{s'})$, let $e_s=e[x\leftarrow s']$
+For all new inputs $s'$ such that $\exists i.(\semalt{s_i} :> \semalt{s'})$, let $e_s=e[x\leftarrow s']$
 be an expression (of type $\tau$) that wraps the input in a provided type. Then, for any expression $e_c$
-(user code) such that $\emptyset; y:\tau \vdash e_c:\tau'$ and that does not contain any structural values
-as sub-expressions, it is the case that $e_c[y\leftarrow e_s] \reduce^{*} v$ for some value $v$ and
+(user code) such that $\emptyset; y:\tau \vdash e_c:\tau'$ and $e_c$ does not contain primitive operations
+$op$ as a sub-expression, it is the case that $e_c[y\leftarrow e_s] \reduce^{*} v$ for some value $v$ and
 also $\emptyset; \vdash v : \tau$.
 \end{theorem}
 \begin{proof}
@@ -1702,35 +1611,60 @@ in Figure~\ref{fig:tp-generation} is well-typed.
 
 \noindent
 The progress lemma states that evaluation of a well-typed program does not reach an undefined state. 
-This is not a problem for the ML subset and object-oriented subset of the calculus. The problematic
-part are the conversion functions (Figure~\ref{fig:op-conversions}). Given a structural value 
-(which has a type \ident{StructVal} in our language), the reduction can get stuck if the value does
-not have a structure required by a specific conversion function used.
+This is not a problem for the (standard) ML subset and object-oriented subset of the calculus. The 
+problematic part are the primitive functions (Figure~\ref{fig:op-conversions}). Given a structural 
+value (of type \ident{StructVal}), the reduction can get stuck if the value does not have a structure 
+required by a specific primitive.
 
-The Lemma~\ref{thm:tp-correctness} guarantees that this does not happen. In Theorem~\ref{thm:safety},
-we carefully state that we only consider expressions $e_c$ which ``[do] not contain any structural 
-values as sub-expressions''. This makes sure that the only code working with structural values is the
-code generated by the type provider.
+The Lemma~\ref{thm:tp-correctness} guarantees that this does not happen inside the provided type.
+In Theorem~\ref{thm:safety}, we carefully state that we only consider expressions $e_c$ which 
+``[do] not contain primitive operations $op$ as sub-expressions''. This makes sure that the only 
+code working with structural values is the code generated by the type provider.
 
 \begin{lemma}[Progress]
 \label{thm:rs-progress}
 Given the assumptions and definitions from Theorem~\ref{thm:safety}, it is the case that
-$e_c[y\leftarrow e_s] \reduce^{*} v$.
+$e_c[y\leftarrow e_s] \reduce e_c'$.
 \end{lemma}
 \begin{proof}
-By induction over the typing derivation of $L; \emptyset \vdash e_c[y\leftarrow e_s] : \tau'$. 
+Proceed by induction over the typing derivation of $L; \emptyset \vdash e_c[y\leftarrow e_s] : \tau'$. 
 The cases for the ML subset are standard. For member access, we rely on Lemma~\ref{thm:tp-correctness}.
 \end{proof}
 
-% -------------------------------------------------------------------------------------------------
+
+
+% ==================================================================================================
+%
+%   ###                                                                                     
+%    #  #    # #####  #      ###### #    # ###### #    # #####   ##   ##### #  ####  #    # 
+%    #  ##  ## #    # #      #      ##  ## #      ##   #   #    #  #    #   # #    # ##   # 
+%    #  # ## # #    # #      #####  # ## # #####  # #  #   #   #    #   #   # #    # # #  # 
+%    #  #    # #####  #      #      #    # #      #  # #   #   ######   #   # #    # #  # # 
+%    #  #    # #      #      #      #    # #      #   ##   #   #    #   #   # #    # #   ## 
+%   ### #    # #      ###### ###### #    # ###### #    #   #   #    #   #   #  ####  #    # 
+%
+% ==================================================================================================
+
+\section{Practical experience}
+\label{sec:impl}
+
+The F\# Data library has been widely adopted by the industry and is one of the most downloaded
+F\# libraries\footnote{At the time of writing, the library has over 80,000 downloads on NuGet 
+(package repository), 1,821 commits and 44 contributors on GitHub.}. A practical demonstration of 
+development using the library can be seen in an attached video and additional documentation can be
+found at \url{http://fsharp.github.io/FSharp.Data}.
+
+In this section, we discuss our practical experience with the safety guarantees provided by the
+F\# Data type providers and other notable aspects of the implementation.
+
 
 \subsection{Discussion}
 \label{sec:safety-discuss}
 
-The \emph{relativized safety} property does not guarantee the same amount of safety as standard type safety
-for programming languages without type providers. However, it reflects the reality of programming with external
-data sources that is increasingly important in the age of web \cite{age-of-web}. So, type providers do not
-reduce the safety -- they simply make the existing issues visible.
+The \emph{relativized safety} property does not guarantee the same amount of safety as standard 
+ML type safety. However, it reflects the reality of programming with external data sources that is 
+increasingly important \cite{age-of-web}. Type providers do not reduce the safety -- they simply 
+illuminate the existing issues.
 
 The actual implementation in F\# Data throws an exception for invalid inputs. In contrast, the calculus
 presented here simply gets stuck. We could extend the calculus with exceptions, but that would obscure the 
@@ -1751,22 +1685,69 @@ checked code are generated. Extending our formalism to capture this aspect is an
 relevant to other type providers -- including the World Bank type provider that is also available
 in the F\# Data library.
 
+\subsection{Practical experiences}
+
+An important concern about using F\# Data in practice is the handling of schema change. When using a
+type provider, the sample is captured at compile-time. If the schema changes later (so that the actual
+input is no longer a subtype of the samples), the program using the type provider fails at run-time
+and it is the developer's responsibility to handle the exception. However, this is the same problem that
+happens when reading data using any other library.
+
+F\# Data can help discover such errors earlier. The example in Section~\ref{sec:introduction}
+points the JSON type provider to a sample using a live URL. This has the advantage that a re-compilation 
+fails when the schema changes, which is an indication that the program needs to be updated to reflect the
+change. If this is undesirable, it is always possible to cache the sample locally.
+
+In general, there is no better solution for plain XML, CSV and JSON data sources. Some data sources provide 
+versioning support (with meta-data about how the schema changed). For those, a type 
+provider could adapt automatically, but we leave this for future.
+
+An approach that we find useful in practice is to keep a set of samples. When the program fails at run-time
+(because a service returned data in an unexpected format), the new input can be added as an additional sample,
+which then shows what parts of code need to be modified.
 
 
-% ==================================================================================================
+\subsection{Reading CSV files}
+\label{sec:providers-csv}
+
+In the CSV file format, the structure is a collection of rows (records) consisting of fields 
+(with names specified by the first row). The inference needs to infer the types of fields.
+For example:
 %
-%   ###                                                                                     
-%    #  #    # #####  #      ###### #    # ###### #    # #####   ##   ##### #  ####  #    # 
-%    #  ##  ## #    # #      #      ##  ## #      ##   #   #    #  #    #   # #    # ##   # 
-%    #  # ## # #    # #      #####  # ## # #####  # #  #   #   #    #   #   # #    # # #  # 
-%    #  #    # #####  #      #      #    # #      #  # #   #   ######   #   # #    # #  # # 
-%    #  #    # #      #      #      #    # #      #   ##   #   #    #   #   # #    # #   ## 
-%   ### #    # #      ###### ###### #    # ###### #    #   #   #    #   #   #  ####  #    # 
+{\small{
+\begin{verbatim}
+  Ozone, Temp, Date,       Autofilled
+  41,    67,   2012-05-01, 0
+  36.3,  72,   2012-05-02, 1
+  12.1,  74,   3 kveten,   0
+  17.5,  #N/A, 2012-05-04, 0
+\end{verbatim}
+}}
 %
-% ==================================================================================================
+\noindent
+One difference between JSON and CSV formats is that in CSV, the literals have no data types.
+In JSON, strings are \str{quoted} and Booleans are \kvd{true} and \kvd{false}. This is not the
+case for CSV and so we need to infer not just the structure, but also the primitive types.
 
-\section{Implementation}
-\label{sec:impl}
+Assuming the sample is saved as \strf{airdata.csv}, the following snippet prints all
+rows from another file that were not autofilled:
+%
+\begin{equation*}
+\begin{array}{l}
+ \kvd{type}~\ident{AirCsv}~=~\ident{CsvProvider}\langl\str{airdata.csv}\rangl\hspace{1em} \\[0.6em]
+ \kvd{let}~\ident{air}~=~\ident{AirCsv.Parse}(\ident{data})\\[0.1em]
+ \kvd{for}~\ident{row}~\kvd{in}~\ident{air.Rows}~\kvd{do}\\[0.1em]
+ \quad\kvd{if}~\ident{not}~\ident{row.Autofilled}~\kvd{then}\\[0.1em]
+ \quad\quad \ident{printf}~\str{\%s: \%d}~\ident{row.Date row.Ozone}\\
+\end{array}
+\end{equation*}
+%
+The type of the record (\ident{row}) is, again, inferred from the sample. The \ident{Date} column
+uses mixed formats and is inferred as \ident{string} (although we support many date formats and 
+``May 3'' would work). More interestingly, we also infer \ident{Autofilled} as Boolean, because 
+the sample contains only $0$ and $1$ values and using those for Booleans is a common CSV convention.
+Finally, the fields \ident{Ozone} and \ident{Temp} have types \ident{decimal} and
+$\ident{option}\langl\ident{int}\rangl$.
 
 The theoretical model in Section~\ref{sec:formal} presents the core ideas behind the type 
 providers for structured data formats. However, an important part of the success of the F\# Data
@@ -1823,7 +1804,102 @@ that unifies the types of all records with the same name. This is useful when th
 an XHTML document -- in this case, all occurrences of an element (\emph{e.g.}~{\small\ttfamily <a>})
 are treated as the same type.
 
-% -------------------------------------------------------------------------------------------------
+
+% ==================================================================================================
+%
+%    ######
+%    #     # ###### #        ##   ##### ###### #####     #    #  ####  #####  #    #
+%    #     # #      #       #  #    #   #      #    #    #    # #    # #    # #   #
+%    ######  #####  #      #    #   #   #####  #    #    #    # #    # #    # ####
+%    #   #   #      #      ######   #   #      #    #    # ## # #    # #####  #  #
+%    #    #  #      #      #    #   #   #      #    #    ##  ## #    # #   #  #   #
+%    #     # ###### ###### #    #   #   ###### #####     #    #  ####  #    # #    #
+%
+% ==================================================================================================
+
+\section{Related and future work}
+\label{sec:related}
+
+The F\# Data library connects two lines of research that have been previously disconnected. The first is 
+extending the type systems of programming languages to accommodate external data sources and the second
+is inferring types for real-world data sources.
+
+The type provider mechanism has been introduced in F\# \cite{fsharp-typeprov,fsharp-typeprov-ddfp}, 
+added to Agda \cite{agda-tp} and used in areas such as semantic web \cite{liteq}. Our paper is novel 
+in that it shows the programming language theory behind a concrete type providers. 
+
+\paragraph{Extending the type systems.} 
+A number of systems integrate external data formats into a programming language. Those include 
+XML \cite{xduce,xduce-ml} and databases \cite{links}. In both of these, the system either requires
+the user to explicitly define the schema (using the host language) or it has an ad-hoc extension 
+that reads the schema (\emph{e.g.}~from a database). LINQ \cite{linq} is more general, but relies
+on code generation when importing the schema.
+
+The work that is most similar to F\# Data is the XML and SQL integration in C$\omega$ \cite{comega-xs}.
+It extends a C\# like object-oriented language with types similar to our structural types 
+(including nullable types, choices with subtyping and heterogeneous collections with multiplicities).
+However, C$\omega$ does not infer the types from samples and extends the type system of the host
+language (rather than using a general purpose embedding mechanism).
+
+\paragraph{Advanced type systems.}
+Aside from type providers, a number of other advanced type system features could be used to
+tackle the problem discussed in this paper. The Ur \cite{ur} language has a rich system for working
+with records; meta-programming \cite{template-hask}, \cite{th-camlp4} and multi-stage programming \cite{multi-stage}
+could be used to generate code for the provided types. However, as far as we are aware, none of these 
+systems have been used to provide the same level of integration with XML, CSV and JSON.
+
+Another approach would be to use gradual typing \cite{gradual,gradual-js} and add types for structured
+data formats to existing dynamic language to check, for example, JSON manipulation in JavaScript.
+
+\paragraph{Typing real-world data.}
+The second line of research related to our work focuses on inferring structure of real-world data sets.
+A recent work on JSON \cite{typing-json} infers a succinct type using MapReduce to handle large number
+of samples. It fuses similar types based on a type similarity measure. This is more sophisticated than
+our technique, but it would make formally specifying the safety properties (Theorem~\ref{thm:safety}) difficult.
+Extending our \emph{relativized safety} property to a \emph{probabilistic safety} is an interesting 
+future work.
+
+The PADS project \cite{pads-dsl,pads-ml} tackles a more general problem of handling \emph{any} data format.
+The schema definitions in PADS are similar to our structural type. The structure inference for LearnPADS
+\cite{pads-learn} infers the data format from a flat input stream. A PADS type provider could follow
+many of the patterns we explore in this paper, but formally specifying the safety property would be
+challenging.
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+In this paper, we explored the F\# Data type providers for structured data formats such as XML, CSV and JSON.
+As most real-world data do not come with an explicit schema, the library uses \emph{type inference} that
+deduces a type from a set of samples. Next, it uses the \emph{type provider} mechanism to integrate the 
+inferred type directly into the F\# type system.
+
+The type inference algorithm we use is based on a common supertype relation. For usability reasons, the
+algorithm attempts to infer type that does not contain unions and prefers records with optional fields instead.
+The algorithm is simple and predictable, which is important as developers need to understand how changing the
+samples affects the resulting types.
+
+In the second part of the paper, we explore the programming language theory behind type providers. F\# Data
+is a prime example of type providers, but our work also demonstrates a more general point. The types generated
+by type providers can depend on external input (such as samples) and so we can only formulate \emph{relativized
+safety property}, which says that a program is safe only if the actual inputs satisfy additional conditions --
+in our case, they have to be subtypes of one of the samples.
+
+The type provider mechanism has been described before, but this paper is novel in that it explores concrete
+type providers from the perspective of programming language theory. This is particularly important as the
+F\# Data library is becoming de-facto standard tool for data access in F\#\footnote{At the time of writing, 
+the library has 37,000 downloads on NuGet; over 1600 commits and 36 contributors on GitHub.} and other 
+languages are beginning to adopt mechanisms similar to F\# type providers.
+
+\acks
+?
+We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
+including Jomo Fisher, Keith Battocchi and Kenji Takeda.
+
+\bibliographystyle{abbrvnat}
+\bibliography{paper}
+
+\appendix
+% --------------------------------------------------------------------------------------------------
 
 \begin{figure*}
 \noindent
@@ -1923,112 +1999,5 @@ That said, exposing a discriminated union (perhaps together with better tooling)
 attractive alternative that we plan to consider in the future. This can also be combined with type 
 inference that chooses between records and union types based on some statistical metric (see
 related work in Section~\ref{sec:related}).
-
-% -------------------------------------------------------------------------------------------------
-
-\subsection{Practical experiences}
-
-An important concern about using F\# Data in practice is the handling of schema change. When using a
-type provider, the sample is captured at compile-time. If the schema changes later (so that the actual
-input is no longer a subtype of the samples), the program using the type provider fails at run-time
-and it is the developer's responsibility to handle the exception. However, this is the same problem that
-happens when reading data using any other library.
-
-F\# Data can help discover such errors earlier. The example in Section~\ref{sec:introduction}
-points the JSON type provider to a sample using a live URL. This has the advantage that a re-compilation 
-fails when the schema changes, which is an indication that the program needs to be updated to reflect the
-change. If this is undesirable, it is always possible to cache the sample locally.
-
-In general, there is no better solution for plain XML, CSV and JSON data sources. Some data sources provide 
-versioning support (with meta-data about how the schema changed). For those, a type 
-provider could adapt automatically, but we leave this for future.
-
-An approach that we find useful in practice is to keep a set of samples. When the program fails at run-time
-(because a service returned data in an unexpected format), the new input can be added as an additional sample,
-which then shows what parts of code need to be modified.
-
-% ==================================================================================================
-
-\section{Related and future work}
-\label{sec:related}
-
-The F\# Data library connects two lines of research that have been previously disconnected. The first is 
-extending the type systems of programming languages to accommodate external data sources and the second
-is inferring types for real-world data sources.
-
-The type provider mechanism has been introduced in F\# \cite{fsharp-typeprov,fsharp-typeprov-ddfp}, 
-added to Agda \cite{agda-tp} and used in areas such as semantic web \cite{liteq}. Our paper is novel 
-in that it shows the programming language theory behind a concrete type providers. 
-
-\paragraph{Extending the type systems.} 
-A number of systems integrate external data formats into a programming language. Those include 
-XML \cite{xduce,xduce-ml} and databases \cite{links}. In both of these, the system either requires
-the user to explicitly define the schema (using the host language) or it has an ad-hoc extension 
-that reads the schema (\emph{e.g.}~from a database). LINQ \cite{linq} is more general, but relies
-on code generation when importing the schema.
-
-The work that is most similar to F\# Data is the XML and SQL integration in C$\omega$ \cite{comega-xs}.
-It extends a C\# like object-oriented language with types similar to our structural types 
-(including nullable types, choices with subtyping and heterogeneous collections with multiplicities).
-However, C$\omega$ does not infer the types from samples and extends the type system of the host
-language (rather than using a general purpose embedding mechanism).
-
-\paragraph{Advanced type systems.}
-Aside from type providers, a number of other advanced type system features could be used to
-tackle the problem discussed in this paper. The Ur \cite{ur} language has a rich system for working
-with records; meta-programming \cite{template-hask}, \cite{th-camlp4} and multi-stage programming \cite{multi-stage}
-could be used to generate code for the provided types. However, as far as we are aware, none of these 
-systems have been used to provide the same level of integration with XML, CSV and JSON.
-
-Another approach would be to use gradual typing \cite{gradual,gradual-js} and add types for structured
-data formats to existing dynamic language to check, for example, JSON manipulation in JavaScript.
-
-\paragraph{Typing real-world data.}
-The second line of research related to our work focuses on inferring structure of real-world data sets.
-A recent work on JSON \cite{typing-json} infers a succinct type using MapReduce to handle large number
-of samples. It fuses similar types based on a type similarity measure. This is more sophisticated than
-our technique, but it would make formally specifying the safety properties (Theorem~\ref{thm:safety}) difficult.
-Extending our \emph{relativized safety} property to a \emph{probabilistic safety} is an interesting 
-future work.
-
-The PADS project \cite{pads-dsl,pads-ml} tackles a more general problem of handling \emph{any} data format.
-The schema definitions in PADS are similar to our structural type. The structure inference for LearnPADS
-\cite{pads-learn} infers the data format from a flat input stream. A PADS type provider could follow
-many of the patterns we explore in this paper, but formally specifying the safety property would be
-challenging.
-
-\section{Conclusions}
-\label{sec:conclusions}
-
-In this paper, we explored the F\# Data type providers for structured data formats such as XML, CSV and JSON.
-As most real-world data do not come with an explicit schema, the library uses \emph{type inference} that
-deduces a type from a set of samples. Next, it uses the \emph{type provider} mechanism to integrate the 
-inferred type directly into the F\# type system.
-
-The type inference algorithm we use is based on a common supertype relation. For usability reasons, the
-algorithm attempts to infer type that does not contain unions and prefers records with optional fields instead.
-The algorithm is simple and predictable, which is important as developers need to understand how changing the
-samples affects the resulting types.
-
-In the second part of the paper, we explore the programming language theory behind type providers. F\# Data
-is a prime example of type providers, but our work also demonstrates a more general point. The types generated
-by type providers can depend on external input (such as samples) and so we can only formulate \emph{relativized
-safety property}, which says that a program is safe only if the actual inputs satisfy additional conditions --
-in our case, they have to be subtypes of one of the samples.
-
-The type provider mechanism has been described before, but this paper is novel in that it explores concrete
-type providers from the perspective of programming language theory. This is particularly important as the
-F\# Data library is becoming de-facto standard tool for data access in F\#\footnote{At the time of writing, 
-the library has 37,000 downloads on NuGet; over 1600 commits and 36 contributors on GitHub.} and other 
-languages are beginning to adopt mechanisms similar to F\# type providers.
-
-\acks
-?
-We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
-including Jomo Fisher, Keith Battocchi and Kenji Takeda.
-
-\bibliographystyle{abbrvnat}
-\bibliography{paper}
-
 
 \end{document}
