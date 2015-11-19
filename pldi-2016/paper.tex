@@ -193,9 +193,9 @@ standard JSON and web libraries, we might write:
 %
 The code assumes that the response has a particular shape described in the documentation. The
 root node must be a record with a \str{main} field, which has to be another record containing
-a numerical \str{temp} field. When the shape is different, the data access simply fails
-with an exception. The code, while not immediately unsound, is manifestly prone to errors if
-strings are misspelled or incorrect shape assumed.
+a numerical \str{temp} field. When the shape is different, the code simply fails with an exception. 
+While not immediately unsound, the code is manifestly prone to errors if strings are misspelled 
+or incorrect shape assumed.
 
 Using the JSON type provider from F\# Data, we can write code with exactly the 
 same functionality in two lines:
@@ -249,25 +249,25 @@ The supplementary screencast illustrates the practical developer experience usin
 %
 % =================================================================================================
 
-\section{Structural type providers}
+\section{Type providers for structured data}
 \label{sec:providers}
 
 We start with an informal overview that shows how F\# Data type providers simplify working with 
-JSON and XML. We introduce the necessary aspects of F\# type providers along the 
-way. The examples in this section illustrate a number of key properties of our type inference 
-algorithm:
+JSON and XML. We introduce the necessary aspects of F\# type providers along the way. The examples 
+in this section illustrate the key design principles of the shape inference algorithm:
 
 \begin{itemize}
-\item Our mechanism is predictable. The user directly works with the inferred types and should 
-  understand why a specific type was inferred from a given sample.\footnote{In particular, we do 
+\item The mechanism is predictable. The user directly works with the provided types and should 
+  understand why a specific type was produced from a given sample.\footnote{In particular, we do 
   not use probabilistic methods where adding an additional sample could completely change the 
   shape of the type.}
 
-\item Our inference mechanism prefers records. This supports developer tooling --
-  most F\# editors provide code completion hints on ``.'' and so types with properties (records)
-  are easier to use than types that require pattern matching.
+\item The type providers prefer F\# objects with properties. This is to allow extensible 
+  (open-world) data formats (\S\ref{sec:providers-xml}). It also interacts well with developer tooling
+  as most F\# editors provide auto-completion on ``.'' and so objects are easier to use than 
+  types that require pattern matching.
 
-\item Finally, we handle a number of practical concerns important in the real world. This includes 
+\item Finally, the mechanism handles practical concerns important in the real world. This includes 
   support for different numerical types, \kvd{null} values and missing data.
 \end{itemize}
 
@@ -276,9 +276,9 @@ algorithm:
 \subsection{Working with JSON documents}
 \label{sec:providers-json}
 
-The JSON format used in \S\ref{sec:introduction} is a popular data exchange format based on 
+The JSON format is a popular data exchange format based on 
 JavaScript data structures. The following is the definition of \ident{JsonValue} 
-used earlier to represent JSON:
+used earlier (\S\ref{sec:introduction}) to represent JSON data:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -301,15 +301,14 @@ aspects of the JSON type provider, we look at an example that also involves an a
 }}
 %
 \noindent
-Say we want to print the names and an age if it is available. The standard approach would 
-be to pattern match on the parsed \ident{JsonValue}, check that the top-level node is a \ident{Array}
-and iterate over the elements checking that each element is a \ident{Record} with certain properties. 
-We would throw an exception for values in an incorrect format. Even with helper functions, 
-we would still need to specify field names as strings, which is error prone and can not be 
-statically checked.
+The standard approach to print the names and ages would be to pattern match on the parsed 
+\ident{JsonValue}, check that the top-level node is a \ident{Array} and iterate over the elements 
+checking that each element is a \ident{Record} with certain properties. We would throw an exception 
+for values of an incorrect shape. As before, the code would specify field names as strings, which 
+is error prone and can not be statically checked.
 
 Assuming \strf{people.json} is the above example and \ident{data} is a string containing
-JSON in the same format, we can write:
+JSON of the same shape, we can write:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -321,7 +320,7 @@ JSON in the same format, we can write:
 \end{equation*}
 %
 In contrast to the earlier example, we now use a local file \strf{people.json} as a sample for 
-the type inference, but then processes data from another source. The code achieves the same 
+the type inference, but then processes data from another source. The code achieves a similar 
 simplicity as when using dynamically typed languages, but it is statically type-checked.
 
 \paragraph{Type providers.}
@@ -329,10 +328,10 @@ The notation $\ident{JsonProvider}\langl\str{people.json}\rangl$ passes a \emph{
 to the type provider. Static parameters are resolved at compile-time and have to be constant. 
 The provider analyzes the sample and generates a type  \ident{People}. Most F\# editors also 
 execute the type provider in the background at development-time and use the provided types 
-in auto-completion.
+in auto-completion and background type-checking.
 
-The \ident{JsonProvider} uses a type inference algorithm (\S\ref{sec:inference})  and
-infers the following types from the sample:
+The \ident{JsonProvider} uses a shape inference algorithm and provides
+the following F\# types for the sample:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -352,30 +351,31 @@ decimal $3.5$ and so the common inferred type is \ident{decimal}.
 
 The type \ident{People} has two methods for reading data. \ident{GetSample} parses the
 sample used for the inference and \ident{Parse} parses a JSON string. This lets us read
-data at runtime, provided that it is in the same format as the static sample.
+data at runtime, provided that it has the same shape as the static sample.
 
 \paragraph{Error handling.}
 In addition to the structure of the types, the type provider also specifies what code should be 
 executed at run-time in place of \ident{item.Name} and other operations. The runtime behaviour is 
 the same as in the earlier hand-written sample (\S\ref{sec:introduction}) -- a member access 
-throws an exception if the document does not have the expected format.
+throws an exception if data does not have the expected shape.
 
-Informally, the safety property (\S\ref{sec:safety}) states that if the inputs
-are subtypes of some of the provided samples (i.e.~the samples are representative), then
-no exceptions will occur. In other words, we cannot avoid all failures, but we can prevent some.
-Moreover, if the OpenWeatherMap changes the response format, the sample in \S\ref{sec:introduction}
-will not re-compile and the user knows that the code needs to be changed. 
+Informally, the safety property (\S\ref{sec:safety}) states that if the inputs are compatible
+with one of the static samples (i.e.~the samples are representative), then no exceptions will 
+occur. In other words, we cannot avoid all failures, but we can prevent some. Moreover, if 
+\url{http://openweathermap.org} changes the shape of the response, the code in \S\ref{sec:introduction}
+will not re-compile and the developer knows that the code needs to be changed. 
 
-\paragraph{The role of records.}
-The sample code is easy to write thanks to the fact that most F\# editors provide code completion
+\paragraph{The role of objects with properties.}
+The sample code is easy to write thanks to the fact that most F\# editors provide auto-completion
 when ``.'' is typed (see the supplementary screencast). The developer does not need to look at the 
-sample JSON file to see what fields are available. To support this scenario, our inference algorithm 
-prefers records (we also treat XML elements and CSV rows as records) and only infers types that 
-require pattern matching as the last resort.
+sample JSON file to see what fields are available. To support this scenario, our type providers 
+map the inferred shapes to F\# objects with (possibly optional) properties.
 
-In the above example, this is demonstrated by the fact that \ident{Age} is marked as optional.
+This is demonstrated by the fact that \ident{Age} becomes an optional member.
 An alternative is to provide two different record types (one with \ident{Name} and other with 
 \ident{Name} and \ident{Age}), but this would complicate the processing code.
+It is worth noting that languages with stronger tooling around pattern matching
+such as Idris \cite{idris-tools} might have different preferences.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -386,9 +386,9 @@ XML documents are formed by nested elements with attributes. We can view element
 a field for each attribute and an additional special field for the nested contents (which is a 
 collection of elements).
 
-Consider a simple extensible document format where a root element
-{\ttfamily\small <doc>} can contain a number of document element, one of which is
-{\ttfamily\small <heading>} representing headings:
+Consider a simple extensible document format where a root element {\ttfamily\small <doc>} can 
+contain a number of document elements, one of which is {\ttfamily\small <heading>} representing 
+headings:
 %
 {\small{
 \begin{verbatim}
@@ -403,7 +403,7 @@ Consider a simple extensible document format where a root element
 }}
 %
 \noindent
-The F\# Data library has been designed primarilly to simplify reading of data. For example,
+The F\# Data library has been designed primarily to simplify reading of data. For example,
 say we want to print all headings in the document. The sample shows a part of the document structure 
 (in particular the {\ttfamily\small <heading>} element), but it does not show all possible elements 
 (say, {\ttfamily\small <table>}). Assuming the above document is \strf{sample.xml}, we can write:
@@ -418,16 +418,20 @@ say we want to print all headings in the document. The sample shows a part of th
 \end{array}
 \end{equation*}
 %
-The example iterates over a collection of elements returned by \ident{root.Doc}. The type of element 
+The example iterates over a collection of elements returned by \ident{root.Doc}. The type of \ident{elem} 
 provides a typed access to elements known from the sample and so we can write \ident{elem.Heading}, 
 which returns an optional string value.
 
-\paragraph{Open world and variant types.}
-We do not infer a union type representing a choice between heading, paragraph and image. By its 
-nature, XML is extensible and the sample cannot include all possible nodes.\footnote{Even when the 
-document structure is defined using XML Schema, documents may contain elements prefixed with other 
-namespaces.} The type of \ident{elem} is thus a top type (we call it a \emph{variant}) annotated 
-with the statically known possibilities. It is mapped to the following F\# type:
+\paragraph{Open world.}
+By its nature, XML is extensible and the sample cannot include all possible nodes.\footnote{Even 
+when the document structure is defined using XML Schema, documents may contain elements prefixed 
+with other namespaces.} This is the important \emph{open world assumption} about external data. 
+Actual input might be an element about which nothing is known.
+
+For this reason, we do not infer a closed choice between heading, paragraph and image. In the 
+subsequent formalization, we introduce a \emph{top shape} (\S\ref{?}) and extend it with labels 
+capturing the statically known possibilities (\S\ref{?}). The \emph{labelled top shape} is mapped 
+to the following type:
 %
 \begin{equation*}
 \begin{array}{l}
@@ -438,30 +442,23 @@ with the statically known possibilities. It is mapped to the following F\# type:
 \end{array}
 \end{equation*}
 %
-The type provides a nice access to the statically known elements, but it encodes the 
-\emph{open-world assumption}. The user also needs to handle the case when the value is none 
-of the statically known elements. 
+This provides access to the elements known statically from the sample. However the type is 
+deliberately `weak', because the user needs to explicitly handle the case when a value is not 
+a statically known element. The above code uses \ident{Option.iter} to skip all unknown elements. 
 
-As a consequence, the variant type can be seen as the top type. The above code will work
-correctly on document that contains any elements, including those not listed in the sample. This
-is extremely useful when reading data from external sources, because the sample document only
-needs to contain values relevant to the application. It is also worth noting that our type 
-inference attempts to minimze the number of variant types that appear in the resulting type --
-a variant is not used if there is another option (see Corollary~\ref{thm:no-unions} and 
-\S\ref{sec:impl-hetero}).
+The provided type is also consistent with our design principles, which prefers optional properties. 
+The gain is that the provided types support both open-world data and developer tooling. It is also 
+worth noting that our shape inference uses labelled top shapes only as the last resort 
+(Corollary~\ref{thm:no-unions}, \S\ref{sec:impl-hetero}).
 
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Summary}
 \label{sec:providers-sum}
-In addition to type providers for JSON and XM, F\# Data also implements a type provider for CSV 
-(\S\ref{sec:impl-parsing}). We treat CSV files as lists of records (with field for each column) 
-and so CSV is handled directly by our inference algorithm.
-
-Throughout the introduction, we used data sets that demonstrate typical issues that are frequent
-in the real-world (missing data, inconsistent encoding of primitive values and heterogeneous 
-structures). In our experience, these are the most common issues. The following JSON response with 
-government debt information returned by the World Bank API\footnote{Available at 
+Throughout the introduction, we used data sets that demonstrate the typical problems that are frequent
+in the real-world (\emph{missing data}, \emph{inconsistent encoding} of primitive values and 
+\emph{heterogeneous shapes}). In our experience, these are the most common issues. The following 
+JSON response with government debt information returned by the World Bank\footnote{Available at 
 \url{http://data.worldbank.org}} demonstrates all three problems:
 %
 {\small{
@@ -484,6 +481,9 @@ numbers can be represented in JSON as numeric literals (without quotes), but her
 returned as string literals instead.\footnote{This is often used to avoid non-standard numerical 
 types of JavaScript.}
 
+In addition to type providers for JSON and XM, F\# Data also implements a type provider for CSV 
+(\S\ref{sec:impl-parsing}). We treat CSV files as lists of records (with field for each column) 
+and so CSV is handled directly by our inference algorithm.
 
 
 % =================================================================================================
@@ -1640,7 +1640,7 @@ In this section, we discuss our practical experience with the safety guarantees 
 F\# Data type providers and other notable aspects of the implementation.
 
 
-\subsection{Relativized safety in practicve}
+\subsection{Relativized safety in practice}
 \label{sec:safety-discuss}
 
 The \emph{relativized safety} property does not guarantee the same amount of safety as traditional
