@@ -115,7 +115,7 @@
 %\titlebanner{Unpublished draft, March 2015}        % These are ignored unless
 %\preprintfooter{short description of paper}        % 'preprint' option specified.
 
-\title{F\# Data: \textnormal{Making structured data first-class citizens}}
+\title{Types from data: \textnormal{Making structured data first-class citizens in F\#}}
 %\subtitle{Subtitle Text, if any}
 
 \authorinfo{Tomas Petricek}
@@ -138,12 +138,11 @@ more cumbersome. Should we give up and leave the messy world of external data to
 and runtime checks? Of course, not!
 
 In this paper, we integrate external structured data into the F\# type system. As most real-world data
-do not come with an explicit schema, we develop a type inference algorithm that infers a type from 
+does not come with an explicit schema, we develop a shape inference algorithm that infers a shape from 
 representative sample documents and integrate it into the F\# type system using type providers.
 
-Our library significantly reduces the amount of code that developers need to write when 
-accessing data. It also provides additional safety guarantees, arguably, as much as possible if 
-we abandon the closed world assumption.
+Our library significantly reduces the amount of data access code and it provides additional 
+safety guarantees when contrasted with the widely used weakly typed techniques.
 \end{abstract}
 
 \category{D.3.3}{Programming Languages}{Language Constructs and Features }
@@ -167,16 +166,16 @@ we abandon the closed world assumption.
 \label{sec:introduction}
 
 Social network clients, applications for finding tomorrow's weather or searching train schedules
-all communicate with one or more services over the network and display the resulting information. 
-Increasing number of such services provide REST-based end-points that return data as CSV, XML
-or JSON. Despite numerous schematization efforts, most services do not come with an 
-explicit schema. At best, the documentation provides sample responses for typical requests.
+all communicate with external services. Increasing number of such services provide REST-based 
+end-points that return data as CSV, XML or JSON. Despite many schematization efforts, most 
+services do not come with an explicit schema. At best, the documentation provides sample responses 
+for typical requests.
 
-For example, OpenWeatherMap provides an end-point for getting current weather for a 
-given city\footnote{See ``Current weather data'': \url{http://openweathermap.org/current}}. 
-The documentation shows one sample to illustrate the typical response. Using standard 
-JSON and web libraries, we might write:
-%
+For example, \url{http://openweathermap.org/current} provides an end-point to get the current weather.
+The documentation shows one sample to illustrate the typical response. Using 
+standard JSON and web libraries, we might write:
+
+\noindent
 \begin{equation*}
 \begin{array}{l}
  \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://api.owm.org/?q=NYC}) \\
@@ -192,14 +191,16 @@ JSON and web libraries, we might write:
 \end{array}
 \end{equation*}
 %
-The code assumes that the response has a particular format described in the documentation. The
+The code assumes that the response has a particular shape described in the documentation. The
 root node must be a record with a \str{main} field, which has to be another record containing
-a numerical \str{temp} field. When the format is incorrect, the data access simply fails
-with an exception.
+a numerical \str{temp} field. When the shape is different, the data access simply fails
+with an exception. The code, while not immediately unsound, is manifestly prone to errors if
+strings are misspelled or incorrect shape assumed.
 
 Using the JSON type provider from F\# Data, we can write code with exactly the 
 same functionality in two lines:
 %
+\vspace{-0.1em}
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{W} = \ident{JsonProvider}\langl\str{http://api.owm.org/?q=NYC}\rangl \\[0.1em]
@@ -212,25 +213,28 @@ compile-time with the URL as a sample. The type provider infers the structure of
 and provides a type with a \ident{GetSample} method that returns a parsed JSON with nested
 properties \ident{Main.Temp}, returning the temperature as a number.
 
-The rest of the paper describes the mechanism and discusses its safety properties. 
-The key novel contributions are:
+In short, \emph{the types come from the sample data}. In our experience, this technique is 
+immensely practical and surprisingly effective in achieving sound information interchange 
+in heterogeneous systems. This paper presents our approach:
 
 \begin{itemize}
 \item We present F\# Data type providers for XML, CSV and JSON (\S\ref{sec:providers}) 
   and practical aspects of their implementation that contributed to their industrial 
   adoption (\S\ref{sec:impl}). 
 
-\item We describe a predictable type inference algorithm for structured data formats, 
-  based on a \emph{common supertype} relation, that underlies the type providers 
+\item We describe a predictable shape inference algorithm for structured data formats, 
+  based on a \emph{preferred shape} relation, that underlies the type providers 
   (\S\ref{sec:inference}).
 
 \item We give a formal model (\S\ref{sec:formal}) and use it to prove
   \emph{relativized type safety} for the type providers (\S\ref{sec:safety}).
   This adapts the ML-style type safety for the context of the web.
-
-\item The supplementary screencast show developer experience using 
-  F\# Data with JSON, XML and CSV.
 \end{itemize}
+
+\vspace{-0.1em}
+\noindent
+The supplementary screencast illustrates the practical developer experience using 
+  F\# Data with JSON, XML and CSV.
 
 
 % =================================================================================================
