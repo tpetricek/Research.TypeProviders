@@ -448,7 +448,7 @@ a statically known element. The above code uses \ident{Option.iter} to skip all 
 The provided type is also consistent with our design principles, which prefers optional properties. 
 The gain is that the provided types support both open-world data and developer tooling. It is also 
 worth noting that our shape inference uses labelled top shapes only as the last resort 
-(Theorem~\ref{thm:lub}, \S\ref{sec:impl-hetero}).
+(Lemma~\ref{thm:lub}, \S\ref{sec:impl-hetero}).
 
 % -------------------------------------------------------------------------------------------------
 
@@ -757,7 +757,7 @@ Here is a summary of the key aspects of the definition:
 \label{sec:inference-commonsuper}
 
 Given two ground shapes, the \emph{common preferred shape} relation finds a least upper bound
-(Theorem~\ref{thm:lub}). It prefers records, which is important for usability as discussed
+(Lemma~\ref{thm:lub}). It prefers records, which is important for usability as discussed
 earlier.
 
 \begin{definition}
@@ -978,15 +978,18 @@ fields of records.
 \section{Formalising type providers}
 \label{sec:formal}
 
-This section presents the theoretical model of strucutral type providers. We introduce the Foo calculus 
-which is a subset of F\# using object-property notation with
+This section presents the formal model of type providers for structured data. 
+To represent the programming language that hosts the type provider and the
+provided declarations, we introduce the Foo calculus,
+a subset of F\# using object-property notation with
 added operations for working with weakly typed structured data along the lines of the F\# Data runtime. Finally, we describe how 
 type providers turn inferred shapes into Foo classes (\S\ref{sec:formal-tp}).
 
-Type providers map the ``dirty'' world of weakly typed structured data into a nice world of strong types. To model this, the Foo calculus
+Type providers for structured data map the ``dirty'' world of weakly typed 
+semi-structured data into a ``nice'' world of strong types. To model this, the Foo calculus
 does not have \kvd{null} values and data values $d$ are never directly exposed.  
 Furthermore Foo is simply typed: despite using class types and object notation 
-for properties, it has no subtyping.
+for notational convenience, it has no subtyping.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1069,7 +1072,7 @@ by the $op$ primitives. In F\# Data, those are internal and users never access t
       &\narrow{|}& \tau_1 \rightarrow \tau_2 \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl 
 \\[0.6em]
  L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
- M &\narrow{=}& \kvd{member}~N:\tau=
+ M &\narrow{=}& \kvd{member}~N:\tau= e
 \\[0.6em]
  v &\narrow{=}& d \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep v_1::v_2 \\[0.0em]
  e &\narrow{=}& d \lsep op \lsep e_1~e_2 \lsep \lambda x.e \lsep e.N \lsep \kvd{new}~C(\overline{e}) \\
@@ -1108,16 +1111,16 @@ passes the field value (or \kvd{null} data value) to the provided function.
 Finally, we also define a runtime shape test \ident{hasShape}.
 The most complex case is handling of records where we check that for each field $\nu_1, \ldots, \nu_n$ 
 in the record, the actual record value has a field of the same name with a matching shape. The last 
-line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases. Although
-not elegant, if we treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as syntactic sugar for \kvd{if} then
+line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases. 
+We treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as syntactic sugar for \kvd{if}-\kvd{then}-\kvd{else} so
 the rule is expressed using just Foo expressions.
 
 % -------------------------------------------------------------------------------------------------
 
 \paragraph{Reduction.}
-The reduction relation is of the form $L, e \reduce e'$. We often omit class declarations 
-$L$ and we write $L, e \reduce^{*} e'$ to denote 
-the reflexive and transitive closure of $\reduce$. 
+The reduction relation is of the form $L, e \reduce e'$. We omit class declarations 
+$L$ where implied by context and write $e \reduce^{*} e'$ for
+the reflexive, transitive closure of $\reduce$. 
 
 Figure~\ref{fig:ff-reduction} shows the reduction rules. The (\emph{ctx}) rule models the eager
 evaluation of F\# and performs a reduction inside a sub-expression specified by an evaluation 
@@ -1140,7 +1143,7 @@ constructor and dynamic data operation arguments or $v::E$ in list initializatio
 We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
 values $\overline{v}$ in an expression. The (\emph{member}) rule reduces a member access using a class 
 definition in the assumption to obtain the body of a member. The remaining six rules
-give standard reductions for a functional language.
+give standard reductions.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1152,7 +1155,7 @@ characterizes the additional conditions on input data under which Foo programs d
 
 Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
 $L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
-The fragment demonstrates the differences and similarities with SML and Featherweight Java:
+The fragment demonstrates the differences and similarities with Featherweight Java \cite{fwjava}:
 %
 \begin{itemize}
 \item[--] All data values $d$ have the type \ident{Data}, but primitive data values (Booleans, 
@@ -1160,8 +1163,8 @@ The fragment demonstrates the differences and similarities with SML and Featherw
   primitive type as illustrated by the rule for $i$ and $f$.
 \item[--] For non-primitive data values (including \kvd{null}, data collections and records),
   \ident{Data} is the only type.
-\item[--] Operations $op$ (omitted) have a family of types (Doo does not have polymorphic types),
-  accepting \ident{Data} as one of the arguments and producing a non-data Foo type.
+\item[--] Operations $op$ (omitted) have a family of types (Foo does not have polymorphic types),
+  accepting \ident{Data} as one of the arguments and producing a non-\ident{Data} Foo type.
 \item[--] Rules for checking class construction and member access are similar to corresponding
   rules of Featherweight Java.  
 \end{itemize}
@@ -1231,7 +1234,7 @@ and those are well-typed by construction.
 \end{array}
 \end{equation*}
 
-\caption{Featherweight F\# -- Remaining reduction rules}
+\caption{Foo -- Remaining reduction rules}
 \label{fig:ff-reduction}
 \end{figure}
 
@@ -1247,9 +1250,9 @@ define how the type providers work, linking the two parts.
 
 All F\# Data type providers take (one or more) sample documents, infer a common preferred shape $\sigma$
 and then use it to generate F\# types that are exposed to the programmer.\footnote{The actual 
-implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
+implementation provides \emph{lazy erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
 the code as actually generated. This is an acceptable simplification, because F\# Data type providers 
-do not rely on laziness that is available through erased types.}
+do not rely on laziness or erasure of type provision.}
 
 \paragraph{Type provider mapping.}
 A type provider produces an F\# type $\tau$ together with a Foo expression and a collection of 
@@ -1272,17 +1275,17 @@ record field, we generate a member with the same name as the field. The body of 
 \ident{convField} with a function obtained from $\sem{\sigma_i}$. This function turns the field 
 value (data of shape $\sigma_i$) into a Foo value of type $\tau_i$. The returned expression creates a new instance of 
 $C$ and the mapping returns the class $C$ together with all recursively generated classes. Note that 
-the class name $C$ is not directly accessed by the user and so we can use arbitrary name, although the 
+the class name $C$ is not directly accessed by the user and so we can use an arbitrary name, although the 
 actual implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
 \ident{\{\str{person}:\{\str{name}:\str{Tomas}\}\}}, the nested record will be named \ident{Person}
 based on the name of the parent record field.}
 
-A collection shape becomes an Foo $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{convElements}
-(which returns empty list for data value \kvd{null}). The last parameter is the recursively obtained
+A collection shape becomes a Foo $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{convElements}
+(which returns the empty list for data value \kvd{null}). The last parameter is the recursively obtained
 conversion function for the shape of elements $\sigma$. The handling of the nullable shape is similar,
 but uses \ident{convNull}.
 
-As discussed earlier, labelled top shape are also generated as Foo classes with properties. Given 
+As discussed earlier, labelled top shapes are also generated as Foo classes with properties. Given 
 $\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl$, we get corresponding F\# types $\tau_i$ and generate 
 $n$ members of type $\ident{option}\langl \tau_i\rangl$. When the member is accessed, we need to perform
 a runtime shape test using \ident{hasShape} to ensure that the value has the right shape (similarly to runtime 
@@ -1331,7 +1334,7 @@ returned. The shape inference algorithm also guarantees that there is only one c
   {L; \Gamma \vdash \kvd{new}~C(e_1, \ldots, e_n):C}
 \end{equation*}
 
-\caption{Featherweight F\# -- Fragment of type checking}
+\caption{Foo -- Fragment of type checking}
 \label{fig:ff-typecheck}
 \end{figure}
 
@@ -1410,7 +1413,7 @@ returned. The shape inference algorithm also guarantees that there is only one c
 \end{equation*}
 \end{multicols}
 
-\caption{Type provider -- generation of featherweight F\# types from inferred structural types}
+\caption{Type provider -- generation of Foo types from inferred structural types}
 \label{fig:tp-generation}
 \vspace{-0.5em}
 \end{figure*}
@@ -1528,6 +1531,8 @@ optional record fields, the \ident{hasShape} operation is used to guaranteed the
 
 \noindent
 This shows that provided types are correct with respect to the preferred shape relation. 
+In general, this is an obligation upon the author of a type provider, which is a second reason why
+the type soundness is ``relative''.
 Our key theorem states that, for any input (which is a subshape of any of the samples) and 
 any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 Using standard syntactic type safety  \cite{syntactic}, we prove type preservation 
@@ -1539,7 +1544,7 @@ Assume $d_1, \ldots, d_n$ are samples, $\sigma=\semalt{d_1, \ldots, d_n}$ is an 
 shape and $\tau,e,L = \sem{\sigma}$ are a type, expression and class definitions generated by a 
 type provider.
 
-For all inputs $d'$ such that $\exists i.(\semalt{d_i} \sqsupseteq \semalt{d'})$ and all expressions $e'$
+For all inputs $d'$ such that $\sigma \sqsupseteq \semalt{d'}$ and all expressions $e'$
 (representing the user code) such that $e'$ does not contain primitive operations $op$ as a sub-expression and
 $\emptyset; y\!:\!\tau \vdash e'\!:\!\tau'$, it is the case that $L, e[y\leftarrow e'~d'] \reduce^{*} v$ for some value $v$ and
 also $\emptyset; \vdash v : \tau'$.
@@ -1556,7 +1561,7 @@ the assumptions of Theorem~\ref{thm:safety}, then if $L, \Gamma \vdash e : \tau$
 $L, e \reduce^{*} e'$ then $\Gamma \vdash e' : \tau$.
 \end{lemma}
 \begin{proof}
-By induction over the reduction $\reduce$. The cases for the ML subset of Featherweight F\# 
+By induction over the reduction $\reduce$. The cases for the ML subset of Foo 
 are standard. For (\emph{member}), we check that code generated by type providers
 in Figure~\ref{fig:tp-generation} is well-typed.
 \end{proof}
@@ -1600,7 +1605,7 @@ The cases for the ML subset are standard. For member access, we rely on Lemma~\r
 \section{Practical experience}
 \label{sec:impl}
 
-The F\# Data library has been widely adopted by the industry and is one of the most downloaded
+The F\# Data library has been widely adopted by users and is one of the most downloaded
 F\# libraries.\footnote{At the time of writing, the library has over 80,000 downloads on NuGet 
 (package repository), 1,821 commits and 44 contributors on GitHub.} A practical demonstration of 
 development using the library can be seen in an attached screencast and additional documentation can be
@@ -1612,24 +1617,26 @@ F\# Data type providers and other notable aspects of the implementation.
 \subsection{Relativized safety in practice}
 \label{sec:safety-discuss}
 
-The \emph{relativized safety} property does not guarantee the same amount of safety as traditional
-closed-world type safety, but it reflects the reality of programming with external data that is 
-increasingly important \cite{age-of-web}. Type providers do not reduce the safety -- they simply 
-illuminate the existing issues.
+The \emph{relativized safety} property does not guarantee safety in the same way as traditional
+closed-world type safety, but it reflects the reality that programming with external data is
+increasingly important \cite{age-of-web}. Type providers increase the safety of this kind of programming,
+seen by example in \S\ref{sec:introduction}.
 
-One such issue is the handling of schema change. With type providers, the sample is captured 
-at compile-time. If the schema changes later (so that the input is no longer related to the  
-shape of the sample), the program fails at runtime and developers have to handle the exception. 
-The same problem happens when using weakly-typed techniques.
+One such issue is the handling of sample change. With type providers, the sample is captured 
+at compile-time. If the sample changes later (so that the input is no longer related to the  
+shape of the sample), the program can fail at runtime and developers have to handle the exception. 
+The same problem happens when using weakly-typed code with explicit failure cases.
 
 F\# Data can help discover such errors earlier. Our first example (\S\ref{sec:introduction})
 points the JSON type provider at a sample using a live URL. This has the advantage that a re-compilation 
-fails when the schema changes, which is an indication that the program needs to be updated to reflect the
-change.
+fails when the sample changes, which is an indication that the program needs to be updated to reflect the
+change. Repeated type-checking of programs by continuous integration systems can be used to help 
+detect such changes.
 
-In general, there is no better solution for plain XML, CSV and JSON data sources. However, some data 
-sources provide versioning support (with meta-data about how the schema changed). For those, a type 
-provider could adapt automatically, but we leave this for future work.
+In general, schema-free XML, CSV and JSON data sources will necessarily require techniques akin
+to those we have shown. However, some data sources provide schema and schema versioning support 
+(with meta-data about how the schema changed). For those, a type 
+provider could be written to adapt automatically, but we leave this for future work.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1665,7 +1672,7 @@ we also infer \ident{Autofiled} as Boolean, because the sample contains only $0$
 This is handled by adding a \ident{bit} shape which is preferred of both \ident{int} and \ident{bool}.
 
 \paragraph{Reading XML documents.}
-Mapping XML documents to structural values is perhaps the most interesting. For each node, we
+Mapping XML documents to structural values is more interesting. For each node, we
 create a record. Attributes become record fields and the body becomes a field with a special
 name:
 %
@@ -1699,8 +1706,8 @@ will be treated as values of the same type.
 \subsection{Heterogeneous collections} 
 \label{sec:impl-hetero}
 
-When introducing type providers (\S\ref{sec:providers-sum}), we mentioned that F\# Data 
-implements a special handling of heterogeneous collections. This allows us to avoid inferring a 
+When introducing type providers (\S\ref{sec:providers-sum}), we mentioned how F\# Data 
+handles heterogeneous collections. This allows us to avoid inferring 
 labelled top shapes in many common scenarios. In the earlier example, a sample collection 
 contains a record (with \strf{pages} and \strf{page} fields) and a nested collection with values.
 
@@ -1747,12 +1754,17 @@ Previous work that integrates external data, such as XML \cite{xduce,xduce-ml} a
 \cite{links,linq}, into a programming language, required the user to define the schema
 or had an ad-hoc extension that reads the schema.
 
-C$\omega$ \cite{comega-xs} is the most similar to F\# Data. It extends C\# with types similar to our
-structural types (including similar heterogeneous collections), but it does not infer the types
-from a sample. It also extends the type system of the host language (rather than using a general purpose
-embedding).
+C$\omega$ \cite{comega-xs} bears similarity to F\# Data. Like many other
+languages, it extends a host language with advanced types similar to our
+structural shapes (including similar heterogeneous collections), but it 
+does not infer the types from a sample. In contrast, in F\# Data 
+we have avoided extending F\# at all, and the simplicity of the Foo 
+target language shows we have avoided placing strong requirements 
+(such as structural records) on the host language. Instead we provide nominal 
+types based on structure, rather than adding an advanced
+system of structural types into the host language.
 
-\paragraph{Advanced type systems.}
+\paragraph{Advanced type systems with meta-programming.}
 A number of other advanced type system features could be used to tackle the problem discussed 
 in this paper. The Ur \cite{ur} language has a rich system for working with records; 
 meta-programming \cite{template-hask}, \cite{th-camlp4} and multi-stage programming \cite{multi-stage}
@@ -1764,10 +1776,10 @@ systems have been used to provide the same level of integration with XML, CSV an
 Recent work \cite{typing-json} infers a succinct type of large JSON datasets using MapReduce.
 It fuses similar types based on similarity. This is more sophisticated than our technique, but it 
 makes formal specification of safety (Theorem~\ref{thm:safety}) difficult. Extending our 
-\emph{relativized safety} to \emph{probabilistic safety} is an interesting future work.
+\emph{relativized safety} to \emph{probabilistic safety} is an interesting future direction.
 
 The PADS project \cite{pads-dsl,pads-ml} tackles a more general problem of handling \emph{any} data format.
-The schema definitions in PADS are similar to our structural type. The structure inference for LearnPADS
+The schema definitions in PADS are similar to our shapes. The structure inference for LearnPADS
 \cite{pads-learn} infers the data format from a flat input stream. A PADS type provider could follow
 many of the patterns we explore in this paper, but formally specifying the safety property would be
 more challenging.
@@ -1775,13 +1787,13 @@ more challenging.
 \section{Conclusions}
 \label{sec:conclusions}
 
-We explored the F\# Data type providers for XML, CSV and JSON. As most real-world data do not come 
+We explored the F\# Data type providers for XML, CSV and JSON. As most real-world data does not come 
 with an explicit schema, the library uses \emph{shape inference} that deduces a shape from a set of 
 samples. Our inference algorithm is based on a preferred shape relation. It prefers records to 
 encompass the open world assumption and support developer tooling. The algorithm is predictable, which is 
 important as developers need to understand how changing the samples affects the resulting types.
 
-We explore the theory behind type providers. F\# Data is a prime example of 
+We explored the theory behind type providers. F\# Data is a prime example of 
 type providers, but our work demonstrates a more general point. The types generated by type 
 providers can depend on external input and so we can only guarantee \emph{relativized safety}, 
 which says that a program is safe only if the actual inputs satisfy additional conditions.
@@ -1789,7 +1801,7 @@ which says that a program is safe only if the actual inputs satisfy additional c
 Type providers have been described before, but this paper is novel in that it explores the 
 properties of type providers that represent the ``types from data'' approach. Our experience suggests 
 that this significantly broadens the applicability of statically typed languages to real-world 
-problems that are often solved by weakly-typed techniques.
+problems that are often solved by error-prone weakly-typed techniques.
 
 % \acks
 % We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
