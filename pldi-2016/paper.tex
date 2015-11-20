@@ -978,15 +978,18 @@ fields of records.
 \section{Formalising type providers}
 \label{sec:formal}
 
-This section presents the theoretical model of strucutral type providers. We introduce the Foo calculus 
-which is a subset of F\# using object-property notation with
+This section presents the formal model of type providers for structured data. 
+To represent the programming language that hosts the type provider and the
+provided declarations, we introduce the Foo calculus,
+a subset of F\# using object-property notation with
 added operations for working with weakly typed structured data along the lines of the F\# Data runtime. Finally, we describe how 
 type providers turn inferred shapes into Foo classes (\S\ref{sec:formal-tp}).
 
-Type providers map the ``dirty'' world of weakly typed structured data into a nice world of strong types. To model this, the Foo calculus
+Type providers for structured data map the ``dirty'' world of weakly typed 
+semi-structured data into a ``nice'' world of strong types. To model this, the Foo calculus
 does not have \kvd{null} values and data values $d$ are never directly exposed.  
 Furthermore Foo is simply typed: despite using class types and object notation 
-for properties, it has no subtyping.
+for notational convenience, it has no subtyping.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1069,7 +1072,7 @@ by the $op$ primitives. In F\# Data, those are internal and users never access t
       &\narrow{|}& \tau_1 \rightarrow \tau_2 \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl 
 \\[0.6em]
  L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
- M &\narrow{=}& \kvd{member}~N:\tau=
+ M &\narrow{=}& \kvd{member}~N:\tau= e
 \\[0.6em]
  v &\narrow{=}& d \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep v_1::v_2 \\[0.0em]
  e &\narrow{=}& d \lsep op \lsep e_1~e_2 \lsep \lambda x.e \lsep e.N \lsep \kvd{new}~C(\overline{e}) \\
@@ -1108,16 +1111,16 @@ passes the field value (or \kvd{null} data value) to the provided function.
 Finally, we also define a runtime shape test \ident{hasShape}.
 The most complex case is handling of records where we check that for each field $\nu_1, \ldots, \nu_n$ 
 in the record, the actual record value has a field of the same name with a matching shape. The last 
-line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases. Although
-not elegant, if we treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as syntactic sugar for \kvd{if} then
+line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases. 
+We treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as syntactic sugar for \kvd{if}-\kvd{then}-\kvd{else} so
 the rule is expressed using just Foo expressions.
 
 % -------------------------------------------------------------------------------------------------
 
 \paragraph{Reduction.}
-The reduction relation is of the form $L, e \reduce e'$. We often omit class declarations 
-$L$ and we write $L, e \reduce^{*} e'$ to denote 
-the reflexive and transitive closure of $\reduce$. 
+The reduction relation is of the form $L, e \reduce e'$. We omit class declarations 
+$L$ where implied by context and write $e \reduce^{*} e'$ for
+the reflexive, transitive closure of $\reduce$. 
 
 Figure~\ref{fig:ff-reduction} shows the reduction rules. The (\emph{ctx}) rule models the eager
 evaluation of F\# and performs a reduction inside a sub-expression specified by an evaluation 
@@ -1140,7 +1143,7 @@ constructor and dynamic data operation arguments or $v::E$ in list initializatio
 We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
 values $\overline{v}$ in an expression. The (\emph{member}) rule reduces a member access using a class 
 definition in the assumption to obtain the body of a member. The remaining six rules
-give standard reductions for a functional language.
+give standard reductions.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1152,7 +1155,7 @@ characterizes the additional conditions on input data under which Foo programs d
 
 Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
 $L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
-The fragment demonstrates the differences and similarities with SML and Featherweight Java:
+The fragment demonstrates the differences and similarities with Featherweight Java \cite{fwjava}:
 %
 \begin{itemize}
 \item[--] All data values $d$ have the type \ident{Data}, but primitive data values (Booleans, 
@@ -1160,8 +1163,8 @@ The fragment demonstrates the differences and similarities with SML and Featherw
   primitive type as illustrated by the rule for $i$ and $f$.
 \item[--] For non-primitive data values (including \kvd{null}, data collections and records),
   \ident{Data} is the only type.
-\item[--] Operations $op$ (omitted) have a family of types (Doo does not have polymorphic types),
-  accepting \ident{Data} as one of the arguments and producing a non-data Foo type.
+\item[--] Operations $op$ (omitted) have a family of types (Foo does not have polymorphic types),
+  accepting \ident{Data} as one of the arguments and producing a non-\ident{Data} Foo type.
 \item[--] Rules for checking class construction and member access are similar to corresponding
   rules of Featherweight Java.  
 \end{itemize}
@@ -1231,7 +1234,7 @@ and those are well-typed by construction.
 \end{array}
 \end{equation*}
 
-\caption{Featherweight F\# -- Remaining reduction rules}
+\caption{Foo -- Remaining reduction rules}
 \label{fig:ff-reduction}
 \end{figure}
 
@@ -1247,9 +1250,9 @@ define how the type providers work, linking the two parts.
 
 All F\# Data type providers take (one or more) sample documents, infer a common preferred shape $\sigma$
 and then use it to generate F\# types that are exposed to the programmer.\footnote{The actual 
-implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
+implementation provides \emph{lazy erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
 the code as actually generated. This is an acceptable simplification, because F\# Data type providers 
-do not rely on laziness that is available through erased types.}
+do not rely on laziness or erasure of type provision.}
 
 \paragraph{Type provider mapping.}
 A type provider produces an F\# type $\tau$ together with a Foo expression and a collection of 
@@ -1272,17 +1275,17 @@ record field, we generate a member with the same name as the field. The body of 
 \ident{convField} with a function obtained from $\sem{\sigma_i}$. This function turns the field 
 value (data of shape $\sigma_i$) into a Foo value of type $\tau_i$. The returned expression creates a new instance of 
 $C$ and the mapping returns the class $C$ together with all recursively generated classes. Note that 
-the class name $C$ is not directly accessed by the user and so we can use arbitrary name, although the 
+the class name $C$ is not directly accessed by the user and so we can use an arbitrary name, although the 
 actual implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
 \ident{\{\str{person}:\{\str{name}:\str{Tomas}\}\}}, the nested record will be named \ident{Person}
 based on the name of the parent record field.}
 
-A collection shape becomes an Foo $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{convElements}
-(which returns empty list for data value \kvd{null}). The last parameter is the recursively obtained
+A collection shape becomes a Foo $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{convElements}
+(which returns the empty list for data value \kvd{null}). The last parameter is the recursively obtained
 conversion function for the shape of elements $\sigma$. The handling of the nullable shape is similar,
 but uses \ident{convNull}.
 
-As discussed earlier, labelled top shape are also generated as Foo classes with properties. Given 
+As discussed earlier, labelled top shapes are also generated as Foo classes with properties. Given 
 $\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl$, we get corresponding F\# types $\tau_i$ and generate 
 $n$ members of type $\ident{option}\langl \tau_i\rangl$. When the member is accessed, we need to perform
 a runtime shape test using \ident{hasShape} to ensure that the value has the right shape (similarly to runtime 
@@ -1331,7 +1334,7 @@ returned. The shape inference algorithm also guarantees that there is only one c
   {L; \Gamma \vdash \kvd{new}~C(e_1, \ldots, e_n):C}
 \end{equation*}
 
-\caption{Featherweight F\# -- Fragment of type checking}
+\caption{Foo -- Fragment of type checking}
 \label{fig:ff-typecheck}
 \end{figure}
 
@@ -1410,7 +1413,7 @@ returned. The shape inference algorithm also guarantees that there is only one c
 \end{equation*}
 \end{multicols}
 
-\caption{Type provider -- generation of featherweight F\# types from inferred structural types}
+\caption{Type provider -- generation of Foo types from inferred structural types}
 \label{fig:tp-generation}
 \vspace{-0.5em}
 \end{figure*}
@@ -1528,6 +1531,8 @@ optional record fields, the \ident{hasShape} operation is used to guaranteed the
 
 \noindent
 This shows that provided types are correct with respect to the preferred shape relation. 
+This is an obligation upon the author of a type provider, which is why
+type soundness is ``relative''.
 Our key theorem states that, for any input (which is a subshape of any of the samples) and 
 any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 Using standard syntactic type safety  \cite{syntactic}, we prove type preservation 
@@ -1539,7 +1544,7 @@ Assume $d_1, \ldots, d_n$ are samples, $\sigma=\semalt{d_1, \ldots, d_n}$ is an 
 shape and $\tau,e,L = \sem{\sigma}$ are a type, expression and class definitions generated by a 
 type provider.
 
-For all inputs $d'$ such that $\exists i.(\semalt{d_i} \sqsupseteq \semalt{d'})$ and all expressions $e'$
+For all inputs $d'$ such that $\sigma \sqsupseteq \semalt{d'}$ and all expressions $e'$
 (representing the user code) such that $e'$ does not contain primitive operations $op$ as a sub-expression and
 $\emptyset; y\!:\!\tau \vdash e'\!:\!\tau'$, it is the case that $L, e[y\leftarrow e'~d'] \reduce^{*} v$ for some value $v$ and
 also $\emptyset; \vdash v : \tau'$.
@@ -1556,7 +1561,7 @@ the assumptions of Theorem~\ref{thm:safety}, then if $L, \Gamma \vdash e : \tau$
 $L, e \reduce^{*} e'$ then $\Gamma \vdash e' : \tau$.
 \end{lemma}
 \begin{proof}
-By induction over the reduction $\reduce$. The cases for the ML subset of Featherweight F\# 
+By induction over the reduction $\reduce$. The cases for the ML subset of Foo 
 are standard. For (\emph{member}), we check that code generated by type providers
 in Figure~\ref{fig:tp-generation} is well-typed.
 \end{proof}
