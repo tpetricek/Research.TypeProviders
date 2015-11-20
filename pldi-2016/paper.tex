@@ -1267,10 +1267,11 @@ inserts an appropriate conversion function; \ident{convPrim} just checks that th
 and \ident{convFloat} converts numbers to a floating-point.
 
 For records, we generate a class $C$ that takes a data value as constructor parameter. For each 
-record field, we generate a member with the same name as the field.\footnote{The actual
-F\# Data implementation also capitalizes the names.} The body of the member calls \ident{convField}
+record field, we generate a member with the same name as the field.
+The body of the member calls \ident{convField}
 with a function obtained from $\sem{\sigma_i}$. This function turns the field value (data of shape
-$\sigma_i$) into a Foo value of type $\tau_i$. The returned expression creates a new instance of 
+$\sigma_i$) into a Foo value of type $\tau_i$. For optional fields, we also insert a runtime shape
+check using the \ident{hasShape} operation. The returned expression creates a new instance of 
 $C$ and the mapping returns the class $C$ together with all recursively generated classes. Note that 
 the class name $C$ is not directly accessed by the user and so we can use arbitrary name, although the 
 actual implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
@@ -1339,9 +1340,48 @@ returned. The shape inference algorithm also guarantees that there is only one c
 
 \begin{figure*}
 \begin{multicols}{2}
-% Primitive structural types become corresponding F# types and conversion is inserted
+
+% Records 
 \noindent
 \begin{equation*}
+\begin{array}{l}
+ \sem{\,\nu~ \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,} = \\[0.1em]
+ \quad C, \lambda x\rightarrow \kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\
+ \qquad \;\;k~\textnormal{such that}~(i > k) \Leftrightarrow (\sigma_i = \kvd{nullable}\langl \hat{\sigma_i} \rangl) \\
+ \qquad \;\,\,L = \kvd{type}~C(x_1\!:\!\ident{Data})=M_1 \,.\,.\, M_k, M'_{k+1} \,.\,.\, M'_n  \\
+ \qquad M_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x_1, e_i),\\
+ \qquad M'_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x_1, \lambda x_2 \rightarrow \\
+ \hspace{5.8em}  \kvd{if}~\ident{hasShape}(\hat{\sigma_i}, x_2)~\kvd{then}~ e_i~x_2~\kvd{else}~\ident{None}) \\[0.1em]
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i} 
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Nullables
+\begin{equation*}
+\hspace{-1.25em}
+\begin{array}{l}
+ \sem{\kvd{nullable}\langl\hat{\sigma}\rangl} = \\[0.2em]
+ \qquad \ident{option}\langl\tau\rangl, \lambda x \rightarrow \ident{convNull}(x,e), L\\[0.2em] 
+ \qquad \textnormal{where}~\tau, e, L = \sem{\hat{\sigma}}
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Collections
+\begin{equation*}
+\hspace{-1.25em}
+\begin{array}{l}
+ \sem{\,[\sigma]\,} = \ident{list}\langl\tau\rangl, \lambda x \rightarrow \ident{convElements}(x, e'), L \;\;\textnormal{where}\\[0.4em]
+ \qquad \tau, e', L = \sem{\hat{\sigma}}
+\end{array}
+\end{equation*}
+
+% Primitives
+\noindent
+\begin{equation*}
+\hspace{-1.3em}
 \begin{array}{l} 
  \sem{\sigma_p} = \tau_p,\lambda x\rightarrow op(\sigma_p, x),\emptyset\quad\textnormal{where} \\[0.6em] 
  \quad\sigma_p, \tau_p, op\in  \{~ (\ident{bool}, \ident{bool}, \ident{convPrim})\\
@@ -1349,38 +1389,9 @@ returned. The shape inference algorithm also guarantees that there is only one c
  \hspace{2.9em} (\ident{string},\ident{string},\ident{convPrim}) ~\}
 \end{array} 
 \end{equation*}
-%
-% Records become classes
-\begin{equation*}
-\begin{array}{l}
- \sem{\,\nu~ \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,} = \\[0.1em]
- \quad C, \lambda x\rightarrow \kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\
- \qquad \;\,\,L = \kvd{type}~C(x:\ident{Data})~=~M_1\ldots M_n  \\
- \qquad M_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x, e_i),\\
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i} 
-\end{array}
-\end{equation*}
-%
-% Option values
-\begin{equation*}
-\begin{array}{l}
- \sem{\kvd{nullable}\langl\hat{\sigma}\rangl} = \\[0.2em]
- \qquad \ident{option}\langl\tau\rangl, \lambda x \rightarrow \ident{convNull}(x,e), L\\[0.2em] 
- \qquad \textnormal{where}~\tau, e, L = \sem{\hat{\sigma}}
-\end{array}
-\end{equation*}
-%
-% Collections
-\begin{equation*}
-\hspace{-1.3em}
-\begin{array}{l}
- \sem{\,[\sigma]\,} = \ident{list}\langl\tau\rangl, \lambda x \rightarrow \ident{convElements}(x, e'), L \;\;\textnormal{where}\\[0.4em]
- \qquad \tau, e', L = \sem{\hat{\sigma}}
-\end{array}
-\end{equation*}
-%
-% Sum type
+\vspace{-2em}
+
+% Labelled top
 \begin{equation*}
 \begin{array}{l}
  \sem{\,\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl\,} = \\
@@ -1392,7 +1403,8 @@ returned. The shape inference algorithm also guarantees that there is only one c
  \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; \nu_i=\tytagof{(\sigma_i)}
 \end{array}
 \end{equation*}
-%
+\vspace{-2em}
+
 % Anything else
 \begin{equation*}
 \hspace{-1.3em}
@@ -1413,58 +1425,62 @@ returned. The shape inference algorithm also guarantees that there is only one c
 
 \paragraph{Example 1.}
 To illustrate how the mechanism works, we consider two examples. First, assume 
-that the inferred type is a record  
-$\{~\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}~ \}$. 
-The rules from Figure~\ref{fig:tp-generation} produce the following class:
+that the inferred shape is a record  
+$\ident{Person}~\{~\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}~ \}$. 
+The rules from Figure~\ref{fig:tp-generation} produce the following class (we reduce some 
+function applications for readability):
 %
+\vspace{-0.1em}
 \begin{equation*}
 \begin{array}{l}
- \kvd{type}~\ident{Person}(\ident{v}:\ident{StructVal})~= \\[0.1em]
+ \kvd{type}~\ident{Person}(x_1:\ident{Data})~= \\[0.1em]
  \quad \kvd{member}~\ident{Age}~:~\ident{option}\langl\ident{int}\rangl~= \\[0.1em]
- \qquad \kvd{if}~\ident{isNull}~(\ident{getField}(\ident{Person},\ident{Age}, \ident{v}))~\kvd{then}~\ident{None} \\[0.1em]
- \qquad \kvd{else}~\ident{Some}(\ident{asInt}(\ident{getField}(\ident{Person},\ident{Age}, \ident{v}))) \\[0.1em]
+ \qquad \ident{convField}(\ident{Person}, \ident{Age}, x_1, \lambda x_2 \rightarrow \\[0.1em]
+ \qquad \quad \kvd{if}~\ident{hasShape}(\ident{int}, x_2)~\kvd{then} \\[0.1em]
+ \qquad \quad \quad \ident{convNull}(x_2, \lambda x_3\rightarrow\ident{convPrim}(\ident{int}, x_3)) \\[0.1em]
+ \qquad \quad \kvd{else}~\ident{None})\\[0.1em]
  \quad \kvd{member}~\ident{Name}~:~\ident{string}~= \\[0.1em]
- \qquad \ident{asStr}(\ident{getField}(\ident{Person},\ident{Name}, \ident{v}))
+ \qquad \ident{convField}(\ident{Person},\ident{Name}, \lambda x_2 \rightarrow \\[0.1em]
+ \qquad \quad \ident{convPrim}(\ident{string}, x_2)))
 \end{array}
 \end{equation*}
 %
-The body of the \ident{Age} member is produced by the case for optional types applied to an expression
-$\ident{getField}(\ident{Person},\ident{Age},v)$. If the returned field is not \kvd{null}, then the member
-calls \ident{asInt} and wraps the result in \ident{Some}. Note that \ident{getField} is defined even 
-when the field does not exist, but it returns \kvd{null}. This lets us treat missing fields as 
-optional. An F\# type corresponding to the (structural) record is \ident{Person} and a structural 
-value $s$ is wrapped by by calling $\kvd{new}~\ident{Person}(s)$.
+The body of the \ident{Age} member uses \ident{convField} as specified by the case for optional
+record fields. The field shape is nullable and so \ident{convNull} is used in the continuation to 
+convert the value to \ident{None} if \ident{convField} produces a \kvd{null} data value and 
+\ident{hasShape} is used to ensure that the field has the correct shape. The \ident{Name} value should
+be always available and should have the right shape so \ident{convPrim} appears directly in the 
+continuation. This is where the evaluation can get stuck if the field value was missing. The F\# 
+type corresponding to the record shape is \ident{Person} the function to create it from a data value 
+is $\lambda x \rightarrow \kvd{new}~\ident{Person}(x)$.
 
-\paragraph{Example 2.} The second example illustrates the remaining types including collections and 
-variants. Reusing \ident{Person} from the previous example, consider 
-$[\kvd{any}\langl\ident{Person},\ident{string}\rangl]$, a collection which contains a mix 
-of \ident{Person} and string values:
+\paragraph{Example 2.} The second example illustrates the handling of collections and 
+labelled top types. Reusing \ident{Person} from the previous example, consider 
+$[\kvd{any}\langl\ident{Person}~\{ \ldots \},\ident{string}\rangl]$:
 %
 \begin{equation*}
 \begin{array}{l}
- \kvd{type}~\ident{PersonOrString}(v:\ident{StructVal})~= \\[0.1em]
+ \kvd{type}~\ident{PersonOrString}(x:\ident{Data})~= \\[0.1em]
  \quad \kvd{member}~\ident{Person}~:~\ident{option}\langl\ident{Person}\rangl~= \\[0.1em]
- \qquad \kvd{if}~\ident{hasShape}(\{\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}\}, v)~\\[0.1em]
- \qquad\quad \kvd{then}~\ident{Some}(\kvd{new}~\ident{Person}(v))~\kvd{else}~\ident{None} \\[0.1em]
+ \qquad \kvd{if}~\ident{hasShape}(\ident{Person}~\{ \ldots \}, x)~\kvd{then}\\[0.1em]
+ \qquad\quad \ident{Some}(\kvd{new}~\ident{Person}(x))~\kvd{else}~\ident{None} \\[0.1em]
  \quad \kvd{member}~\ident{String}~:~\ident{option}\langl\ident{string}\rangl~= \\[0.1em]
- \qquad \kvd{if}~\ident{hasShape}(\ident{string}, v)~\\[0.1em]
- \qquad\quad \kvd{then}~\ident{Some}(\ident{asStr}(v))~\kvd{else}~\ident{None}
+ \qquad \kvd{if}~\ident{hasShape}(\ident{string}, x)~\kvd{then}\\[0.1em]
+ \qquad\quad \ident{Some}(\ident{convPrim}(\ident{string}, x))~\kvd{else}~\ident{None}
 \end{array}
 \end{equation*}
 %
-The type provider maps the structural type to an F\# type $\ident{list}\langl\ident{PersonOrString}\rangl$. 
-Given a structural document value $s$, the code to obtain the wrapped F\# value is:
+The type provider maps the collection of labelled top shapes to a type $\ident{list}\langl\ident{PersonOrString}\rangl$
+and returns a function that parses a data value as follows:
 %
 \begin{equation*}
-\ident{map}~(\lambda x\rightarrow\kvd{new}~\ident{PersonOrString}(x))~(\ident{getChildren}(s))
+\lambda x_1\rightarrow \ident{convElements}(x_1\lambda x_2\rightarrow\kvd{new}~\ident{PersonOrString}(x_2))
 \end{equation*}
-
-The \ident{PersonOrString} type contains one member for each of the variant case. In the body, they
-check that the value has the correct type using \ident{hasShape}. This also implicitly handles \kvd{null}
-by returning \kvd{false}. As discussed earlier, variants provide easy access to the known cases
-(\ident{string} or \ident{Person}), but they are robust with respect to unexpected inputs.
-
-
+%
+The \ident{PersonOrString} class contains one member for each of the labels. In the body, they
+check that the input data value has the correct shape using \ident{hasShape}. This also implicitly 
+handles \kvd{null} by returning \kvd{false}. As discussed earlier, labelled top types provide easy 
+access to the known cases (\ident{string} or \ident{Person}), but they require a runtime shape check.
 
 % ==================================================================================================
 %
@@ -1488,53 +1504,53 @@ provide an input that has a different structure than any of the samples. In this
 that the code will throw an exception in the implementation (or get stuck in our model).
 
 More formally, given a set of sample documents, code using the provided type is guaranteed to work if 
-the inferred type of the input is a subtype of any of the samples. Going back to 
+the inferred shape of the input is preferred with respect to the shape of any of the samples. Going back to 
 \S\ref{sec:inference-subtyping}, this means that:
 %
-\begin{itemize}[noitemsep]
+\begin{itemize}
 \item[--] Input can contain smaller numerical values (e.g., if a sample contains float, the input can contain an integer)
 \item[--] Records in the input can have additional fields
-\item[--] Records in the input can have fewer fields, provided that the type of the field is missing in some of the samples
-\item[--] When a variant is inferred from the sample, the actual input can also contain any other value  
+\item[--] Records in the input can have fewer fields, provided that the type of the field is nullable in some of the samples
+\item[--] When a labelled top type is inferred from the sample, the actual input can also contain any other value,
+  which implements the open world assumption  
 \end{itemize}
 %
 The following lemma states that the provided code (generated in Figure~\ref{fig:tp-generation})
-works correctly on an input $s'$ that is a subtype of the sample $s$. More formally, the provided
-provided expression (with input $s'$) can be reduced to a value and, if it is a class,
+works correctly on an input $d'$ that is a subshape of $d$. More formally, the provided
+provided expression (with input $d'$) can be reduced to a value and, if it is a class,
 all its members can also be reduced to values.
 
 \begin{lemma}[Correctness of provided types]
 \label{thm:tp-correctness}
-Given a sample value $s$ and an input value $s'$ such that $\semalt{s} \sqsupseteq \semalt{s'}$
-and provided type, expression and class declarations $\tau, e, L = \sem{\semalt{s}}_{s'}$, 
-then $e \reduce^{*} v$ and if $\tau$ is a class ($\tau=C$) then for all members $N_i$ of the 
-class $C$, it holds that $e.N_i \reduce^{*} v$.
+Given sample data $d$ and an input data value $d'$ such that $\semalt{d} \sqsupseteq \semalt{d'}$
+and provided type, expression and classes $\tau, e, L = \sem{\semalt{d}}$, 
+then $L, e~d' \reduce^{*} v$ and if $\tau$ is a class ($\tau=C$) then for all members $N_i$ of the 
+class $C$, it holds that $L, (e~d').N_i \reduce^{*} v$.
 \end{lemma}
 \begin{proof}
-By induction over the structure of $\sem{-}_-$. For primitives, the conversion functions accept all subtypes.
-For other cases, analyze the provided code to see that it can work on all subtypes (\emph{e.g.}~\ident{getChildren}
-works on \kvd{null} values, \ident{getField} returns \kvd{null} when a field is missing and, for variants,
-the value has the correct type as guaranteed by \ident{hasShape}.
+By induction over the structure of $\sem{-}$. For primitives, the conversion functions accept all subtypes.
+For other cases, analyze the provided code to see that it can work on all subtypes (for example~\ident{convElements}
+works on \kvd{null} values, \ident{convFloat} accepts an integer); for labelled top types and
+optional record fields, the \ident{hasShape} operation is used to guaranteed the correct shape at runtime.
 \end{proof}
 
 \noindent
-This shows that the provided types are correct with respect to subtyping. Our key
-theorem states that, for any input (which is a subtype of any of the samples) and 
+This shows that provided types are correct with respect to the preferred shape relation. 
+Our key theorem states that, for any input (which is a subshape of any of the samples) and 
 any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 Using standard syntactic type safety  \cite{syntactic}, we prove type preservation 
-(reduction does not change type) and progress (an expression that is not a value can be reduced).
+(reduction does not change type) and progress (an expression can be reduced).
 
 \begin{theorem}[Relativized safety]
 \label{thm:safety}
-Assume $s_1, \ldots, s_n$ are samples, $\sigma=\semalt{s_1, \ldots, s_n}$ is an inferred
-type and $\tau,e,L = \sem{\sigma}_x$ are a type, expression and class definitions generated by a 
+Assume $d_1, \ldots, d_n$ are samples, $\sigma=\semalt{d_1, \ldots, d_n}$ is an inferred
+shape and $\tau,e,L = \sem{\sigma}$ are a type, expression and class definitions generated by a 
 type provider.
 
-For all new inputs $s'$ such that $\exists i.(\semalt{s_i} \sqsupseteq \semalt{s'})$, let $e_s=e[x\leftarrow s']$
-be an expression (of type $\tau$) that wraps the input in a provided type. Then, for any expression $e_c$
-(user code) such that $\emptyset; y:\tau \vdash e_c:\tau'$ and $e_c$ does not contain primitive operations
-$op$ as a sub-expression, it is the case that $e_c[y\leftarrow e_s] \reduce^{*} v$ for some value $v$ and
-also $\emptyset; \vdash v : \tau$.
+For all inputs $d'$ such that $\exists i.(\semalt{d_i} \sqsupseteq \semalt{d'})$ and all expressions $e'$
+(representing the user code) such that $e'$ does not contain primitive operations $op$ as a sub-expression and
+$\emptyset; y\!:\!\tau \vdash e'\!:\!\tau'$, it is the case that $L, e[y\leftarrow e'~d'] \reduce^{*} v$ for some value $v$ and
+also $\emptyset; \vdash v : \tau'$.
 \end{theorem}
 \begin{proof}
 We discuss the two parts of the proof separately as type preservation (Lemma~\ref{thm:rs-preservation})
@@ -1543,9 +1559,9 @@ and progress (Lemma~\ref{thm:rs-progress}).
 
 \begin{lemma}[Preservation]
 \label{thm:rs-preservation}
-Given the class definitions $L$ generated by a type provider as specified in
-the assumptions of Theorem~\ref{thm:safety}, then if $\Gamma \vdash e : \tau$ and 
-$e \reduce^{*} e'$ then $\Gamma \vdash e' : \tau$.
+Given the $\tau, e, L$ generated by a type provider as specified in
+the assumptions of Theorem~\ref{thm:safety}, then if $L, \Gamma \vdash e : \tau$ and 
+$L, e \reduce^{*} e'$ then $\Gamma \vdash e' : \tau$.
 \end{lemma}
 \begin{proof}
 By induction over the reduction $\reduce$. The cases for the ML subset of Featherweight F\# 
@@ -1556,22 +1572,22 @@ in Figure~\ref{fig:tp-generation} is well-typed.
 \noindent
 The progress lemma states that evaluation of a well-typed program does not reach an undefined state. 
 This is not a problem for the (standard) ML subset and object-oriented subset of the calculus. The 
-problematic part are the primitive functions (Figure~\ref{fig:op-conversions}). Given a structural 
-value (of type \ident{StructVal}), the reduction can get stuck if the value does not have a structure 
-required by a specific primitive.
+problematic part are the dynamic data operations (Figure~\ref{fig:op-conversions}). Given a data
+value (of type \ident{Data}), the reduction can get stuck if the value does not have a structure 
+required by a specific operation.
 
 The Lemma~\ref{thm:tp-correctness} guarantees that this does not happen inside the provided type.
-In Theorem~\ref{thm:safety}, we carefully state that we only consider expressions $e_c$ which 
-``[do] not contain primitive operations $op$ as sub-expressions''. This makes sure that the only 
-code working with structural values is the code generated by the type provider.
+We carefully state that we only consider expressions $e'$ which 
+``[do] not contain primitive operations $op$ as sub-expressions''. This ensure that only
+the code generated by a type provider works directly with data values.
 
 \begin{lemma}[Progress]
 \label{thm:rs-progress}
 Given the assumptions and definitions from Theorem~\ref{thm:safety}, it is the case that
-$e_c[y\leftarrow e_s] \reduce e_c'$.
+$e[y\leftarrow e'~d'] \reduce e''$.
 \end{lemma}
 \begin{proof}
-Proceed by induction over the typing derivation of $L; \emptyset \vdash e_c[y\leftarrow e_s] : \tau'$. 
+Proceed by induction over the typing derivation of $L; \emptyset \vdash e[y\leftarrow e'~d'] : \tau'$. 
 The cases for the ML subset are standard. For member access, we rely on Lemma~\ref{thm:tp-correctness}.
 \end{proof}
 
