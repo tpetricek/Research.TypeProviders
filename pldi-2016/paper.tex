@@ -92,7 +92,7 @@
 \newcommand{\reduce}{\rightsquigarrow}
 
 \newcommand{\sem}[1]{\llbracket #1 \rrbracket}
-\newcommand{\semalt}[1]{\llangl #1 \rrangl}
+\newcommand{\semalt}[1]{S(#1)}
 
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
@@ -533,13 +533,12 @@ with respect to numerical types and missing data.
 
 We distinguish between \emph{non-nullable shapes} that always have a valid value (written as 
 $\hat{\sigma}$) and \emph{nullable shapes} that encompass missing and \kvd{null} values 
-(written as $\sigma$). We write $\nu$ for record names and record field names. In the rest of the
-paper, we assume that record fields can be freely reordered:
+(written as $\sigma$). We write $\nu$ for record names and record field names. 
 
 \noindent
 \begin{equation*}
 \begin{array}{rcl}
- \hat{\sigma} &\narrow{=}& \nu \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
+ \hat{\sigma} &\narrow{=}& \nu \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n, \rho_i  \} \\[0.1em]
                 &\narrow{|}& \ident{float} \lsep \ident{int} \lsep \ident{bool} \lsep \ident{string} 
  \\[0.6em] 
        \sigma &\narrow{=}& ~\hat{\sigma}~ \lsep \kvd{nullable}\langl \hat{\sigma} \rangl \lsep [\sigma] \lsep \kvd{any} \lsep \kvd{null}  \lsep ~\bot~
@@ -562,6 +561,17 @@ notation) and $\bot$ is the bottom shape. The \kvd{any} shape is the top shape, 
 later by adding labels for statically known alternative shapes (\S\ref{sec:inference-vars}) as 
 discussed earlier (\S\ref{sec:providers-xml}).
 
+In the rest of the paper, we assume that record fields can be freely reordered.
+
+During inference we use row-variables $\rho_i$ in record shapes to represent the flexibility
+arising from records in samples. For example, when a 
+record {\small\ttfamily \{ x : 3 \}} occurs in a sample,
+it may be combined through inference with other
+samples such as {\small\ttfamily \{ x : 3, y : 4 \}} that contain more fields. The
+overall shape inferred must account for the fact that any extra fields are optional,
+giving an inferred shape {\small\ttfamily \{ x : int, y : option<int> \}}.
+The process of solving $\rho_i$ variables is  discussed in \S\ref{sec:formal-inferval}. 
+
 
 % -------------------------------------------------------------------------------------------------
 
@@ -575,7 +585,7 @@ abbreviate $\kvd{nullable}\langl\sigma\rangl$ as $\sigma?$ and we omit links bet
 a shape $\hat{\sigma}$ is preferred over $\kvd{nullable}\langl\hat{\sigma}\rangl$.
 
 \begin{definition}
-We write $\sigma_1 \sqsupseteq \sigma_2$ to denote that $\sigma_2$ is preferred over $\sigma_1$. 
+For ground $\sigma_1$, $\sigma_2$ (i.e. without $\rho_i$ variables), we write $\sigma_1 \sqsupseteq \sigma_2$ to denote that $\sigma_2$ is preferred over $\sigma_1$. 
 The shape preference relation is defined as a transitive reflexive closure of the following rules:
 
 \noindent
@@ -594,7 +604,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
   \label{eq:sub-bot}\tag{P6}
   \sigma &\sqsupseteq \bot  &(\textnormal{for all}~\sigma)\\[-0.2em]
   \label{eq:sub-var-top}\tag{P7}
-  \kvd{any}\langl \sigma_1, \ldots, \sigma_n\rangl &\sqsupseteq \sigma 
+  \kvd{any} &\sqsupseteq \sigma 
 \end{align}
 \vspace{-2em}
 
@@ -606,7 +616,9 @@ The shape preference relation is defined as a transitive reflexive closure of th
  \quad\nu~\{ \nu_1\!:\!\sigma_1', .., \nu_n\!:\!\sigma_n' \}
 \end{array} \qquad ~~~~(\textnormal{if}~\sigma_i \sqsupseteq \sigma_i')
 \end{align}
+
 \vspace{-1.5em}
+
 \begin{align}
 \label{eq:sub-record2}\tag{R2}
 \begin{array}{l}
@@ -614,14 +626,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
  \quad\nu~\{ \nu_1\!:\!\sigma_1, .., .., \nu_m\!:\!\sigma_m \}
 \end{array} \quad~~\, (\textnormal{when}~m \geq n)
 \end{align}
-\vspace{-1.5em}
-\begin{align}
-\label{eq:sub-record3}\tag{R3}
-\begin{array}{l}
- \nu~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n, \nu_{n+1}\!:\!\kvd{null} \} \sqsupseteq \\
- \quad\nu~\{ \nu_1\!:\!\sigma_1, .., \nu_n\!:\!\sigma_n \}
-\end{array}
-\end{align}
+
 \end{definition}
 
 % --------------------------------------------------------------------------------------------------
@@ -684,14 +689,11 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \begin{equation*}
 \hspace{4em}
 \inference[(record)\;]
-  { (\nu_i = \nu'_j) \Leftrightarrow (i = j) \wedge (i \leq k)
-      \qquad \forall i\in\{ 1 .. k \}.(\sigma_i \tsep \sigma'_i \vdash \sigma''_i) }
+  { \forall i\in\{ 1 .. n \}.(\sigma_i \tsep \sigma'_i \vdash \sigma''_i) }
   { \begin{array}{l}
-    \nu \; \{ \nu_1 \!:\! \sigma_1,  \; \ldots \;, \nu_k \!:\! \sigma_k, \; \ldots \;, \nu_n \!:\! \tau_n \} \tsep
-    \nu \; \{ \nu'_1 \!:\! \sigma'_1, \; \ldots \;, \nu'_k \!:\! \sigma'_k, \; \ldots \;, \nu'_m \!:\! \tau'_m \} \vdash\\
-    \nu \; \{ \nu_1 \!:\! \sigma''_1, \; \ldots \; , \nu_k \!:\! \sigma''_k, 
-                            \nu_{k+1} \!:\! \addopt{\sigma_{k+1}}, \ldots, \nu_n \!:\! \addopt{\sigma_n},
-                            \nu'_{k+1} \!:\! \addopt{\sigma'_{k+1}}, \ldots, \nu'_m \!:\! \addopt{\sigma'_m} \}
+    \nu \; \{ \nu_1 \!:\! \sigma_1,  \ldots \;, \nu_n \!:\! \sigma_n \} \tsep
+    \nu \; \{ \nu'_1 \!:\! \sigma'_1, \; \ldots \;, \nu'_m \!:\! \sigma'_m \} \vdash
+    \nu \; \{ \nu_1 \!:\! \sigma''_1, \; \ldots \; , \nu_k \!:\! \sigma''_n \}
     \end{array} }
 \end{equation*}
 \vspace{-2em}
@@ -722,7 +724,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \end{array}
 \end{equation*}
 
-\caption{Inference judgements that define the common preferred shape relation}
+\caption{The common preferred shape relation}
 \label{fig:subtyping-cst}
 \end{figure*}
 
@@ -744,39 +746,32 @@ Here is a summary of the key aspects of the definition:
   any shape $\sigma$ is preferred over \kvd{any} (\ref{eq:sub-var-top}). 
 
 \item The record shapes are covariant (\ref{eq:sub-record1}) and preferred record can have 
-  additional fields (\ref{eq:sub-record2}). The rule (\ref{eq:sub-record3}) implies that records 
-  can omit fields, provided that \kvd{null} is a valid value for the 
-  field (i.e. the field is optional).
+  additional fields (\ref{eq:sub-record2}). 
 \end{itemize}
 
 \noindent
-The rule that allows preferred shapes to have fewer fields (\ref{eq:sub-record3}) is particularly
-important. This allows us to prefer records with optional fields over the \kvd{any} 
-shape. Given $\{ \ident{name}\!:\!\ident{string} \}$ and $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int} \}$,
-we find a common shape $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int}~\kvd{option} \}$.
-This is a least upper bound and more usable than the top shape $\kvd{var}$.
 
 % -------------------------------------------------------------------------------------------------
 
 \subsection{Common preferred shape relation}
 \label{sec:inference-commonsuper}
 
-Given two shapes, the \emph{common preferred shape} relation finds a least upper bound
+Given two ground shapes, the \emph{common preferred shape} relation finds a least upper bound
 (Theorem~\ref{thm:lub}). It prefers records, which is important for usability as discussed
 earlier.
 
 \begin{definition}
-A \emph{common preferred shape} of shapes $\sigma_1$ and $\sigma_2$ is a shape $\sigma$, written 
-$\sigma_1 \tsep \sigma_2 \vdash \sigma$, obtained according to the inference rules in 
+A \emph{common preferred shape} of two ground shapes $\sigma_1$ and $\sigma_2$ is a shape $\sigma$, written 
+$\sigma_1 \tsep \sigma_2 \vdash \sigma$, by the rules in 
 Figure~\ref{fig:subtyping-cst}.
 \end{definition}
 
 \noindent
 We define shape \emph{tags} to identify shapes that have a common preferred shape which is not the
-top shape. When finding a common shape of two records (\emph{record}), we return a record that has 
-the union of their fields. The shape of shared fields becomes the common preferred shape of their 
-respective shapes; fields that are present in only one record are marked as nullable using 
-the function $\addopt{-}$.
+top shape. When finding a common shape of two records (\emph{record}), the shape of fields becomes the common preferred shape of their 
+respective shapes. If the field labels of two record types do not match,
+we can assume a common assignment of fields has been determined
+through shape inference (\S\ref{sec:formal-inferval}).
 
 We can find a common shape of two different numbers (\emph{prim}); for two collections,
 we combine their elements (\emph{list}). When one shape is nullable (\emph{nullable}), we find
@@ -786,27 +781,15 @@ we make the other one nullable (\emph{null}). Finally, if the two shapes do not 
 The remaining rules for reflexivity, symmetry and the bottom shape are standard.
 
 \paragraph{Properties.}
-The set of shapes does not have a \emph{unique} least upper bound, but it 
-has a least upper bound with respect to an equivalence between mutually preferred shapes. 
-The common preferred shape relation defines a function (Theorem~\ref{thm:func}) that finds a
-least upper bound (Theorem~\ref{thm:lub}). 
+A set of ground shapes has a \emph{unique} least upper bound by the preferred shape ordering.
+For ground shapes, the common preferred shape relation defines a function (Lemma~\ref{thm:func}) that finds 
+the least upper bound (Lemma~\ref{thm:lub}). 
 
-The equivalence on shapes groups records by their non-nullable fields. Given 
-$\sigma_1 = \ident{A}~\{ \ident{a}\!:\!\ident{int}, \ident{b}\!:\!\kvd{nullable}\langl\ident{int}\rangl \}$,
-$\sigma_2 = \ident{A}~\{ \ident{a}\!:\!\ident{int} \}$ and
-$\sigma_3 = \ident{A}~\{ \ident{a}\!:\!\ident{int}, \ident{b}\!:\!\ident{int} \}$,
-it is the case that $\sigma_1 \sqsubseteq \sigma_2$ and $\sigma_1 \sqsupseteq \sigma_2$ but
-$\sigma_3 \sqsubseteq \sigma_1$ and not vice versa. 
-
-Similarly to labels on the labelled top type (\S\ref{sec:inference-vars}), the nullable fields 
-of records serve as annotations that provide access to additional values that may or may not be 
-available in the input. In the provided code, these always have to be protected by a runtime check.
-
-\begin{theorem}[Preferred shape function]
+\begin{lemma}[Preferred shape function]
 \label{thm:func}
-For all $\sigma_1$ and $\sigma_2$ there exists exactly one $\sigma$ such that 
+For all ground $\sigma_1$ and $\sigma_2$ there exists exactly one $\sigma$ such that 
 $\sigma_1 \tsep \sigma_2 \vdash \sigma$. 
-\end{theorem}
+\end{lemma}
 \begin{proof}
 The pre-conditions of rules in Figure~\ref{fig:subtyping-cst} are disjoint, with the exception 
 of (\emph{sym}) and (\emph{refl}), but applying those does not affect the result. Reflexivity is
@@ -814,20 +797,81 @@ preserved recursively and all rules, symmetry does not enable different derivati
 non-symmetric (\emph{nullable}) and (\emph{prim}).
 \end{proof}
 
-\begin{theorem}[Least upper bound]
+\begin{lemma}[Least upper bound]
 \label{thm:lub}
-If $\sigma_1 \triangledown \sigma_2 \vdash \sigma$ then $\sigma$ is a least upper bound, i.e. 
-$\sigma \sqsupseteq \sigma_1$ and $\sigma \sqsupseteq \sigma_2$ and for all $\sigma'$ such that $\sigma' \sqsupseteq \sigma_1$
-and $\sigma' \sqsupseteq \sigma_2$, it holds that $\sigma' \sqsupseteq \sigma$.
-\end{theorem}
+For ground $\sigma_1$ and $\sigma_2$, if $\sigma_1 \triangledown \sigma_2 \vdash \sigma$ then $\sigma$ is a least upper bound by $\sqsupseteq$.
+\end{lemma}
 \begin{proof}
 By induction over $\vdash$. The algorithm only infers the top shape \kvd{any} when for non-nullable
 shapes of distinct tags and so no better preferred shape exists.
 \end{proof}
 
+\subsection{Inferring shapes from samples}
+\label{sec:formal-inferval}
+
+We now specify how we obtain the shape from data. We represent JSON, XML and CSV documents using
+the same first-order \emph{data} value (\S\ref{sec:impl-parsing}):
+%
+\begin{equation*}
+\begin{array}{lcl}
+ d &\narrow{=}& i \lsep f \lsep s \lsep \kvd{true} \lsep \kvd{false} \lsep \kvd{null} \\[0.1em]
+   &\narrow{|}& [d_1; \ldots; d_n] \lsep \nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}
+\end{array}
+\end{equation*}
+%
+The first few cases of represent primitive values ($i$ for integers, $f$ for floating
+point numbers and $s$ for strings) and the \kvd{null} value. A collection is written as a 
+list of values in square brackets. A record starts with a name $\nu$, followed by a 
+sequence of field assignments $\nu_i \mapsto d_i$.
+
+Figure~\ref{fig:shape-inference} defines a mapping $\semalt{d_1,\ldots,d_n}$ which turns a collection of sample 
+data $d_1, \ldots, d_n$ into a shape $\sigma$. Before applying $S$, we assume each record in each $d_i$ is marked with a fresh row inference
+variable $\rho_i$.  
+We then choose a ground, minimal substitution $\theta$ for row variables.
+Because $\rho_i$ variables represent potentially missing fields,
+the $\addopt{-}$ operator from Figure~\ref{fig:subtyping-cst} is applied to all types
+in the vector. 
+This must be sufficient to equate the record field labels and satisfy the side conditions in rule (record) when multiple record samples are merged.
+In practice, $\theta$ is found via row variable unification, we omit the details here.
+No $\rho_i$ variables remain after inference as the substitution chosen is ground.
+
+
+
+\begin{figure}
 \noindent
-Next, we extend the core model (sufficient for the relativized safety) 
-with \emph{labelled top types} discussed earlier.
+\begin{equation*}
+\begin{array}{rclcrclcrcl}
+ \semalt{i} &\narrow{=}& \ident{int} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} && \semalt{\kvd{true}} &\narrow{=}& \ident{bool}\\
+ \semalt{f} &\narrow{=}& \ident{float} && \semalt{s} &\narrow{=}& \ident{string} && \semalt{\kvd{false}}  &\narrow{=}& \ident{bool}\\
+\end{array}
+\end{equation*}
+\noindent
+\vspace{-0.5em}
+\begin{equation*}
+\begin{array}{l}
+ \semalt{[d_1; \ldots; d_n]} = [\semalt{d_1, \ldots, d_n}]
+ \\[0.5em]
+ \semalt{\nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}_{\rho_i}} =\\[0.1em]
+ \qquad\nu~\{ \nu_1:\semalt{d_1}, \ldots, \nu_n :\semalt{d_n}, \addopt{\theta(\rho_i)} \}
+ \\[0.5em]
+ \semalt{d_1, \ldots, d_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
+ \qquad\sigma_0 = \bot,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{d_i} \vdash \sigma_i \\[0.1em]
+ \textnormal{Choose minimal}\ \theta\ \textnormal{by ordering}\ \sqsupseteq\ \textnormal{lifted over substitutions} \\[0.1em]
+\end{array}
+\end{equation*}
+\caption{Shape inference}
+\label{fig:shape-inference}
+\end{figure}
+
+%
+Primitive  values are mapped to their corresponding shapes. 
+When infering a shape from multiple samples, we use the common preferred shape relation to find a 
+common shape for all values (starting with $\bot$). This operation is used at the top-level 
+(when calling a type provider with multiple samples) and also when inferring the shape of collection
+elements.
+
+
+
 
 % --------------------------------------------------------------------------------------------------
 
@@ -872,8 +916,11 @@ with \emph{labelled top types} discussed earlier.
 
 % --------------------------------------------------------------------------------------------------
 
-\subsection{Adding labelled top type}
+\subsection{Adding labelled top shapes}
 \label{sec:inference-vars}
+
+Next, we indicate how the core model (sufficient for the relativized safety) 
+can be extended with \emph{labelled top shapes} discussed earlier.
 
 When analyzing the structure of shapes, it suffices to consider a single top shape \kvd{any}.
 However, the type providers need more information to provide typed access to the possible 
@@ -888,7 +935,7 @@ The shapes $\sigma_1, \ldots, \sigma_n$ represent statically known shapes that a
 sample and that we expose in the provided type. As discussed earlier (\S\ref{sec:providers-xml})
 this is important when reading external \emph{open world} data. The labels do not affect the 
 preferred shape relation and $\kvd{any}\langl \sigma_1, \ldots, \sigma_n\rangl$ should still be
-seen as the top type, regardless of the labels.
+seen as the top shape, regardless of the labels.
 
 The common preferred shape relation is extended to find a labelled top shape that best represents 
 the sample. We limit the number of labels and avoid nesting by grouping shapes by the shape tag 
@@ -900,71 +947,20 @@ $\kvd{any}\langl\ident{float},\ident{bool}\rangl$.
 The three rules in Figure~\ref{fig:subtyping-cst-var} replace the earlier (\emph{top}). When 
 combining a top with another shape (\emph{top-1}), the labelled top shape may or may not already 
 contain a case with the tag of the other shape. If it does, the two shapes are combined, otherwise 
-a new case is added. When combining two top types (\emph{top-2}), we group the labels that have 
+a new case is added. When combining two top shapes (\emph{top-2}), we group the labels that have 
 shared tags. Finally, (\emph{top-3}) covers the case when we are combining two distinct non-top 
 shapes. As top shapes implicitly permit \kvd{null} values, we use an auxiliary function $\dropopt{-}$ 
 to make nullable shapes non-nullable (when possible) to simplify the label.
 
 \paragraph{Properties.}
-The revised algorithm stil finds a shape which is the least upper bound. This means that 
+The revised algorithm still finds a shape which is the least upper bound. This means that 
 labelled top shape is only inferred when there is no other alternative.
 
-Stating properties of the labels requires a finer relation than \emph{preferred shape}. In particular, 
-it can only be done with respect to the \emph{sample}. We leave the details to future work, but we
+Stating properties of the labels requires refinements to the \emph{preferred shape} relation.
+We leave the details to future work, but we
 note that the algorithm infers the best labels in the sense that there are labels that enable 
 typed access to every possible value in the sample, but not more. The same is the case for nullable
 fields of records.
-
-\subsection{Inferring shapes from values}
-\label{sec:formal-inferval}
-
-The common preferred shape relation is at the core of the shape inference. What remains to be 
-specified is how we obtain the shape from data. We represent JSON, XML and CSV documents using
-the same first-order \emph{data} value (\S\ref{sec:impl-parsing}):
-%
-\begin{equation*}
-\begin{array}{lcl}
- d &\narrow{=}& i \lsep f \lsep s \lsep \kvd{true} \lsep \kvd{false} \lsep \kvd{null} \\[0.1em]
-   &\narrow{|}& [d_1; \ldots; d_n] \lsep \nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}
-\end{array}
-\end{equation*}
-%
-The first few cases represent primitive values ($i$ for integers, $f$ for floating
-point numbers and $s$ for strings) and the \kvd{null} value. A collection is written as a 
-list of values in square brackets. A record starts with a name $\nu$, followed by a 
-sequence of field assignments $\nu_i \mapsto d_i$.
-
-The following defines a mapping $\semalt{d_1,\ldots,d_n}$ which turns a collection of sample 
-data $d_1, \ldots, d_n$ into a shape $\sigma$:
-%
-\begin{equation*}
-\begin{array}{rclcrclcrcl}
- \semalt{i} &\narrow{=}& \ident{int} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} && \semalt{\kvd{true}} &\narrow{=}& \ident{bool}\\
- \semalt{f} &\narrow{=}& \ident{float} && \semalt{s} &\narrow{=}& \ident{string} && \semalt{\kvd{false}}  &\narrow{=}& \ident{bool}\\
-\end{array}
-\end{equation*}
-\noindent
-\vspace{-0.5em}
-\begin{equation*}
-\begin{array}{l}
- \semalt{d_1, \ldots, d_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
- \qquad\sigma_0 = \bot,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{d_i} \vdash \sigma_i
- \\[0.5em]
- \semalt{[d_1; \ldots; d_n]} = [\semalt{d_1, \ldots, d_n}]
- \\[0.5em]
- \semalt{\nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}} =\\[0.1em]
- \qquad\nu~\{ \nu_1:\semalt{d_1}, \ldots, \nu_n :\semalt{d_n} \}
-\end{array}
-\end{equation*}
-%
-We overload the notation and write $\semalt{s}$ when inferring shape from a single value. Primitive 
-values are mapped to their corresponding shapes. For records, we return infer field shapes
-from the individual values. 
-
-When infering a shape from multiple samples, we use the common preferred shape relation to find a 
-common shape for all values (starting with $\bot$). This operation is used at the top-level 
-(when calling a type provider with multiple samples) and also when inferring the shape of collection
-elements.
 
 
 % ==================================================================================================
@@ -983,12 +979,14 @@ elements.
 \label{sec:formal}
 
 This section presents the theoretical model of strucutral type providers. We introduce the Foo calculus 
-which is an object-oriented subset of F\# based on SML \cite{sml} and Featherweight Java \cite{fwjava}. It 
-includes operations for working with data that model the F\# Data runtime. Finally, we describe how 
+which is a subset of F\# using object-property notation with
+added operations for working with weakly typed structured data along the lines of the F\# Data runtime. Finally, we describe how 
 type providers turn inferred shapes into Foo classes (\S\ref{sec:formal-tp}).
 
-Type providers map the dirty world of data into a nice world of F\#. To model this, the Foo calculus
-does not have \kvd{null} values and data values $d$ are never directly exposed.
+Type providers map the ``dirty'' world of weakly typed structured data into a nice world of strong types. To model this, the Foo calculus
+does not have \kvd{null} values and data values $d$ are never directly exposed.  
+Furthermore Foo is simply typed: despite using class types and object notation 
+for properties, it has no subtyping.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1049,7 +1047,7 @@ The syntax of the calculus is shown in Figure~\ref{fig:foo-syntax}. We only need
 parameter-less members and without inheritance. A class has a single implicit constructor and the 
 declaration closes over constructor parameters. 
 
-The type \ident{Data} is the type of all structural data $d$. A class definition $L$ consists of 
+The type \ident{Data} is the type of structural data $d$. A class definition $L$ consists of 
 a constructor and zero or more members. Values $v$ include previously defined data $d$; expressions
 $e$ include class construction, member access and the usual functional constructs (functions,
 lists, options) and conditionals. The $op$ constructs are discussed next.
@@ -1058,7 +1056,7 @@ lists, options) and conditionals. The $op$ constructs are discussed next.
 
 \paragraph{Dynamic data operations.}
 
-The Foo programs can only work with raw data using certain primitive operations. Those are modelled
+The Foo programs can only work with \ident{Data} values using certain primitive operations. Those are modelled
 by the $op$ primitives. In F\# Data, those are internal and users never access them directly.
 
 % -------------------------------------------------------------------------------------------------
