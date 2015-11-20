@@ -533,13 +533,12 @@ with respect to numerical types and missing data.
 
 We distinguish between \emph{non-nullable shapes} that always have a valid value (written as 
 $\hat{\sigma}$) and \emph{nullable shapes} that encompass missing and \kvd{null} values 
-(written as $\sigma$). We write $\nu$ for record names and record field names. In the rest of the
-paper, we assume that record fields can be freely reordered:
+(written as $\sigma$). We write $\nu$ for record names and record field names. 
 
 \noindent
 \begin{equation*}
 \begin{array}{rcl}
- \hat{\sigma} &\narrow{=}& \nu \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n, \addopt{\rho_i}  \} \\[0.1em]
+ \hat{\sigma} &\narrow{=}& \nu \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n, \rho_i  \} \\[0.1em]
                 &\narrow{|}& \ident{float} \lsep \ident{int} \lsep \ident{bool} \lsep \ident{string} 
  \\[0.6em] 
        \sigma &\narrow{=}& ~\hat{\sigma}~ \lsep \kvd{nullable}\langl \hat{\sigma} \rangl \lsep [\sigma] \lsep \kvd{any} \lsep \kvd{null}  \lsep ~\bot~
@@ -551,17 +550,6 @@ Non-nullable shapes include records (consisting of a name and fields with their 
 primitives. Names of records arising from XML are the names of the XML elements while
 JSON records always use a single name $\bullet$.
 
-During inference we use row-variables $\rho_i$ to represent the flexibility
-implied by our interpretation of records in samples. 
-When a record {\small\ttfamily \{ x : 3 \}} occurs in a sample,
-it may be combined in a list with other samples that contain more fields. The
-overall shape inferred must account for the potential that any other fields are not
-present in the first sample. The solutions of $\rho_i$ variables is 
-discussed in \S\ref{sec:inference}. We assume substitution and row-unification is
-defined for these in the usual way , except that as substitutions are made
-the $\addopt{-}$ operator from Figure~\ref{fig:subtyping-cst} is applied to all types
-in the vector. After inference any remaining $\rho_i$ variables are ignored (assumed empty).
-
 We include two numerical primitives, \ident{int} for integers and \ident{float} for floating-point 
 numbers. The two are related by the perference relation and we prefer \ident{int}.
 
@@ -572,6 +560,17 @@ collections. The shape $\kvd{null}$ is inhabited by the $\kvd{null}$ value (usin
 notation) and $\bot$ is the bottom shape. The \kvd{any} shape is the top shape, but we revisit it 
 later by adding labels for statically known alternative shapes (\S\ref{sec:inference-vars}) as 
 discussed earlier (\S\ref{sec:providers-xml}).
+
+In the rest of the paper, we assume that record fields can be freely reordered.
+
+During inference we use row-variables $\rho_i$ in record shapes to represent the flexibility
+arising from records in samples. For example, when a 
+record {\small\ttfamily \{ x : 3 \}} occurs in a sample,
+it may be combined through inference with other
+samples such as {\small\ttfamily \{ x : 3, y : 4 \}} that contain more fields. The
+overall shape inferred must account for the fact that any extra fields are optional,
+giving an inferred shape {\small\ttfamily \{ x : int, y : option<int> \}}.
+The process of solving $\rho_i$ variables is  discussed in \S\ref{sec:formal-inferval}. 
 
 
 % -------------------------------------------------------------------------------------------------
@@ -810,8 +809,7 @@ shapes of distinct tags and so no better preferred shape exists.
 \subsection{Inferring shapes from samples}
 \label{sec:formal-inferval}
 
-What remains to be 
-specified is how we obtain the shape from data. We represent JSON, XML and CSV documents using
+We now specify how we obtain the shape from data. We represent JSON, XML and CSV documents using
 the same first-order \emph{data} value (\S\ref{sec:impl-parsing}):
 %
 \begin{equation*}
@@ -827,11 +825,17 @@ list of values in square brackets. A record starts with a name $\nu$, followed b
 sequence of field assignments $\nu_i \mapsto d_i$.
 
 Figure~\ref{fig:shape-inference} defines a mapping $\semalt{d_1,\ldots,d_n}$ which turns a collection of sample 
-data $d_1, \ldots, d_n$ into a shape $\sigma$. We assume each record in each $d_i$ is marked with a fresh row inference
-variable $\rho_i$.  We then choose a minimal solution $\theta$ for these row variables
-in order to equate the record 
-field labels and satisfy the side conditions in rule (record) when multiple record samples are merged.
-This minimization is implemented via row variable unification, we omit the details here.
+data $d_1, \ldots, d_n$ into a shape $\sigma$. Before applying $S$, we assume each record in each $d_i$ is marked with a fresh row inference
+variable $\rho_i$.  
+We then choose a ground, minimal substitution $\theta$ for row variables.
+Because $\rho_i$ variables represent potentially missing fields,
+the $\addopt{-}$ operator from Figure~\ref{fig:subtyping-cst} is applied to all types
+in the vector. 
+This must be sufficient to equate the record field labels and satisfy the side conditions in rule (record) when multiple record samples are merged.
+In practice, $\theta$ is found via row variable unification, we omit the details here.
+No $\rho_i$ variables remain after inference as the substitution chosen is ground.
+
+
 
 \begin{figure}
 \noindent
@@ -856,7 +860,7 @@ This minimization is implemented via row variable unification, we omit the detai
 \end{array}
 \end{equation*}
 \caption{Shape inference}
-\label{fig:shape inference}
+\label{fig:shape-inference}
 \end{figure}
 
 %
@@ -949,7 +953,7 @@ shapes. As top shapes implicitly permit \kvd{null} values, we use an auxiliary f
 to make nullable shapes non-nullable (when possible) to simplify the label.
 
 \paragraph{Properties.}
-The revised algorithm stil finds a shape which is the least upper bound. This means that 
+The revised algorithm still finds a shape which is the least upper bound. This means that 
 labelled top shape is only inferred when there is no other alternative.
 
 Stating properties of the labels requires refinements to the \emph{preferred shape} relation.
