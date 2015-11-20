@@ -448,7 +448,7 @@ a statically known element. The above code uses \ident{Option.iter} to skip all 
 The provided type is also consistent with our design principles, which prefers optional properties. 
 The gain is that the provided types support both open-world data and developer tooling. It is also 
 worth noting that our shape inference uses labelled top shapes only as the last resort 
-(Theorem~\ref{thm:lub}, \S\ref{sec:impl-hetero}).
+(Lemma~\ref{thm:lub}, \S\ref{sec:impl-hetero}).
 
 % -------------------------------------------------------------------------------------------------
 
@@ -757,7 +757,7 @@ Here is a summary of the key aspects of the definition:
 \label{sec:inference-commonsuper}
 
 Given two ground shapes, the \emph{common preferred shape} relation finds a least upper bound
-(Theorem~\ref{thm:lub}). It prefers records, which is important for usability as discussed
+(Lemma~\ref{thm:lub}). It prefers records, which is important for usability as discussed
 earlier.
 
 \begin{definition}
