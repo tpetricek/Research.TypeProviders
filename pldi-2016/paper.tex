@@ -1614,22 +1614,21 @@ F\# libraries.\footnote{At the time of writing, the library has over 80,000 down
 development using the library can be seen in an attached screencast and additional documentation can be
 found at \url{http://fsharp.github.io/FSharp.Data}.
 
-In this section, we discuss our practical experience with the safety guarantees provided by the
+In this section, we discuss our experience with the safety guarantees provided by the
 F\# Data type providers and other notable aspects of the implementation.
-
 
 \subsection{Relativized safety in practice}
 \label{sec:safety-discuss}
 
 The \emph{relativized safety} property does not guarantee the same amount of safety as traditional
-ML type safety, but it reflects the reality of programming with external data sources that is 
+closed-world type safety, but it reflects the reality of programming with external data that is 
 increasingly important \cite{age-of-web}. Type providers do not reduce the safety -- they simply 
 illuminate the existing issues.
 
 One such issue is the handling of schema change. With type providers, the sample is captured 
-at compile-time. If the schema changes later (so that the input is no longer a subtype of the 
-sample), the program fails at runtime and developers have to handle the exception. This is the 
-same problem that happens when reading data using any other library.
+at compile-time. If the schema changes later (so that the input is no longer related to the  
+shape of the sample), the program fails at runtime and developers have to handle the exception. 
+The same problem happens when using weakly-typed techniques.
 
 F\# Data can help discover such errors earlier. Our first example (\S\ref{sec:introduction})
 points the JSON type provider at a sample using a live URL. This has the advantage that a re-compilation 
@@ -1645,8 +1644,8 @@ provider could adapt automatically, but we leave this for future work.
 \subsection{Parsing structured data}
 \label{sec:impl-parsing}
 
-In our formalization, we treat XML, JSON and CSV uniformly as \emph{structural values}. With the addition of 
-named records (for XML nodes), the definition of structural values is rich enough to capture all 
+In our formalization, we treat XML, JSON and CSV uniformly as \emph{data values}. With the addition of 
+names for records (for XML nodes), the definition of structural values is rich enough to capture all 
 three formats\footnote{The same mechanism has later been used by the HTML type provider 
 (\url{http://fsharp.github.io/FSharp.Data/HtmlProvider.html}), which provides similarly easy 
 access to data in HTML tables and lists.}. However, parsing real-world data poses a number of practical issues.
@@ -1654,7 +1653,7 @@ access to data in HTML tables and lists.}. However, parsing real-world data pose
 \paragraph{Reading CSV data.}
 When reading CSV data, we read each row as an unnamed record and return a collection of rows.
 One difference between JSON and CSV is that in CSV, the literals have no data types and so 
-we also need to infer the type of primitive values. For example:
+we also need to infer the shape of primitive values. For example:
 %
 {\small{
 \begin{verbatim}
@@ -1669,13 +1668,13 @@ we also need to infer the type of primitive values. For example:
 \noindent
 The value {\small\ttfamily \#N/A} is commonly used to represent missing values in CSV and is treated
 as \kvd{null}. The \ident{Date} column uses mixed formats and is inferred as \ident{string} 
-(we support many date formats and ``May 3'' would be parsed correctly). More interestingly,
+(we support many date formats and ``May 3'' would be parsed as date). More interestingly,
 we also infer \ident{Autofiled} as Boolean, because the sample contains only $0$ and $1$.
-This is handled by adding a \ident{bit} type which is a subtype of both \ident{int} and \ident{bool}.
+This is handled by adding a \ident{bit} shape which is preferred of both \ident{int} and \ident{bool}.
 
 \paragraph{Reading XML documents.}
 Mapping XML documents to structural values is perhaps the most interesting. For each node, we
-create a named record. Attributes become record fields and the body becomes a field with a special
+create a record. Attributes become record fields and the body becomes a field with a special
 name:
 %
 {\small{
@@ -1689,17 +1688,17 @@ name:
 \noindent
 This XML becomes a record \ident{root} with fields \ident{id} and $\bullet$ for the body. 
 The nested element contains only the $\bullet$ field with the inner text. As with CSV, we
-infer type of primitive values:
+infer shape of primitive values:
 %
 \begin{equation*}
 \ident{root}~\{ \ident{id} \mapsto 1, \bullet \mapsto [ \ident{item}~\{ \bullet \mapsto \str{Hello!} \}] \}
 \end{equation*}
 %
-When generating types for XML documents, we also lifts the members nested under the $\bullet$ 
+When generating F\# types for XML documents, we also lifts the members nested under the $\bullet$ 
 field into the parent type to simplify the structure of the generated type.
 
 The XML type provider also includes an option to use \emph{global inference}. In that case, 
-the inference from values (\ref{sec:formal-inferval}) unifies the types of all records with the 
+the inference from values (\S\ref{sec:formal-inferval}) unifies the shapes of \emph{all} records with the 
 same name. This is useful because, for example, in XHTML all {\small\ttfamily <table>} elements
 will be treated as values of the same type.
 
@@ -1710,11 +1709,11 @@ will be treated as values of the same type.
 
 When introducing type providers (\S\ref{sec:providers-sum}), we mentioned that F\# Data 
 implements a special handling of heterogeneous collections. This allows us to avoid inferring a 
-variant types in many common scenarios. In the earlier example, a sample collection 
+labelled top shapes in many common scenarios. In the earlier example, a sample collection 
 contains a record (with \strf{pages} and \strf{page} fields) and a nested collection with values.
 
-Rather than storing a single type for the collection elements as in $[\sigma]$, heterogeneous
-collections store multiple possible element types together with their \emph{  inferred multiplicity} 
+Rather than storing a single shape for the collection elements as in $[\sigma]$, heterogeneous
+collections store multiple possible element shapes together with their \emph{  inferred multiplicity} 
 (zero or one, exactly one, zero or more):
 %
 \begin{equation*}
@@ -1724,9 +1723,9 @@ collections store multiple possible element types together with their \emph{  in
 \end{array}
 \end{equation*}
 %
-We omit the details, but finding a common supertype of two heterogeneous 
-collections is analogous to the handling of variants. We merge cases with the same tag (by finding 
-their common super-type) and calculate their new shared multiplicity (for example, by turning 
+We omit the details, but finding a preferred common shape of two heterogeneous 
+collections is analogous to the handling of labelled top types. We merge cases with the same tag (by finding 
+their common shape) and calculate their new shared multiplicity (for example, by turning 
 $1$ and $1?$ into $1?$).
 
 
@@ -1754,11 +1753,11 @@ in that it discusses the theory and safety of a concrete type provider.
 \paragraph{Extending the type systems.} 
 Previous work that integrates external data, such as XML \cite{xduce,xduce-ml} and databases 
 \cite{links,linq}, into a programming language, required the user to define the schema
-or it has an ad-hoc extension that reads the schema.
+or had an ad-hoc extension that reads the schema.
 
 C$\omega$ \cite{comega-xs} is the most similar to F\# Data. It extends C\# with types similar to our
 structural types (including similar heterogeneous collections), but it does not infer the types
-from a sample and extends the type system of the host language (rather than using general purpose
+from a sample. It also extends the type system of the host language (rather than using a general purpose
 embedding).
 
 \paragraph{Advanced type systems.}
@@ -1779,26 +1778,26 @@ The PADS project \cite{pads-dsl,pads-ml} tackles a more general problem of handl
 The schema definitions in PADS are similar to our structural type. The structure inference for LearnPADS
 \cite{pads-learn} infers the data format from a flat input stream. A PADS type provider could follow
 many of the patterns we explore in this paper, but formally specifying the safety property would be
-challenging.
+more challenging.
 
 \section{Conclusions}
 \label{sec:conclusions}
 
 We explored the F\# Data type providers for XML, CSV and JSON. As most real-world data do not come 
-with an explicit schema, the library uses \emph{type inference} that deduces a type from a set of 
-samples. Our type inference algorithm is based on a common supertype relation. For usability 
-reasons, it prefers records and avoids variant types. The algorithm is predictable, which is 
+with an explicit schema, the library uses \emph{shape inference} that deduces a shape from a set of 
+samples. Our inference algorithm is based on a preferred shape relation. It prefers records to 
+encompass the open world assumption and support developer tooling. The algorithm is predictable, which is 
 important as developers need to understand how changing the samples affects the resulting types.
 
-We explore the programming language theory behind type providers. F\# Data is a prime example of 
-type providers, but our work also demonstrates a more general point. The types generated by type 
+We explore the theory behind type providers. F\# Data is a prime example of 
+type providers, but our work demonstrates a more general point. The types generated by type 
 providers can depend on external input and so we can only guarantee \emph{relativized safety}, 
-which says that a program is safe only if the actual inputs satisfy additional conditions --
-in our case, they have to be subtypes of one of the samples.
+which says that a program is safe only if the actual inputs satisfy additional conditions.
 
-Type providers have been described before, but this paper is novel in that it explores concrete 
-type providers from the perspective of programming language theory. This is particularly important
-for F\# Data type providers, which have been widely adopted by the industry.
+Type providers have been described before, but this paper is novel in that it explores the 
+properties of type providers that represent the ``types from data'' approach. Our experience suggests 
+that this significantly broadens the applicability of statically typed languages to real-world 
+problems that are often solved by weakly-typed techniques.
 
 % \acks
 % We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
