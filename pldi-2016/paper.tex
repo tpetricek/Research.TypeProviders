@@ -138,7 +138,7 @@ and runtime checks? Of course, not!
 
 In this paper, we integrate external structured data into F\# programming. As most real-world data
 does not come with an explicit schema, we develop a shape inference algorithm that infers a shape from 
-representative sample documents and transforms the shape into F\# types using type providers.
+representative sample documents and integrates it into the F\# type system using type providers.
 We present a formalization and a relative type soundness theorem for a simplified version of this process.
 
 Our library significantly reduces the amount of data access code and it provides additional 
@@ -170,8 +170,8 @@ all communicate with external services. Increasingly, these services provide end
 data as CSV, XML or JSON. Most such services do not come with an explicit schema. At best, the 
 documentation provides sample responses for typical requests.
 
-For example, \url{http://openweathermap.org/current} documents an end-point to get the current 
-weather with one example. Using standard libraries, we might call it as:
+For example, \url{http://openweathermap.org/current} contains one eample to document an end-point 
+to get the current weather. Using standard libraries, we might call it as:
 
 \noindent
 \begin{equation*}
@@ -190,8 +190,8 @@ weather with one example. Using standard libraries, we might call it as:
 \end{equation*}
 %
 The code assumes that the response has a particular shape described in the documentation. The
-root node must be a record with a \str{main} field, which has to be another record containing
-a numerical \str{temp} field. When the shape is different, the code simply fails with an exception. 
+root node must be a record with a \strf{main} field, which has to be another record containing
+a numerical \strf{temp} field. When the shape is different, the code simply fails with an exception. 
 While not immediately unsound, the code is manifestly prone to errors if strings are misspelled 
 or incorrect shape assumed.
 
@@ -211,7 +211,7 @@ compile-time with the URL as a sample. The type provider infers the structure of
 and provides a type with a \ident{GetSample} method that returns a parsed JSON with nested
 properties \ident{Main.Temp}, returning the temperature as a number.
 
-In short, \emph{the types come from the sample data}. In our experience, this technique is 
+In short, the \emph{types} come from the sample \emph{data}. In our experience, this technique is 
 both practical and surprisingly effective in achieving more sound information interchange 
 in heterogeneous systems. Our contributions are as follows:
 
@@ -266,7 +266,7 @@ in this section illustrate the key design principles of the shape inference algo
 \item The above also makes our techniques applicable to any language with nominal 
   object types (e.g.~variations of Java or C\# with a type provider mechanism added).
 
-\item Finally, the we handle practical concerns including
+\item Finally, we handle practical concerns including
   support for different numerical types, \kvd{null} and missing data.
 \end{itemize}
 
@@ -283,7 +283,7 @@ used earlier (\S\ref{sec:introduction}) to represent JSON data:
 \begin{array}{l}
  \kvd{type}~\ident{JsonValue} = \\[0.1em]
  \quad|~ \ident{Number}~\kvd{of}~\ident{float} ~~~~|~ \ident{Boolean}~\kvd{of}~\ident{bool} \\[0.1em]
- \quad|~ \ident{String}~\kvd{of}~\ident{string} ~~~~~~ |~ \ident{Null} \\[0.1em]
+ \quad|~ \ident{String}~\kvd{of}~\ident{string} ~~~~~\, |~ \ident{Null} \\[0.1em]
  \quad|~ \ident{Record}~\kvd{of}~\ident{Map}\langl\ident{string}, \ident{JsonValue}\rangl \\[0.1em]
  \quad|~ \ident{Array}~\kvd{of}~\ident{JsonValue}[] \\[0.1em]
 \end{array}
@@ -300,7 +300,7 @@ aspects of the JSON type provider, we look at an example that also involves an a
 }}
 %
 \noindent
-The standard approach to print the names and ages would be to pattern match on the parsed 
+The standard way to print the names and ages would be to pattern match on the parsed 
 \ident{JsonValue}, check that the top-level node is a \ident{Array} and iterate over the elements 
 checking that each element is a \ident{Record} with certain properties. We would throw an exception 
 for values of an incorrect shape. As before, the code would specify field names as strings, which 
@@ -360,13 +360,13 @@ throws an exception if data does not have the expected shape.
 
 Informally, the safety property (\S\ref{sec:safety}) states that if the inputs are compatible
 with one of the static samples (i.e.~the samples are representative), then no exceptions will 
-occur. In other words, we cannot avoid all failures, but we can prevent some. Moreover, if 
+occur. In other words, we cannot avoid all failures, but we can prevent some. Moreover, if
 \url{http://openweathermap.org} changes the shape of the response, the code in \S\ref{sec:introduction}
-will not re-compile and the developer knows that the code needs to be changed. 
+will not re-compile and the developer knows that the code needs to be corrected. 
 
 \paragraph{The role of objects with properties.}
 The sample code is easy to write thanks to the fact that most F\# editors provide auto-completion
-when ``.'' is typed (see the supplementary screencast). The developer does not need to look at the 
+when ``.'' is typed (see the supplementary screencast). The developer does not need to examine the 
 sample JSON file to see what fields are available. To support this scenario, our type providers 
 map the inferred shapes to F\# objects with (possibly optional) properties.
 
@@ -418,13 +418,13 @@ say we want to print all headings in the document. The sample shows a part of th
 \end{equation*}
 %
 The example iterates over a collection of elements returned by \ident{root.Doc}. The type of \ident{elem} 
-provides typed access to elements known from the sample and so we can write \ident{elem.Heading}, 
+provides typed access to elements known statically from the sample and so we can write \ident{elem.Heading}, 
 which returns an optional string value.
 
 \paragraph{Open world.}
 By its nature, XML is extensible and the sample cannot include all possible nodes.\footnote{Even 
 when the document structure is defined using XML Schema, documents may contain elements prefixed 
-with other namespaces.} This is the important \emph{open world assumption} about external data. 
+with other namespaces.} This is the fundamental \emph{open world assumption} about external data. 
 Actual input might be an element about which nothing is known.
 
 For this reason, we do not infer a closed choice between heading, paragraph and image. In the 
@@ -455,9 +455,8 @@ worth noting that our shape inference uses labelled top shapes only as the last 
 \subsection{Summary}
 \label{sec:providers-sum}
 Throughout the introduction, we used data sets that demonstrate the typical problems that are frequent
-in the real-world (\emph{missing data}, \emph{inconsistent encoding} of primitive values and 
-\emph{heterogeneous shapes}). The following 
-JSON response with government debt information returned by the World Bank\footnote{Available at 
+in the real-world (missing data, inconsistent encoding of primitive values and heterogeneous shapes). 
+The following JSON response with government debt information returned by the World Bank\footnote{Available at 
 \url{http://data.worldbank.org}} demonstrates all three problems:
 %
 {\small{
@@ -471,11 +470,11 @@ JSON response with government debt information returned by the World Bank\footno
 }}
 %
 \noindent
-First of all, the top-level element is a collection containing two values of different kind.
+First of all, the top-level element is a collection containing two values of different shape.
 The first is a record with meta-data about the current page and the second is an array with data. 
 The actual F\# Data implementation supports a concept of heterogeneous collections (briefly outlined
 in \S\ref{sec:impl-hetero}) and provides a type with properties \ident{Record} for the former and 
-\ident{Array} for the latter. Second, the \ident{value} field is \kvd{null} for some records. Third, 
+\ident{Array} for the latter. Second, the the field \ident{value} is \kvd{null} for some records. Third, 
 numbers can be represented in JSON as numeric literals (without quotes), but here, they are 
 returned as string literals instead.\footnote{This is often used to avoid non-standard numerical 
 types of JavaScript.}
@@ -505,13 +504,13 @@ inferring the shape, it infers the most specific shapes of individual values (CS
 nodes) and recursively finds a common shape of all child nodes or all sample documents.
 
 We first define the shape of structured data $\sigma$. We use the term \emph{shape} to distinguish 
-shapes from programming language \emph{types} $\tau$ (type providers generate the latter from the former). 
+shapes of data from programming language \emph{types} $\tau$ (type providers generate the latter from the former). 
 Next, we define the preference relation on shapes $\sigma$ and describe the algorithm 
 for finding a common shape. 
 
 The shape algebra and inference presented here is influenced by the design principles
 we outlined earlier and the type definitions available in the F\# language.
-If applied to other languages, details may differe, for example
+If applied to other languages, details may differ, for example
 with respect to numerical types and missing data.
 
 % --------------------------------------------------------------------------------------------------
@@ -538,7 +537,7 @@ $\hat{\sigma}$) and \emph{nullable shapes} that encompass missing and \kvd{null}
 \noindent
 \begin{equation*}
 \begin{array}{rcl}
- \hat{\sigma} &\narrow{=}& \nu \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n, \rho_i  \} \\[0.1em]
+ \hat{\sigma} &\narrow{=}& \nu \; \{ \nu_1 \!:\! \sigma_1, \ldots, \nu_n \!:\! \sigma_n,\; \rho_i  \} \\[0.1em]
                 &\narrow{|}& \ident{float} \lsep \ident{int} \lsep \ident{bool} \lsep \ident{string} 
  \\[0.6em] 
        \sigma &\narrow{=}& ~\hat{\sigma}~ \lsep \kvd{nullable}\langl \hat{\sigma} \rangl \lsep [\sigma] \lsep \kvd{any} \lsep \kvd{null}  \lsep ~\bot~
@@ -547,8 +546,9 @@ $\hat{\sigma}$) and \emph{nullable shapes} that encompass missing and \kvd{null}
 
 \noindent
 Non-nullable shapes include records (consisting of a name and fields with their shapes) and 
-primitives. Names of records arising from XML are the names of the XML elements while
-JSON records always use a single name $\bullet$.
+primitives. The row variables $\rho_i$ are discussed below. Names of records arising from XML are the names of the XML elements.
+For JSON records we always use a single name $\,\bullet$. We assume that record fields can be freely
+reordered.
 
 We include two numerical primitives, \ident{int} for integers and \ident{float} for floating-point 
 numbers. The two are related by the perference relation and we prefer \ident{int}.
@@ -561,16 +561,14 @@ notation) and $\bot$ is the bottom shape. The \kvd{any} shape is the top shape, 
 later by adding labels for statically known alternative shapes (\S\ref{sec:inference-vars}) as 
 discussed earlier (\S\ref{sec:providers-xml}).
 
-In the rest of the paper, we assume that record fields can be freely reordered.
-
-During inference we use row-variables $\rho_i$ in record shapes to represent the flexibility
+During inference we use row-variables $\rho_i$ \cite{rows-cardelli} in record shapes to represent the flexibility
 arising from records in samples. For example, when a 
-record {\small\ttfamily \{ x : 3 \}} occurs in a sample,
+record $\ident{Point}\,\{ \ident{x} \mapsto \num{3} \}$ occurs in a sample,
 it may be combined through inference with other
-samples such as {\small\ttfamily \{ x : 3, y : 4 \}} that contain more fields. The
+samples such as $\ident{Point}\,\{\, \ident{x}\mapsto\num{3}, \ident{y}\mapsto\num{4} \}$ that contain more fields. The
 overall shape inferred must account for the fact that any extra fields are optional,
-giving an inferred shape {\small\ttfamily \{ x : int, y : option<int> \}}.
-The process of solving $\rho_i$ variables is  discussed in \S\ref{sec:formal-inferval}. 
+giving an inferred shape $\ident{Point}\,\{ \ident{x}\!:\!\ident{int},~ \ident{y}\!:\!\kvd{option}\langl\ident{int}\rangl\}$.
+The process of solving $\rho_i$ variables is discussed in \S\ref{sec:formal-inferval}. 
 
 
 % -------------------------------------------------------------------------------------------------
@@ -593,7 +591,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
   \label{eq:sub-prim}\tag{P1}
   \ident{float}\,&\sqsupseteq\,\ident{int}&\\[-0.2em]
   \label{eq:sub-null}\tag{P2}
-  \sigma &\sqsupseteq \kvd{null}  &(\textnormal{iff}~\sigma \neq \hat{\sigma})  \\[-0.2em]
+  \sigma &\sqsupseteq \kvd{null}  &(\textnormal{for}~\sigma \neq \hat{\sigma})  \\[-0.2em]
   \label{eq:sub-opt}\tag{P3}
   \kvd{nullable}\langl\hat{\sigma}\rangl &\sqsupseteq \hat{\sigma}  &(\textnormal{for all}~\hat{\sigma})\\[-0.2em]
   \label{eq:sub-opt-cov}\tag{P4}
@@ -739,7 +737,9 @@ Here is a summary of the key aspects of the definition:
 
 \item The \kvd{null} shape is preferred over all nullable shapes (\ref{eq:sub-null}), i.e. 
   all shapes excluding non-nullable shapes $\hat{\sigma}$. Any non-nullable shape is preferred
-  over its nullable version (\ref{eq:sub-opt}); nullable shapes and collections are 
+  over its nullable version (\ref{eq:sub-opt})
+  
+\item Nullable shapes and collections are 
   covariant (\ref{eq:sub-opt-cov}, \ref{eq:sub-col}).
 
 \item There is a bottom shape (\ref{eq:sub-bot}) and \kvd{any} behaves as the top shape, because
@@ -758,7 +758,7 @@ Here is a summary of the key aspects of the definition:
 
 Given two ground shapes, the \emph{common preferred shape} relation finds a least upper bound
 (Lemma~\ref{thm:lub}). It prefers records, which is important for usability as discussed
-earlier.
+earlier (\S\ref{sec:providers-xml}).
 
 \begin{definition}
 A \emph{common preferred shape} of two ground shapes $\sigma_1$ and $\sigma_2$ is a shape $\sigma$, written 
@@ -769,9 +769,9 @@ Figure~\ref{fig:subtyping-cst}.
 \noindent
 We define shape \emph{tags} to identify shapes that have a common preferred shape which is not the
 top shape. When finding a common shape of two records (\emph{record}), the shape of fields becomes the common preferred shape of their 
-respective shapes. If the field labels of two record types do not match,
-we can assume a common assignment of fields has been determined
-through shape inference (\S\ref{sec:formal-inferval}).
+respective shapes. The field labels of two record types can always be made to match,
+through the shape inference from sample (\S\ref{sec:formal-inferval}),
+\emph{before} finding a common preferred shape using $\triangledown$.
 
 We can find a common shape of two different numbers (\emph{prim}); for two collections,
 we combine their elements (\emph{list}). When one shape is nullable (\emph{nullable}), we find
@@ -781,8 +781,8 @@ we make the other one nullable (\emph{null}). Finally, if the two shapes do not 
 The remaining rules for reflexivity, symmetry and the bottom shape are standard.
 
 \paragraph{Properties.}
-A set of ground shapes has a \emph{unique} least upper bound by the preferred shape ordering.
-For ground shapes, the common preferred shape relation defines a function (Lemma~\ref{thm:func}) that finds 
+The partially ordered set of ground shapes has a unique least upper bound.
+The $\triangledown$ relation defines a function (Lemma~\ref{thm:func}) that finds 
 the least upper bound (Lemma~\ref{thm:lub}). 
 
 \begin{lemma}[Preferred shape function]
@@ -793,8 +793,7 @@ $\sigma_1 \tsep \sigma_2 \vdash \sigma$.
 \begin{proof}
 The pre-conditions of rules in Figure~\ref{fig:subtyping-cst} are disjoint, with the exception 
 of (\emph{sym}) and (\emph{refl}), but applying those does not affect the result. Reflexivity is
-preserved recursively and all rules, symmetry does not enable different derivations, even for
-non-symmetric (\emph{nullable}) and (\emph{prim}).
+preserved recursively and symmetry does not enable different derivations.
 \end{proof}
 
 \begin{lemma}[Least upper bound]
@@ -802,15 +801,15 @@ non-symmetric (\emph{nullable}) and (\emph{prim}).
 For ground $\sigma_1$ and $\sigma_2$, if $\sigma_1 \triangledown \sigma_2 \vdash \sigma$ then $\sigma$ is a least upper bound by $\sqsupseteq$.
 \end{lemma}
 \begin{proof}
-By induction over $\vdash$. The algorithm only infers the top shape \kvd{any} when for non-nullable
+By induction over $\vdash$. Note that the algorithm only infers the top shape \kvd{any} when for non-nullable
 shapes of distinct tags and so no better preferred shape exists.
 \end{proof}
 
 \subsection{Inferring shapes from samples}
 \label{sec:formal-inferval}
 
-We now specify how we obtain the shape from data. We represent JSON, XML and CSV documents using
-the same first-order \emph{data} value (\S\ref{sec:impl-parsing}):
+We now specify how we obtain the shape from data. As clrified later (\S\ref{sec:impl-parsing}), 
+we represent JSON, XML and CSV documents using the same first-order \emph{data} value:
 %
 \begin{equation*}
 \begin{array}{lcl}
@@ -819,8 +818,8 @@ the same first-order \emph{data} value (\S\ref{sec:impl-parsing}):
 \end{array}
 \end{equation*}
 %
-The first few cases of represent primitive values ($i$ for integers, $f$ for floating
-point numbers and $s$ for strings) and the \kvd{null} value. A collection is written as a 
+The definition includes primitive values ($i$ for integers, $f$ for floats
+and $s$ for strings) and \kvd{null}. A collection is written as a 
 list of values in square brackets. A record starts with a name $\nu$, followed by a 
 sequence of field assignments $\nu_i \mapsto d_i$.
 
@@ -831,47 +830,15 @@ We then choose a ground, minimal substitution $\theta$ for row variables.
 Because $\rho_i$ variables represent potentially missing fields,
 the $\addopt{-}$ operator from Figure~\ref{fig:subtyping-cst} is applied to all types
 in the vector. 
-This must be sufficient to equate the record field labels and satisfy the side conditions in rule (record) when multiple record samples are merged.
-In practice, $\theta$ is found via row variable unification, we omit the details here.
+This is sufficient to equate the record field labels and satisfy the side conditions in rule (record) when multiple record samples are merged.
+In practice, $\theta$ is found via row variable unification \cite{rows-remy}. We omit the details here.
 No $\rho_i$ variables remain after inference as the substitution chosen is ground.
 
-
-
-\begin{figure}
-\noindent
-\begin{equation*}
-\begin{array}{rclcrclcrcl}
- \semalt{i} &\narrow{=}& \ident{int} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} && \semalt{\kvd{true}} &\narrow{=}& \ident{bool}\\
- \semalt{f} &\narrow{=}& \ident{float} && \semalt{s} &\narrow{=}& \ident{string} && \semalt{\kvd{false}}  &\narrow{=}& \ident{bool}\\
-\end{array}
-\end{equation*}
-\noindent
-\vspace{-0.5em}
-\begin{equation*}
-\begin{array}{l}
- \semalt{[d_1; \ldots; d_n]} = [\semalt{d_1, \ldots, d_n}]
- \\[0.5em]
- \semalt{\nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}_{\rho_i}} =\\[0.1em]
- \qquad\nu~\{ \nu_1:\semalt{d_1}, \ldots, \nu_n :\semalt{d_n}, \addopt{\theta(\rho_i)} \}
- \\[0.5em]
- \semalt{d_1, \ldots, d_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
- \qquad\sigma_0 = \bot,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{d_i} \vdash \sigma_i \\[0.1em]
- \textnormal{Choose minimal}\ \theta\ \textnormal{by ordering}\ \sqsupseteq\ \textnormal{lifted over substitutions} \\[0.1em]
-\end{array}
-\end{equation*}
-\caption{Shape inference}
-\label{fig:shape-inference}
-\end{figure}
-
-%
 Primitive  values are mapped to their corresponding shapes. 
 When infering a shape from multiple samples, we use the common preferred shape relation to find a 
-common shape for all values (starting with $\bot$). This operation is used at the top-level 
-(when calling a type provider with multiple samples) and also when inferring the shape of collection
+common shape for all values (starting with $\bot$). This operation is used  
+when calling a type provider with multiple samples and also when inferring the shape of collection
 elements.
-
-
-
 
 % --------------------------------------------------------------------------------------------------
 
@@ -919,14 +886,40 @@ elements.
 \subsection{Adding labelled top shapes}
 \label{sec:inference-vars}
 
-Next, we indicate how the core model (sufficient for the relativized safety) 
-can be extended with \emph{labelled top shapes} discussed earlier.
-
 When analyzing the structure of shapes, it suffices to consider a single top shape \kvd{any}.
 However, the type providers need more information to provide typed access to the possible 
-alternative shapes of data, such as XML nodes. To support track the possible shapes, we label 
-the \kvd{any} shape:
-%
+alternative shapes of data, such as XML nodes. 
+
+\begin{figure}[!h]
+\noindent
+\begin{equation*}
+\begin{array}{rclcrclcrcl}
+ \semalt{i} &\narrow{=}& \ident{int} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} && \semalt{\kvd{true}} &\narrow{=}& \ident{bool}\\
+ \semalt{f} &\narrow{=}& \ident{float} && \semalt{s} &\narrow{=}& \ident{string} && \semalt{\kvd{false}}  &\narrow{=}& \ident{bool}\\
+\end{array}
+\end{equation*}
+\noindent
+\vspace{-0.5em}
+\begin{equation*}
+\begin{array}{l}
+ \semalt{[d_1; \ldots; d_n]} = [\semalt{d_1, \ldots, d_n}]
+ \\[0.5em]
+ \semalt{\nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}_{\rho_i}} =\\[0.1em]
+ \qquad\nu~\{ \nu_1:\semalt{d_1}, \ldots, \nu_n :\semalt{d_n}, \addopt{\theta(\rho_i)} \}
+ \\[0.5em]
+ \semalt{d_1, \ldots, d_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
+ \qquad\sigma_0 = \bot,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{d_i} \vdash \sigma_i \\[0.6em]
+ \textnormal{Choose minimal}\ \theta\ \textnormal{by ordering}\ \sqsupseteq\ \textnormal{lifted over substitutions} \\[0.1em]
+\end{array}
+\end{equation*}
+\caption{Shape inference from sample data}
+\label{fig:shape-inference}
+\vspace{-0.5em}
+\end{figure}
+
+We extend the core model (sufficient for the relativized safety) 
+with \emph{labelled top shapes} defined as:
+% 
 \begin{equation*}
 \sigma = \ldots \lsep \kvd{any}\langl \sigma_1, \ldots, \sigma_n\rangl
 \end{equation*}
@@ -938,23 +931,53 @@ preferred shape relation and $\kvd{any}\langl \sigma_1, \ldots, \sigma_n\rangl$ 
 seen as the top shape, regardless of the labels.
 
 The common preferred shape relation is extended to find a labelled top shape that best represents 
-the sample. We limit the number of labels and avoid nesting by grouping shapes by the shape tag 
-introduced earlier (Figure~\ref{fig:subtyping-cst}).
-For example, rather than inferring $\kvd{any}\langl\ident{int}, \kvd{any}\langl\ident{bool}, \ident{float}\rangl\rangl$, 
-our algorithm finds the common preferred shape of $\ident{int}$ and $\ident{float}$ and produces 
+the sample. We limit the number of labels and avoid nesting by grouping shapes by the tag 
+introduced earlier.
+Rather than inferring $\kvd{any}\langl\ident{int}, \kvd{any}\langl\ident{bool}, \ident{float}\rangl\rangl$, 
+our algorithm joins $\ident{int}$ and $\ident{float}$ and produces 
 $\kvd{any}\langl\ident{float},\ident{bool}\rangl$. 
 
-The three rules in Figure~\ref{fig:subtyping-cst-var} replace the earlier (\emph{top}). When 
-combining a top with another shape (\emph{top-1}), the labelled top shape may or may not already 
+The new rules for \kvd{any} appear in Figure~\ref{fig:subtyping-cst-var}. When 
+combining a top with another shape (\emph{top-1}), the labels may or may not already 
 contain a case with the tag of the other shape. If it does, the two shapes are combined, otherwise 
 a new case is added. When combining two top shapes (\emph{top-2}), we group the labels that have 
-shared tags. Finally, (\emph{top-3}) covers the case when we are combining two distinct non-top 
-shapes. As top shapes implicitly permit \kvd{null} values, we use an auxiliary function $\dropopt{-}$ 
-to make nullable shapes non-nullable (when possible) to simplify the label.
+shared tags. Finally, (\emph{top-3}) combines two distinct non-top 
+shapes. As top shapes implicitly permit \kvd{null} values, we make the labels non-nullable 
+using $\dropopt{-}$.
 
-\paragraph{Properties.}
 The revised algorithm still finds a shape which is the least upper bound. This means that 
 labelled top shape is only inferred when there is no other alternative.
+
+% -------------------------------------------------------------------------------------------------
+
+\begin{figure}[!h]
+\noindent
+\begin{equation*}
+\begin{array}{rcl}
+ \tau &\narrow{=}& \ident{int} \lsep \ident{float} \lsep \ident{bool} \lsep \ident{string} \lsep C \lsep \ident{Data} \\[0.0em]
+      &\narrow{|}& \tau_1 \rightarrow \tau_2 \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl 
+\\[0.6em]
+ L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
+ M &\narrow{=}& \kvd{member}~N:\tau= e
+\\[0.6em]
+ v &\narrow{=}& d \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep v_1::v_2 \\[0.0em]
+ e &\narrow{=}& d \lsep op \lsep e_1~e_2 \lsep \lambda x.e \lsep e.N \lsep \kvd{new}~C(\overline{e}) \\
+   &\narrow{|}& \ident{None} \lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
+   &\narrow{|}& \ident{Some}(e) \lsep e_1 = e_2 \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3} \lsep \kvd{nil} \\
+   &\narrow{|}& e_1 :: e_2 \lsep \kvd{match}~e~\kvd{with}~x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2 
+\\[0.6em]
+op &\narrow{=}& \ident{convFloat}(\sigma, e) \lsep \ident{convPrim}(\sigma, e) \\
+   &\narrow{|}& \ident{convField}(\nu_1, \nu_2, e, e) \lsep \ident{convNull}(e_1, e_2) \\
+   &\narrow{|}& \ident{convElements}(e_1, e_2) \,\lsep \ident{hasShape}(\sigma, e) 
+\end{array}
+\end{equation*}
+
+\caption{The syntax of the Foo calculus}
+\label{fig:foo-syntax}
+\vspace{-0.5em}
+\end{figure}
+
+% -------------------------------------------------------------------------------------------------
 
 Stating properties of the labels requires refinements to the \emph{preferred shape} relation.
 We leave the details to future work, but we
@@ -981,12 +1004,12 @@ fields of records.
 This section presents the formal model of type providers for structured data. 
 To represent the programming language that hosts the type provider and the
 provided declarations, we introduce the Foo calculus,
-a subset of F\# using object-property notation with
-added operations for working with weakly typed structured data along the lines of the F\# Data runtime. Finally, we describe how 
+a subset of F\# with objects and properties, extended with
+operations for working with weakly typed structured data along the lines of the F\# Data runtime. Finally, we describe how 
 type providers turn inferred shapes into Foo classes (\S\ref{sec:formal-tp}).
 
 Type providers for structured data map the ``dirty'' world of weakly typed 
-semi-structured data into a ``nice'' world of strong types. To model this, the Foo calculus
+structured data into a ``nice'' world of strong types. To model this, the Foo calculus
 does not have \kvd{null} values and data values $d$ are never directly exposed.  
 Furthermore Foo is simply typed: despite using class types and object notation 
 for notational convenience, it has no subtyping.
@@ -1046,13 +1069,12 @@ for notational convenience, it has no subtyping.
 \subsection{The Foo calculus}
 \label{sec:formal-ff}
 
-The syntax of the calculus is shown in Figure~\ref{fig:foo-syntax}. We only need classes with 
-parameter-less members and without inheritance. A class has a single implicit constructor and the 
-declaration closes over constructor parameters. 
-
+The syntax of the calculus is shown in Figure~\ref{fig:foo-syntax}. 
 The type \ident{Data} is the type of structural data $d$. A class definition $L$ consists of 
-a constructor and zero or more members. Values $v$ include previously defined data $d$; expressions
-$e$ include class construction, member access and the usual functional constructs (functions,
+a single constructor and zero or more parameter-less members. The declaration implicitly closes
+over the constructor parameters.
+Values $v$ include previously defined data $d$; expressions
+$e$ include class construction, member access, usual functional constructs (functions,
 lists, options) and conditionals. The $op$ constructs are discussed next.
 
 % -------------------------------------------------------------------------------------------------
@@ -1062,37 +1084,6 @@ lists, options) and conditionals. The $op$ constructs are discussed next.
 The Foo programs can only work with \ident{Data} values using certain primitive operations. Those are modelled
 by the $op$ primitives. In F\# Data, those are internal and users never access them directly.
 
-% -------------------------------------------------------------------------------------------------
-
-\begin{figure}[!h]
-\noindent
-\begin{equation*}
-\begin{array}{rcl}
- \tau &\narrow{=}& \ident{int} \lsep \ident{float} \lsep \ident{bool} \lsep \ident{string} \lsep C \lsep \ident{Data} \\[0.0em]
-      &\narrow{|}& \tau_1 \rightarrow \tau_2 \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl 
-\\[0.6em]
- L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
- M &\narrow{=}& \kvd{member}~N:\tau= e
-\\[0.6em]
- v &\narrow{=}& d \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep v_1::v_2 \\[0.0em]
- e &\narrow{=}& d \lsep op \lsep e_1~e_2 \lsep \lambda x.e \lsep e.N \lsep \kvd{new}~C(\overline{e}) \\
-   &\narrow{|}& \ident{None} \lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
-   &\narrow{|}& \ident{Some}(e) \lsep e_1 = e_2 \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3} \lsep \kvd{nil} \\
-   &\narrow{|}& e_1 :: e_2 \lsep \kvd{match}~e~\kvd{with}~x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2 
-\\[0.6em]
-op &\narrow{=}& \ident{convFloat}(\sigma, e) \lsep \ident{convPrim}(\sigma, e) \\
-   &\narrow{|}& \ident{convField}(\nu_1, \nu_2, e, e) \lsep \ident{convNull}(e_1, e_2) \\
-   &\narrow{|}& \ident{convElements}(e_1, e_2) \,\lsep \ident{hasShape}(\sigma, e) 
-\end{array}
-\end{equation*}
-
-\caption{The syntax of the Foo calculus}
-\label{fig:foo-syntax}
-\vspace{-0.5em}
-\end{figure}
-
-% -------------------------------------------------------------------------------------------------
-
 The behaviour of the dynamic data operations is defined by the reduction rules in 
 Figure~\ref{fig:op-conversions}. The operations can convert data values into values of 
 less preferred shape. For example, \ident{convFloat} turns an integer \num{1} into 
@@ -1100,7 +1091,7 @@ a floating-point \num{1.0} and \ident{convElements} turns \kvd{null} value into 
 
 All of the dynamic data operations take a data value $d$ and produce a Foo value. We do not 
 make the conversion explicit for primitive values (\ident{convPrim}) and assume that primitive
-values are shared, but we convert all other values. For example \ident{convElements} turns a 
+values are shared between \emph{data} and Foo values, but we convert all other values. For example \ident{convElements} turns a 
 data collection $[d_1, \ldots, d_n]$ into a Foo list $v_1 :: .. :: v_n :: \kvd{nil}$.
 
 The data operations for collections, record fields and nullable values all take a function
@@ -1109,11 +1100,11 @@ accesses a record field -- it ensures that the actual record name matches the ex
 passes the field value (or \kvd{null} data value) to the provided function.
 
 Finally, we also define a runtime shape test \ident{hasShape}.
-The most complex case is handling of records where we check that for each field $\nu_1, \ldots, \nu_n$ 
+For records, we have to check that for each field $\nu_1, \ldots, \nu_n$ 
 in the record, the actual record value has a field of the same name with a matching shape. The last 
 line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases. 
-We treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as syntactic sugar for \kvd{if}-\kvd{then}-\kvd{else} so
-the rule is expressed using just Foo expressions.
+We treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as a syntactic sugar for \kvd{if}\,.\,.\,\kvd{then}\,.\,.\,\kvd{else} so
+the result of the reduction is just a Foo expression.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1122,7 +1113,8 @@ The reduction relation is of the form $L, e \reduce e'$. We omit class declarati
 $L$ where implied by context and write $e \reduce^{*} e'$ for
 the reflexive, transitive closure of $\reduce$. 
 
-Figure~\ref{fig:ff-reduction} shows the reduction rules. The (\emph{ctx}) rule models the eager
+Figure~\ref{fig:ff-reduction} shows the reduction rules.  The (\emph{member}) rule reduces a member access using a class 
+definition in the assumption. The (\emph{ctx}) rule models the eager
 evaluation of F\# and performs a reduction inside a sub-expression specified by an evaluation 
 context $E$:
 %
@@ -1139,10 +1131,8 @@ context $E$:
 \noindent
 The evaluation proceeds from left to right as denoted by $\overline{v}, E, \overline{e}$ in 
 constructor and dynamic data operation arguments or $v::E$ in list initialization.
-
 We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
-values $\overline{v}$ in an expression. The (\emph{member}) rule reduces a member access using a class 
-definition in the assumption to obtain the body of a member. The remaining six rules
+values $\overline{v}$ in an expression. The remaining six rules
 give standard reductions.
 
 % -------------------------------------------------------------------------------------------------
@@ -1150,14 +1140,14 @@ give standard reductions.
 \paragraph{Type checking.} 
 Well-typed Foo programs reduce to a value in a finite number of steps or get stuck due to an
 error condition. The stuck states can only be due to the dynamic data operations (e.g.
-$\ident{convFloat}(\ident{float},\kvd{null})$). The relativized type safety (Theorem~\ref{thm:safety})
+$\ident{convFloat}(\ident{float},\kvd{null})$). The relativized safety (Theorem~\ref{thm:safety})
 characterizes the additional conditions on input data under which Foo programs do not ``go wrong''.
 
 Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
 $L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
 The fragment demonstrates the differences and similarities with Featherweight Java \cite{fwjava}:
 %
-\begin{itemize}
+\begin{itemize}[noitemsep]
 \item[--] All data values $d$ have the type \ident{Data}, but primitive data values (Booleans, 
   strings, integers and floats) can be implicitly converted to Foo values and so they also have a 
   primitive type as illustrated by the rule for $i$ and $f$.
@@ -1257,7 +1247,8 @@ do not rely on laziness or erasure of type provision.}
 \paragraph{Type provider mapping.}
 A type provider produces an F\# type $\tau$ together with a Foo expression and a collection of 
 class definitions. We express it using the following mapping:
-%
+
+\noindent
 \begin{equation*}
 \sem{-} : \sigma \rightarrow (\tau \times e \times L) \qquad (\textnormal{where}~L,\emptyset \vdash e:\ident{Data}\rightarrow\tau)
 \end{equation*}
@@ -1452,7 +1443,8 @@ is $\lambda x \rightarrow \kvd{new}~\ident{Person}(x)$.
 \paragraph{Example 2.} The second example illustrates the handling of collections and 
 labelled top types. Reusing \ident{Person} from the previous example, consider 
 $[\kvd{any}\langl\ident{Person}~\{ \ldots \},\ident{string}\rangl]$:
-%
+
+\noindent
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{PersonOrString}(x:\ident{Data})~= \\[0.1em]
@@ -1531,9 +1523,9 @@ optional record fields, the \ident{hasShape} operation is used to guaranteed the
 
 \noindent
 This shows that provided types are correct with respect to the preferred shape relation. 
-In general, this is an obligation upon the author of a type provider, which is a second reason why
+This is an obligation upon the author of a type provider, which is a second reason why
 the type soundness is ``relative''.
-Our key theorem states that, for any input (which is a subshape of any of the samples) and 
+Our key theorem states that, for any input which is a subshape the inferred shape and 
 any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 Using standard syntactic type safety  \cite{syntactic}, we prove type preservation 
 (reduction does not change type) and progress (an expression can be reduced).
@@ -1561,14 +1553,14 @@ the assumptions of Theorem~\ref{thm:safety}, then if $L, \Gamma \vdash e : \tau$
 $L, e \reduce^{*} e'$ then $\Gamma \vdash e' : \tau$.
 \end{lemma}
 \begin{proof}
-By induction over the reduction $\reduce$. The cases for the ML subset of Foo 
+By induction over $\reduce$. The cases for the ML subset of Foo 
 are standard. For (\emph{member}), we check that code generated by type providers
 in Figure~\ref{fig:tp-generation} is well-typed.
 \end{proof}
 
 \noindent
 The progress lemma states that evaluation of a well-typed program does not reach an undefined state. 
-This is not a problem for the (standard) ML subset and object-oriented subset of the calculus. The 
+This is not a problem for the (standard) ML \cite{sml} subset and object-oriented subset \cite{fwjava} of the calculus. The 
 problematic part are the dynamic data operations (Figure~\ref{fig:op-conversions}). Given a data
 value (of type \ident{Data}), the reduction can get stuck if the value does not have a structure 
 required by a specific operation.
@@ -1620,10 +1612,10 @@ F\# Data type providers and other notable aspects of the implementation.
 The \emph{relativized safety} property does not guarantee safety in the same way as traditional
 closed-world type safety, but it reflects the reality that programming with external data is
 increasingly important \cite{age-of-web}. Type providers increase the safety of this kind of programming,
-seen by example in \S\ref{sec:introduction}.
+as seen earlier (\S\ref{sec:introduction}).
 
-One such issue is the handling of sample change. With type providers, the sample is captured 
-at compile-time. If the sample changes later (so that the input is no longer related to the  
+One common issue is the handling of schema change. With type providers, the sample is captured 
+at compile-time. If the schema changes (so that the input is no longer related to the  
 shape of the sample), the program can fail at runtime and developers have to handle the exception. 
 The same problem happens when using weakly-typed code with explicit failure cases.
 
@@ -1633,8 +1625,8 @@ fails when the sample changes, which is an indication that the program needs to 
 change. Repeated type-checking of programs by continuous integration systems can be used to help 
 detect such changes.
 
-In general, schema-free XML, CSV and JSON data sources will necessarily require techniques akin
-to those we have shown. However, some data sources provide schema and schema versioning support 
+In general, XML, CSV and JSON data sources without explicit schema will necessarily require techniques akin
+to those we have shown. However, some data sources provide explicit schema with schema versioning support 
 (with meta-data about how the schema changed). For those, a type 
 provider could be written to adapt automatically, but we leave this for future work.
 
