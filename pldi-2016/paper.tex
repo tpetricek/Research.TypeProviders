@@ -136,9 +136,10 @@ as XML, JSON and CSV. Static type systems do not understand such formats, often 
 more cumbersome. Should we give up and leave the messy world of external data to dynamic typing 
 and runtime checks? Of course, not!
 
-In this paper, we integrate external structured data into the F\# type system. As most real-world data
+In this paper, we integrate external structured data into F\# programming. As most real-world data
 does not come with an explicit schema, we develop a shape inference algorithm that infers a shape from 
-representative sample documents and integrate it into the F\# type system using type providers.
+representative sample documents and transforms the shape into F\# types using type providers.
+We present a formalization and a relative type soundness theorem for a simplified version of this process.
 
 Our library significantly reduces the amount of data access code and it provides additional 
 safety guarantees when contrasted with the widely used weakly typed techniques.
@@ -164,8 +165,8 @@ safety guarantees when contrasted with the widely used weakly typed techniques.
 \section{Introduction}
 \label{sec:introduction}
 
-Social network clients, applications for finding tomorrow's weather or searching train schedules
-all communicate with external services. Increasing number of such services provide REST-based 
+Applications for social network clients, finding tomorrow's weather or searching train schedules
+all communicate with external services. Increasingly these services provide REST-based 
 end-points that return data as CSV, XML or JSON. Despite many schematization efforts, most 
 services do not come with an explicit schema. At best, the documentation provides sample responses 
 for typical requests.
@@ -207,14 +208,14 @@ same functionality in two lines:
 \end{array}
 \end{equation*}
 %
-$\ident{JsonProvider}\langl\str{...}\rangl$ invokes a type provider at 
+$\ident{JsonProvider}\langl\str{...}\rangl$ invokes a type provider \cite{fsharp-typeprov} at 
 compile-time with the URL as a sample. The type provider infers the structure of the response
 and provides a type with a \ident{GetSample} method that returns a parsed JSON with nested
 properties \ident{Main.Temp}, returning the temperature as a number.
 
 In short, \emph{the types come from the sample data}. In our experience, this technique is 
-immensely practical and surprisingly effective in achieving sound information interchange 
-in heterogeneous systems. This paper presents our approach:
+both practical and surprisingly effective in achieving more sound information interchange 
+in heterogeneous systems. Our contributions are as follows:
 
 \begin{itemize}
 \item We present F\# Data type providers for XML, CSV and JSON (\S\ref{sec:providers}) 
@@ -227,7 +228,6 @@ in heterogeneous systems. This paper presents our approach:
 
 \item We give a formal model (\S\ref{sec:formal}) and use it to prove
   \emph{relativized type safety} for the type providers (\S\ref{sec:safety}).
-  This adapts the ML-style type safety for the context of the web.
 \end{itemize}
 
 \vspace{-0.1em}
@@ -261,12 +261,13 @@ in this section illustrate the key design principles of the shape inference algo
   not use probabilistic methods where adding an additional sample could completely change the 
   shape of the type.}
 
-\item The type providers prefer F\# objects with properties. This is to allow extensible 
-  (open-world) data formats (\S\ref{sec:providers-xml}). It also interacts well with developer tooling
-  as most F\# editors provide auto-completion on ``.'' and so objects are easier to use than 
-  types that require pattern matching.
+\item The type providers prefer F\# object types with properties. This allows extensible 
+  (open-world) data formats (\S\ref{sec:providers-xml}). It also interacts well with developer tooling,
+  as most F\# editors provide auto-completion on ``.'' making values of provided types easy to use.
+  This also makes our techniques applicable any language with nominal object types -- for example
+  variations of Java or C# with a type provider mechanism added.
 
-\item Finally, the mechanism handles practical concerns important in the real world. This includes 
+\item Finally, the mechanism handles practical concerns including
   support for different numerical types, \kvd{null} values and missing data.
 \end{itemize}
 
@@ -283,7 +284,7 @@ used earlier (\S\ref{sec:introduction}) to represent JSON data:
 \begin{array}{l}
  \kvd{type}~\ident{JsonValue} = \\[0.1em]
  \quad|~ \ident{Number}~\kvd{of}~\ident{float} ~~~~|~ \ident{Boolean}~\kvd{of}~\ident{bool} \\[0.1em]
- \quad|~ \ident{String}~\kvd{of}~\ident{string} ~~\qquad\, |~ \ident{Null} \\[0.1em]
+ \quad|~ \ident{String}~\kvd{of}~\ident{string} ~~~~~~ |~ \ident{Null} \\[0.1em]
  \quad|~ \ident{Record}~\kvd{of}~\ident{Map}\langl\ident{string}, \ident{JsonValue}\rangl \\[0.1em]
  \quad|~ \ident{Array}~\kvd{of}~\ident{JsonValue}[] \\[0.1em]
 \end{array}
@@ -325,7 +326,7 @@ simplicity as when using dynamically typed languages, but it is statically type-
 \paragraph{Type providers.}
 The notation $\ident{JsonProvider}\langl\str{people.json}\rangl$ passes a \emph{static parameter} 
 to the type provider. Static parameters are resolved at compile-time and have to be constant. 
-The provider analyzes the sample and generates a type  \ident{People}. Most F\# editors also 
+The provider analyzes the sample and provides a type  \ident{People}. F\# editors also 
 execute the type provider in the background at development-time and use the provided types 
 in auto-completion and background type-checking.
 
@@ -418,7 +419,7 @@ say we want to print all headings in the document. The sample shows a part of th
 \end{equation*}
 %
 The example iterates over a collection of elements returned by \ident{root.Doc}. The type of \ident{elem} 
-provides a typed access to elements known from the sample and so we can write \ident{elem.Heading}, 
+provides typed access to elements known from the sample and so we can write \ident{elem.Heading}, 
 which returns an optional string value.
 
 \paragraph{Open world.}
@@ -456,7 +457,7 @@ worth noting that our shape inference uses labelled top shapes only as the last 
 \label{sec:providers-sum}
 Throughout the introduction, we used data sets that demonstrate the typical problems that are frequent
 in the real-world (\emph{missing data}, \emph{inconsistent encoding} of primitive values and 
-\emph{heterogeneous shapes}). In our experience, these are the most common issues. The following 
+\emph{heterogeneous shapes}). The following 
 JSON response with government debt information returned by the World Bank\footnote{Available at 
 \url{http://data.worldbank.org}} demonstrates all three problems:
 %
@@ -480,7 +481,7 @@ numbers can be represented in JSON as numeric literals (without quotes), but her
 returned as string literals instead.\footnote{This is often used to avoid non-standard numerical 
 types of JavaScript.}
 
-In addition to type providers for JSON and XM, F\# Data also implements a type provider for CSV 
+In addition to type providers for JSON and XML, F\# Data also implements a type provider for CSV 
 (\S\ref{sec:impl-parsing}). We treat CSV files as lists of records (with field for each column) 
 and so CSV is handled directly by our inference algorithm.
 
@@ -508,6 +509,12 @@ We first define the shape of structured data $\sigma$. We use the term \emph{sha
 shapes from programming language \emph{types} $\tau$ (type providers generate the latter from the former). 
 Next, we define the preference relation on shapes $\sigma$ and describe the algorithm 
 for finding a common shape. 
+
+The shape algebra and inference presented here is influenced by the design principles
+we outlined earlier and the type definitions available in the F\# language.
+If applied to other languages, details may differe, for example
+w.r.t. numerical types and missing data.
+
 
 % --------------------------------------------------------------------------------------------------
 
@@ -555,6 +562,7 @@ collections. The shape $\kvd{null}$ is inhabited by the $\kvd{null}$ value (usin
 notation) and $\bot$ is the bottom shape. The \kvd{any} shape is the top shape, but we revisit it 
 later by adding labels for statically known alternative shapes (\S\ref{sec:inference-vars}) as 
 discussed earlier (\S\ref{sec:providers-xml}).
+
 
 % -------------------------------------------------------------------------------------------------
 
@@ -744,14 +752,10 @@ Here is a summary of the key aspects of the definition:
 
 \noindent
 The rule that allows preferred shapes to have fewer fields (\ref{eq:sub-record3}) is particularly
-important. This is important, because it allows us to prefer records over the \kvd{any} 
+important. This allows us to prefer records with optional fields over the \kvd{any} 
 shape. Given $\{ \ident{name}\!:\!\ident{string} \}$ and $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int} \}$,
 we find a common shape $\{ \ident{name}\!:\!\ident{string}, \ident{age}\!:\!\ident{int}~\kvd{option} \}$.
 This is a least upper bound and more usable than the top shape $\kvd{var}$.
-
-Some of the aspects of our system (numeric types and handling of missing data) offer a range of
-choices. For example, OCaml also has different numerical types, but would likely always handle 
-\kvd{null} explicitly.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -807,7 +811,7 @@ $\sigma_1 \tsep \sigma_2 \vdash \sigma$.
 \begin{proof}
 The pre-conditions of rules in Figure~\ref{fig:subtyping-cst} are disjoint, with the exception 
 of (\emph{sym}) and (\emph{refl}), but applying those does not affect the result. Reflexivity is
-preserved recursively and all rules, symmetry does not enable different derrivations, even for
+preserved recursively and all rules, symmetry does not enable different derivations, even for
 non-symmetric (\emph{nullable}) and (\emph{prim}).
 \end{proof}
 
