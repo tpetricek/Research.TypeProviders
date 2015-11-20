@@ -1268,11 +1268,9 @@ inserts an appropriate conversion function; \ident{convPrim} just checks that th
 and \ident{convFloat} converts numbers to a floating-point.
 
 For records, we generate a class $C$ that takes a data value as constructor parameter. For each 
-record field, we generate a member with the same name as the field.
-The body of the member calls \ident{convField}
-with a function obtained from $\sem{\sigma_i}$. This function turns the field value (data of shape
-$\sigma_i$) into a Foo value of type $\tau_i$. For optional fields, we also insert a runtime shape
-check using the \ident{hasShape} operation. The returned expression creates a new instance of 
+record field, we generate a member with the same name as the field. The body of the member calls 
+\ident{convField} with a function obtained from $\sem{\sigma_i}$. This function turns the field 
+value (data of shape $\sigma_i$) into a Foo value of type $\tau_i$. The returned expression creates a new instance of 
 $C$ and the mapping returns the class $C$ together with all recursively generated classes. Note that 
 the class name $C$ is not directly accessed by the user and so we can use arbitrary name, although the 
 actual implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
@@ -1342,47 +1340,9 @@ returned. The shape inference algorithm also guarantees that there is only one c
 \begin{figure*}
 \begin{multicols}{2}
 
-% Records 
+% Primitives 
 \noindent
 \begin{equation*}
-\begin{array}{l}
- \sem{\,\nu~ \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,} = \\[0.1em]
- \quad C, \lambda x\rightarrow \kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\
- \qquad \;\;k~\textnormal{such that}~(i > k) \Leftrightarrow (\sigma_i = \kvd{nullable}\langl \hat{\sigma_i} \rangl) \\
- \qquad \;\,\,L = \kvd{type}~C(x_1\!:\!\ident{Data})=M_1 \,.\,.\, M_k, M'_{k+1} \,.\,.\, M'_n  \\
- \qquad M_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x_1, e_i),\\
- \qquad M'_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x_1, \lambda x_2 \rightarrow \\
- \hspace{5.8em}  \kvd{if}~\ident{hasShape}(\hat{\sigma_i}, x_2)~\kvd{then}~ e_i~x_2~\kvd{else}~\ident{None}) \\[0.1em]
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i} 
-\end{array}
-\end{equation*}
-\vspace{-2em}
-
-% Nullables
-\begin{equation*}
-\hspace{-1.25em}
-\begin{array}{l}
- \sem{\kvd{nullable}\langl\hat{\sigma}\rangl} = \\[0.2em]
- \qquad \ident{option}\langl\tau\rangl, \lambda x \rightarrow \ident{convNull}(x,e), L\\[0.2em] 
- \qquad \textnormal{where}~\tau, e, L = \sem{\hat{\sigma}}
-\end{array}
-\end{equation*}
-\vspace{-2em}
-
-% Collections
-\begin{equation*}
-\hspace{-1.25em}
-\begin{array}{l}
- \sem{\,[\sigma]\,} = \ident{list}\langl\tau\rangl, \lambda x \rightarrow \ident{convElements}(x, e'), L \;\;\textnormal{where}\\[0.4em]
- \qquad \tau, e', L = \sem{\hat{\sigma}}
-\end{array}
-\end{equation*}
-
-% Primitives
-\noindent
-\begin{equation*}
-\hspace{-1.3em}
 \begin{array}{l} 
  \sem{\sigma_p} = \tau_p,\lambda x\rightarrow op(\sigma_p, x),\emptyset\quad\textnormal{where} \\[0.6em] 
  \quad\sigma_p, \tau_p, op\in  \{~ (\ident{bool}, \ident{bool}, \ident{convPrim})\\
@@ -1392,7 +1352,29 @@ returned. The shape inference algorithm also guarantees that there is only one c
 \end{equation*}
 \vspace{-2em}
 
+% Records
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,\nu~ \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,} = \\[0.1em]
+ \quad C, \lambda x\rightarrow \kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\
+ \qquad \;\,\,L = \kvd{type}~C(x_1\!:\!\ident{Data})=M_1 \ldots M_n \\
+ \qquad M_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x_1, e_i),\\
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i} 
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Collections
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,[\sigma]\,} = \ident{list}\langl\tau\rangl, \lambda x \rightarrow \ident{convElements}(x, e'), L \;\;\textnormal{where}\\[0.4em]
+ \qquad \tau, e', L = \sem{\hat{\sigma}}
+\end{array}
+\end{equation*}
+
 % Labelled top
+\noindent
 \begin{equation*}
 \begin{array}{l}
  \sem{\,\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl\,} = \\
@@ -1402,6 +1384,17 @@ returned. The shape inference algorithm also guarantees that there is only one c
  \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\
  \hspace{5.8em}  \kvd{if}~\ident{hasShape}(\sigma_i, x)~\kvd{then}~ \ident{Some}(e_i~x)~\kvd{else}~\ident{None} \\[0.1em]
  \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; \nu_i=\tytagof{(\sigma_i)}
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Nullables
+\begin{equation*}
+\hspace{-1.3em}
+\begin{array}{l}
+ \sem{\kvd{nullable}\langl\hat{\sigma}\rangl} = \\[0.2em]
+ \qquad \ident{option}\langl\tau\rangl, \lambda x \rightarrow \ident{convNull}(x,e), L\\[0.2em] 
+ \qquad \textnormal{where}~\tau, e, L = \sem{\hat{\sigma}}
 \end{array}
 \end{equation*}
 \vspace{-2em}
@@ -1437,11 +1430,9 @@ function applications for readability):
  \kvd{type}~\ident{Person}(x_1:\ident{Data})~= \\[0.1em]
  \quad \kvd{member}~\ident{Age}~:~\ident{option}\langl\ident{int}\rangl~= \\[0.1em]
  \qquad \ident{convField}(\ident{Person}, \ident{Age}, x_1, \lambda x_2 \rightarrow \\[0.1em]
- \qquad \quad \kvd{if}~\ident{hasShape}(\ident{int}, x_2)~\kvd{then} \\[0.1em]
- \qquad \quad \quad \ident{convNull}(x_2, \lambda x_3\rightarrow\ident{convPrim}(\ident{int}, x_3)) \\[0.1em]
- \qquad \quad \kvd{else}~\ident{None})\\[0.1em]
+ \qquad \quad \ident{convNull}(x_2, \lambda x_3\rightarrow\ident{convPrim}(\ident{int}, x_3))~) \\[0.1em]
  \quad \kvd{member}~\ident{Name}~:~\ident{string}~= \\[0.1em]
- \qquad \ident{convField}(\ident{Person},\ident{Name}, \lambda x_2 \rightarrow \\[0.1em]
+ \qquad \ident{convField}(\ident{Person},\ident{Name}, x_1, \lambda x_2 \rightarrow \\[0.1em]
  \qquad \quad \ident{convPrim}(\ident{string}, x_2)))
 \end{array}
 \end{equation*}
