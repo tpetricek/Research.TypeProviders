@@ -88,7 +88,6 @@
 \newcommand{\dropopt}[1]{\lfloor#1\rfloor}
 \newcommand{\addopt}[1]{\lceil#1\rceil}
 \newcommand{\tytagof}{\ident{tagof}}
-\newcommand{\nameoftag}{\ident{nameof}}
 
 \newcommand{\reduce}{\rightsquigarrow}
 
@@ -517,7 +516,7 @@ for finding a common shape.
 \includegraphics[scale=0.80,trim=5mm 5mm 5mm 5mm,clip]{images/hierarchy.pdf} % left bottom right top
 \end{center}
 \vspace{-0.5em}
-\caption{Subtype relation between structural types}
+\caption{Important aspects of the preferred shape relation}
 \label{fig:subtyping-diagram}
 \vspace{-0.5em}
 \end{figure}
@@ -980,62 +979,56 @@ elements.
 \section{Formalising type providers}
 \label{sec:formal}
 
-In this section, we build the theoretical framework for proving relativised type safety of 
-structural type providers. We discuss the runtime representation of documents and 
-primitive operations (\S\ref{sec:formal-convert}), we embed these into a formal model of an F\# 
-subset (\S\ref{sec:formal-ff}) and we describe how structural type providers turn
-inferred structural types into F\# types (\S\ref{sec:formal-tp}).
+This section presents the theoretical model of strucutral type providers. We introduce the Foo calculus 
+which is an object-oriented subset of F\# based on SML \cite{sml} and Featherweight Java \cite{fwjava}. It 
+includes operations for working with data that model the F\# Data runtime. Finally, we describe how 
+type providers turn inferred shapes into Foo classes (\S\ref{sec:formal-tp}).
+
+Type providers map the dirty world of data into a nice world of F\#. To model this, the Foo calculus
+does not have \kvd{null} values and data values $d$ are never directly exposed.
 
 % -------------------------------------------------------------------------------------------------
 
 \begin{figure*}
 \noindent
 \begin{equation*}
+\hspace{1.1em}
 \begin{array}{l}
-\ident{asFloat}(i) \,\reduce f\quad(f = i)\\
-\ident{asFloat}(d) \reduce f\quad(f = d)\\
-\ident{asFloat}(f) \reduce f
+\ident{hasShape}(\nu~ \{ \nu_1 \!:\! \sigma_1, \ldots, \nu_n \!:\! \sigma_n \}, \nu'~\{ \nu'_1\mapsto d_1, \ldots, \nu'_m\mapsto d_m \}) \reduce (\nu = \nu') ~\wedge \\
+  \quad (~ ((\nu_1 = \nu'_1) \wedge \ident{hasShape}(\sigma_1, d_1)) \vee\ldots\vee ((\nu_1 = \nu'_m) \wedge \ident{hasShape}(\sigma_1, d_m)) \vee \ldots \vee\\
+  \quad ~\; ((\nu_n = \nu'_1) \wedge \ident{hasShape}(\sigma_n, d_1)) \vee\ldots\vee ((\nu_n = \nu'_m) \wedge \ident{hasShape}(\sigma_n, d_m))~)
 \\[0.5em]
-\ident{asDec}(i) \,\reduce d\quad(d = i)\\
-\ident{asDec}(d) \reduce d
-\end{array}
-\qquad
-\begin{array}{l}
-\ident{hasType}(\nu \{ \nu_1 \!:\! \sigma_1, \ldots, \nu_n \!:\! \sigma_n \}, \nu'_? \{ \nu'_1\mapsto s_1, \ldots, \nu'_m\mapsto s_m \}) \reduce (\nu = \nu'_?) ~\wedge \\
-  \quad (~ ((\nu_1 = \nu'_1) \wedge \ident{hasType}(\sigma_1, s_1)) \vee\ldots\vee ((\nu_1 = \nu'_m) \wedge \ident{hasType}(\sigma_1, s_m)) \vee \ldots \vee\\
-  \quad ~\; ((\nu_n = \nu'_1) \wedge \ident{hasType}(\sigma_n, s_1)) \vee\ldots\vee ((\nu_n = \nu'_m) \wedge \ident{hasType}(\sigma_n, s_m))~)
-\\[0.5em]
-\ident{hasType}([\sigma], [s_1; \ldots; s_n]) \reduce \ident{hasType}(\sigma, s_1)\wedge\ldots\wedge\ident{hasType}(\sigma, s_n) \\
-\ident{hasType}([\sigma], \kvd{null}) \reduce \kvd{true} \\  
+\ident{hasShape}([\sigma], [d_1; \ldots; d_n]) \reduce \ident{hasShape}(\sigma, d_1)\wedge\ldots\wedge\ident{hasShape}(\sigma, d_n) \\
+\ident{hasShape}([\sigma], \kvd{null}) \reduce \kvd{true} 
 \end{array}  
+\quad
+\begin{array}{l}
+\ident{convFloat}(\ident{float}, i) \reduce f~(f=i) \\
+\ident{convFloat}(\ident{float}, f) \reduce f \\[0.75em]
+\ident{convNull}(\kvd{null}, e) \reduce \ident{None} \\
+\ident{convNull}(d, e) \reduce \ident{Some}(e~d) 
+\end{array}
 \end{equation*}
 %
-\vspace{-0.5em}
+\vspace{-0.75em}
 %
 \begin{equation*}
 \begin{array}{l}
-\ident{isNull}(\kvd{null}) \reduce \kvd{true} \\
-\ident{isNull}(\_) \reduce \kvd{false} 
-\\[0.5em]
-\ident{getField}(\nu,\nu_i, \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
-\ident{getField}(\bullet, \nu_i, \{\ldots, \nu_i=s_i, \ldots\}) \reduce s_i\\
-\ident{getField}(\nu,\nu', \nu~\{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )\\
-\ident{getField}(\bullet, \nu', \{\ldots, \nu_i=s_i, \ldots\}) \reduce \kvd{null}\quad(\nexists i.\nu_i=\nu' )
-\\[0.5em]
-\ident{getChildren}([s_1; \ldots; s_n]) \reduce [s_1; \ldots; s_n]  \\  
-\ident{getChildren}(\kvd{null}) \reduce [~] 
+\ident{hasShape}(\ident{string}, s) \reduce \kvd{true} \\
+\ident{hasShape}(\ident{int}, i) \reduce \kvd{true}\\
+\ident{hasShape}(\ident{bool}, d) \reduce \kvd{true} \quad(\textnormal{when}~d\in{\kvd{true},\kvd{false}} )\\
+\ident{hasShape}(\ident{float}, d) \reduce \kvd{true} \quad(\textnormal{when}~d=i ~\textnormal{or}~ d=f) \\
+\ident{hasShape}(\_, \_) \reduce \kvd{false} \\
 \end{array}
-~
+\;\;
 \begin{array}{l}
-\ident{hasType}(\ident{string}, t) \reduce \kvd{true} \\
-\ident{hasType}(\ident{bool}, s) \reduce \kvd{true} \quad(\textnormal{when}~s\in{\kvd{true},\kvd{false}} )\\
-\ident{hasType}(\ident{float}, s) \reduce \kvd{true} \quad(\textnormal{when}~s=i, s=d ~\textnormal{or}~ s=f) \\
-\ident{hasType}(\ident{decimal}, s) \reduce \kvd{true} \quad(\textnormal{when}~s=i ~\textnormal{or}~ s=f) \\
-\ident{hasType}(\ident{int}, i) \reduce \kvd{true}\\
-\ident{hasType}(\kvd{option}\langl\sigma\rangl, s) \reduce \ident{hasType}(\sigma,s) \\
-\ident{hasType}(\kvd{option}\langl\sigma\rangl, s) \reduce \kvd{true} \\
-\ident{hasType}(\kvd{any}\langl\ldots\rangl, s) \reduce \kvd{true} \\
-\ident{hasType}(\_, \_) \reduce \kvd{false} \\
+\ident{convPrim}(\sigma, d) \reduce d\quad(\sigma,d\in\{ (\ident{int},i),(\ident{string},s),(\ident{bool}, b) \})
+\\[0.25em]
+\ident{convField}(\nu,\nu_i, \nu~\{\ldots, \nu_i=d_i, \ldots\}, e) \reduce e~d_i\\
+\ident{convField}(\nu,\nu', \nu~\{\ldots, \nu_i=d_i, \ldots\}, e) \reduce e~\kvd{null}\quad(\nexists i.\nu_i=\nu' )
+\\[0.25em]
+\ident{convElements}([d_1; \ldots; d_n], e) \reduce e~d_1 :: \ldots :: e~d_n :: \kvd{nil}  \\  
+\ident{convElements}(\kvd{null}) \reduce \kvd{nil}
 \end{array}
 \end{equation*}
 
@@ -1044,38 +1037,137 @@ inferred structural types into F\# types (\S\ref{sec:formal-tp}).
 \vspace{-0.5em}
 \end{figure*}
 
+% --------------------------------------------------------------------------------------------------
+
+\subsection{The Foo calculus}
+\label{sec:formal-ff}
+
+The syntax of the calculus is shown in Figure~\ref{fig:foo-syntax}. We only need classes with 
+parameter-less members and without inheritance. A class has a single implicit constructor and the 
+declaration closes over constructor parameters. 
+
+The type \ident{Data} is the type of all structural data $d$. A class definition $L$ consists of 
+a constructor and zero or more members. Values $v$ include previously defined data $d$; expressions
+$e$ include class construction, member access and the usual functional constructs (functions,
+lists, options) and conditionals. The $op$ constructs are discussed next.
+
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Structural values and conversions}
-\label{sec:formal-convert}
+\paragraph{Dynamic data operations.}
 
-As indicated by the subtyping, our system permits certain runtime conversions (e.g.~an integer
-\num{1} can be treated as a floating-point \num{1.0}). The following primitive operations 
-implement the conversions and other helpers:
-%
+The Foo programs can only work with raw data using certain primitive operations. Those are modelled
+by the $op$ primitives. In F\# Data, those are internal and users never access them directly.
+
+% -------------------------------------------------------------------------------------------------
+
+\begin{figure}[!h]
+\noindent
 \begin{equation*}
-\begin{array}{lcl}
- op  &\narrow{=}& \ident{asDec}(s) \lsep \ident{asFloat}(s) \lsep \ident{getChildren}(s) \\
-     &\narrow{|}& \ident{getField}(\nu?, \nu, s) \lsep \ident{isNull}(s) \lsep \ident{hasType}(\sigma, s)
+\begin{array}{rcl}
+ \tau &\narrow{=}& \ident{int} \lsep \ident{float} \lsep \ident{bool} \lsep \ident{string} \lsep C \lsep \ident{Data} \\[0.0em]
+      &\narrow{|}& \tau_1 \rightarrow \tau_2 \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl 
+\\[0.6em]
+ L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
+ M &\narrow{=}& \kvd{member}~N:\tau=
+\\[0.6em]
+ v &\narrow{=}& d \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep v_1::v_2 \\[0.0em]
+ e &\narrow{=}& d \lsep op \lsep e_1~e_2 \lsep \lambda x.e \lsep e.N \lsep \kvd{new}~C(\overline{e}) \\
+   &\narrow{|}& \ident{None} \lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
+   &\narrow{|}& \ident{Some}(e) \lsep e_1 = e_2 \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3} \lsep \kvd{nil} \\
+   &\narrow{|}& e_1 :: e_2 \lsep \kvd{match}~e~\kvd{with}~x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2 
+\\[0.6em]
+op &\narrow{=}& \ident{convFloat}(\sigma, e) \lsep \ident{convPrim}(\sigma, e) \\
+   &\narrow{|}& \ident{convField}(\nu_1, \nu_2, e, e) \lsep \ident{convNull}(e_1, e_2) \\
+   &\narrow{|}& \ident{convElements}(e_1, e_2) \,\lsep \ident{hasShape}(\sigma, e) 
 \end{array}
 \end{equation*}
+
+\caption{The syntax of the Foo calculus}
+\label{fig:foo-syntax}
+\vspace{-0.5em}
+\end{figure}
+
+% -------------------------------------------------------------------------------------------------
+
+The behaviour of the dynamic data operations is defined by the reduction rules in 
+Figure~\ref{fig:op-conversions}. The operations can convert data values into values of 
+less preferred shape. For example, \ident{convFloat} turns an integer \num{1} into 
+a floating-point \num{1.0} and \ident{convElements} turns \kvd{null} value into an empty list.
+
+All of the dynamic data operations take a data value $d$ and produce a Foo value. We do not 
+make the conversion explicit for primitive values (\ident{convPrim}) and assume that primitive
+values are shared, but we convert all other values. For example \ident{convElements} turns a 
+data collection $[d_1, \ldots, d_n]$ into a Foo list $v_1 :: .. :: v_n :: \kvd{nil}$.
+
+The data operations for collections, record fields and nullable values all take a function
+as the last argument and invoke it to convert the obtained data. For example, \ident{convField} 
+accesses a record field -- it ensures that the actual record name matches the expected name and 
+passes the field value (or \kvd{null} data value) to the provided function.
+
+Finally, we also define a runtime shape test \ident{hasShape}.
+The most complex case is handling of records where we check that for each field $\nu_1, \ldots, \nu_n$ 
+in the record, the actual record value has a field of the same name with a matching shape. The last 
+line defines a ``catch all'' pattern, which returns \kvd{false} for all remaining cases. Although
+not elegant, if we treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as syntactic sugar for \kvd{if} then
+the rule is expressed using just Foo expressions.
+
+% -------------------------------------------------------------------------------------------------
+
+\paragraph{Reduction.}
+The reduction relation is of the form $L, e \reduce e'$. We often omit class declarations 
+$L$ and we write $L, e \reduce^{*} e'$ to denote 
+the reflexive and transitive closure of $\reduce$. 
+
+Figure~\ref{fig:ff-reduction} shows the reduction rules. The (\emph{ctx}) rule models the eager
+evaluation of F\# and performs a reduction inside a sub-expression specified by an evaluation 
+context $E$:
 %
-The operations are used in code generated by type providers. Their behavior is defined
-by the rules in Figure~\ref{fig:op-conversions}. The conversion functions (\ident{asDec}
-and \ident{asFloat}) only perform conversions required by the subtyping (our actual 
-implementation is more lax and performs additional conversions).
+\begin{equation*}
+\begin{array}{rcl}
+ E &\narrow{=}& v::E \lsep v~E \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e})\\[0.1em]
+   &\narrow{|}&  \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2  \lsep E = e \lsep v = E \\[0.1em]
+   &\narrow{|}& \ident{Some}(E) \lsep op(\overline{v}, E, \overline{e})\\[0.1em]
+   &\narrow{|}& \kvd{match}~E~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\[0.1em]
+   &\narrow{|}& \kvd{match}~E~\kvd{with}~x_1 :: x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
+\end{array} 
+\end{equation*}
 
-The \ident{getField} operation is used to access a field of a record. The operation ensures that
-the actual record name matches the expected name (we write $\bullet$ for the name of an unnamed 
-record). The \ident{getChildren} operation returns elements of a list and turns \kvd{null} into 
-an empty collction.
+\noindent
+The evaluation proceeds from left to right as denoted by $\overline{v}, E, \overline{e}$ in 
+constructor and dynamic data operation arguments or $v::E$ in list initialization.
 
-Finally, we also define two helper functions. The \ident{isNull} operation is used to check whether 
-value is \kvd{null} and \ident{hasType} is a runtime type test. The most complex case is handling 
-of records where we check that for each field $\nu_1, \ldots, \nu_n$ in the type, the actual record 
-value has a field of the same name with a matching type. The last line defines a ``catch all'' 
-pattern, which returns \kvd{false} for all remaining cases. Although not elegant, the rules 
-can be expressed using just Featherweight F\#, discussed in the next section.
+We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
+values $\overline{v}$ in an expression. The (\emph{member}) rule reduces a member access using a class 
+definition in the assumption to obtain the body of a member. The remaining six rules
+give standard reductions for a functional language.
+
+% -------------------------------------------------------------------------------------------------
+
+\paragraph{Type checking.} 
+Well-typed Foo programs reduce to a value in a finite number of steps or get stuck due to an
+error condition. The stuck states can only be due to the dynamic data operations (e.g.
+$\ident{convFloat}(\ident{float},\kvd{null})$). The relativized type safety (Theorem~\ref{thm:safety})
+characterizes the additional conditions on input data under which Foo programs do not ``go wrong''.
+
+Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
+$L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
+The fragment demonstrates the differences and similarities with SML and Featherweight Java:
+%
+\begin{itemize}
+\item[--] All data values $d$ have the type \ident{Data}, but primitive data values (Booleans, 
+  strings, integers and floats) can be implicitly converted to Foo values and so they also have a 
+  primitive type as illustrated by the rule for $i$ and $f$.
+\item[--] For non-primitive data values (including \kvd{null}, data collections and records),
+  \ident{Data} is the only type.
+\item[--] Operations $op$ (omitted) have a family of types (Doo does not have polymorphic types),
+  accepting \ident{Data} as one of the arguments and producing a non-data Foo type.
+\item[--] Rules for checking class construction and member access are similar to corresponding
+  rules of Featherweight Java.  
+\end{itemize}
+%
+An important part of Featherweight Java that is omitted here is the checking of type declarations
+(ensuring the members are well-typed). We consider only classes generated by our type providers 
+and those are well-typed by construction.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1084,54 +1176,54 @@ can be expressed using just Featherweight F\#, discussed in the next section.
 \begin{equation*}
 \begin{array}{rl}
  \textnormal{\footnotesize{(member)}}&
- \hspace{-0.4em}
+ \hspace{-0.6em}
  \inference
- { \kvd{type}~C(\overline{x:\tau})=\ldots \kvd{member}~N_i : \tau_i = e_i \ldots }
- { (\kvd{new}~C(\overline{v})).N_i \reduce e_i[\overline{x} \leftarrow \overline{v}] }\\
- \\
- \textnormal{\footnotesize{(eq1)}}&
- v=v\reduce\kvd{true} \qquad \textnormal{\footnotesize{(eq2)}}~~v=v'\reduce\kvd{false}\\
- \\
- \textnormal{\footnotesize{(cond1)}}&
- \hspace{-0.4em}
- \kvd{if}~\kvd{true}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_1 \\
- \\
- \textnormal{\footnotesize{(cond2)}}&
- \hspace{-0.4em}
- \kvd{if}~\kvd{false}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_2 \\
- \\
+ { \kvd{type}~C(\overline{x:\tau})= \kvd{member}~N_i : \tau_i = e_i \ldots \in L }
+ { L, (\kvd{new}~C(\overline{v})).N_i \reduce e_i[\overline{x} \leftarrow \overline{v}] }\\
+ \\[-0.2em]
  \textnormal{\footnotesize{(match1)}}&
  \hspace{-1em}
  \begin{array}{l}
   \kvd{match}~\ident{None}~\kvd{with} \\
   \ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2
  \end{array} \hspace{-0.5em} ~\reduce~ e_2 \\
- \\
+ \\[-0.2em]
  \textnormal{\footnotesize{(match2)}}&
  \hspace{-1em}
  \begin{array}{l}
     \kvd{match}~\ident{Some}(v)~\kvd{with} \\
     \ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2
  \end{array} \hspace{-0.5em} ~\reduce~ e_1[x\leftarrow v]\\
- \\
+ \\[-0.2em]
  \textnormal{\footnotesize{(match3)}}&
  \hspace{-1em}
  \begin{array}{l}
-  \kvd{match}~[v_1;\ldots;v_n]~\kvd{with} \\[0em]
-  [x_1;\ldots;x_m ] \rightarrow e_1 \,|\, \_ \rightarrow e_2
- \end{array} \hspace{-0.5em} ~\reduce~ e_2\quad(m\neq n) \\
- \\
+  \kvd{match}~\kvd{nil}~\kvd{with} \\[0em]
+  x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
+ \end{array} \hspace{-0.5em} ~\reduce~ e_2\\
+ \\[-0.2em]
  \textnormal{\footnotesize{(match4)}}&
  \hspace{-1em}
  \begin{array}{l}
-  \kvd{match}~[v_1;\ldots;v_n]~\kvd{with} \\[0em]
-  [x_1;\ldots;x_n ] \rightarrow e_1 \,|\, \_ \rightarrow e_2
+  \kvd{match}~v_1::v_2~\kvd{with} \\[0em]
+  x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
  \end{array} \hspace{-0.5em} ~\reduce~ e_1[\overline{x}\leftarrow\overline{v}] \\
- \\
- \textnormal{\footnotesize{(map)}}&
+ \\[-0.2em]
+ \textnormal{\footnotesize{(cond1)}}&
  \hspace{-0.4em}
- \ident{map}~(\lambda x.e)~[v_1; \ldots] ~\reduce~ [e[x\leftarrow v_1]; \ldots] \\
- \\
+ \kvd{if}~\kvd{true}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_1 \\
+ \\[-0.2em]
+ \textnormal{\footnotesize{(cond2)}}&
+ \hspace{-0.4em}
+ \kvd{if}~\kvd{false}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_2 \\
+ \\[-0.3em]
+ \textnormal{\footnotesize{(eq1)}}&
+ v=v\reduce\kvd{true} \qquad \textnormal{\footnotesize{(eq2)}}~~v=v'\reduce\kvd{false}\\
+ \\[-0.3em]
+ \textnormal{\footnotesize{(fun)}}&
+ \hspace{-0.4em}
+ (\lambda x.e)~v ~\reduce~ e[x\leftarrow v] \\
+ \\[-0.3em]
  \textnormal{\footnotesize{(ctx)}}&
  \hspace{-0.4em}
   E[e] \reduce E[e'] \qquad\qquad(\textnormal{when}~e \reduce e')\\
@@ -1144,72 +1236,59 @@ can be expressed using just Featherweight F\#, discussed in the next section.
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Featherweight F\#}
-\label{sec:formal-ff}
+\subsection{Type providers}
+\label{sec:formal-tp}
 
-We now extend the semantics discussed so far and add a minimal subset of F\# needed to model F\# 
-Data. Type providers use classes and so we focus on the F\# object model and combine aspects of SML 
-\cite{sml} and Featherweight Java \cite{fwjava}. 
+So far, we defined the type inference algorithm which produces a shape $\sigma$ from one 
+or more sample documents (\S\ref{sec:inference}) and we defined a simplified model of evaluation
+of F\# (\S\ref{sec:formal-ff}) and F\# Data runtime (\S\ref{sec:formal-tp}). In this section, we 
+define how the type providers work, linking the two parts.
 
-We only need classes with parameter-less members and without inheritance. A class has a single 
-implicit constructor and the declaration closes over constructor parameters. To avoid including all 
-of ML, we only pick constructs for working with options and lists that we need later.
+All F\# Data type providers take (one or more) sample documents, infer a common preferred shape $\sigma$
+and then use it to generate F\# types that are exposed to the programmer.\footnote{The actual 
+implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
+the code as actually generated. This is an acceptable simplification, because F\# Data type providers 
+do not rely on laziness that is available through erased types.}
+
+\paragraph{Type provider mapping.}
+A type provider produces an F\# type $\tau$ together with a Foo expression and a collection of 
+class definitions. We express it using the following mapping:
 %
 \begin{equation*}
-\begin{array}{rcl}
- \tau &\narrow{=}& \ident{int} \lsep \ident{decimal} \lsep \ident{float} \lsep \ident{bool} \lsep \ident{string} \\[0.0em]
-      &\narrow{|}& C \lsep \ident{StructVal} \lsep \ident{list}\langl\tau\rangl \lsep \ident{option}\langl\tau\rangl \\[0.6em]
- L &\narrow{=}& \kvd{type}~C(\overline{x:\tau}) = \overline{M} \\[0.0em]
- M &\narrow{=}& \kvd{member}~N:\tau=e \\[0.6em]
- v &\narrow{=}& s \lsep \ident{None} \lsep \ident{Some}(v) \lsep \kvd{new}~C(\overline{v}) \lsep [v_1; \ldots; v_n] \\[0.0em]
- e &\narrow{=}& s \lsep op \lsep e.N \lsep \kvd{new}~C(\overline{e}) \lsep {\kvd{if}~e_1~\kvd{then}~e_2~\kvd{else}~e_3}\\
-   &\narrow{|}& \ident{None} \lsep\kvd{match}~e~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\
-   &\narrow{|}& \ident{Some}(e) \lsep [e_1;\ldots;e_n]\lsep \ident{map}~(\lambda x\rightarrow e_1)~e_2\\
-   &\narrow{|}& e = e \lsep \kvd{match}~e~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2
-\end{array}
+\sem{-} : \sigma \rightarrow (\tau \times e \times L) \qquad (\textnormal{where}~L,\emptyset \vdash e:\ident{Data}\rightarrow\tau)
 \end{equation*}
-
-\noindent
-The type \ident{StructVal} is a type of all structural values $s$. A class
-definition $L$ consists of a constructor and zero or more members. Values $v$ include 
-previously defined structural values $s$ and values for the option and list type; finally 
-expressions $e$ include previously defined operations $op$, class construction, member access, 
-conditionals and expressions for working with option values and lists. We include 
-\ident{map} as a special construct to avoid making the language too complex.
-
-\paragraph{Reduction.}
-The reduction relation is of the form $e \reduce e'$. We also write 
-$e \reduce^{*} e'$ to denote the reflexive and transitive closure of $\reduce$. The reduction rules
-for operations $op$ were discussed earlier. Figure~\ref{fig:ff-reduction} shows the remaining
-rules.
-
-The (\emph{ctx}) rule performs a reduction inside a sub-expression specified by an evaluation context.
-This models the eager evaluation of F\#. An evaluation context $E$ is defined as:
 %
-\begin{equation*}
-\begin{array}{rcl}
- E &\narrow{=}& [\overline{v};E;\overline{e}] \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e})\\[0.1em]
-   &\narrow{|}& \ident{map}~(\lambda x\rightarrow e)~E \lsep \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2 \\[0.1em]
-   &\narrow{|}& \ident{Some}(E) \lsep op(E) \lsep E = e \lsep v = E \\[0.1em]
-   &\narrow{|}& \kvd{match}~E~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\[0.1em]
-   &\narrow{|}& \kvd{match}~E~\kvd{with}~[x_1; \ldots; x_n] \rightarrow e_1 \,|\, \_ \rightarrow e_2
-\end{array} 
-\end{equation*}
+The mapping $\sem{\sigma}$ takes an inferred shape $\sigma$. It returns an F\# type $\tau$ and
+a function that turns the input data (value of type \ident{Data}) into a Foo value of type $\tau$. 
+The type provider also generates class definitions that may be used by $e$. 
 
-\noindent
-The evaluation first reduces arguments of functions and the evaluation proceeds from left to right 
-as denoted by $\overline{v}, E, \overline{e}$ in constructor arguments or $\overline{v};E;\overline{e}$
-in list initialization.
+Figure~\ref{fig:tp-generation} defines $\sem{-}$. Primitive types are handled by a single rule that
+inserts an appropriate conversion function; \ident{convPrim} just checks that the shape matches
+and \ident{convFloat} converts numbers to a floating-point.
 
-We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
-values $\overline{v}$ in an expression. The (\emph{member}) rule reduces a member access using a class 
-definition in the assumption to obtain the body of a member. The remaining six rules
-give standard reductions for conditionals and pattern matching.
+For records, we generate a class $C$ that takes a data value as constructor parameter. For each 
+record field, we generate a member with the same name as the field.\footnote{The actual
+F\# Data implementation also capitalizes the names.} The body of the member calls \ident{convField}
+with a function obtained from $\sem{\sigma_i}$. This function turns the field value (data of shape
+$\sigma_i$) into a Foo value of type $\tau_i$. The returned expression creates a new instance of 
+$C$ and the mapping returns the class $C$ together with all recursively generated classes. Note that 
+the class name $C$ is not directly accessed by the user and so we can use arbitrary name, although the 
+actual implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
+\ident{\{\str{person}:\{\str{name}:\str{Tomas}\}\}}, the nested record will be named \ident{Person}
+based on the name of the parent record field.}
 
-We omit expressions $e \vee e$ and $e \wedge e$ that are used in Figure~\ref{fig:op-conversions}, 
-as those can be easily defined as syntactic sugar using \kvd{if}. All expressions reduce to a value in a 
-finite number of steps or get stuck due to an error condition. An error condition can be a wrong 
-argument passed to conditional, pattern matching or one of the primitives from Figure~\ref{fig:op-conversions}.
+A collection shape becomes an Foo $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{convElements}
+(which returns empty list for data value \kvd{null}). The last parameter is the recursively obtained
+conversion function for the shape of elements $\sigma$. The handling of the nullable shape is similar,
+but uses \ident{convNull}.
+
+As discussed earlier, labelled top shape are also generated as Foo classes with properties. Given 
+$\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl$, we get corresponding F\# types $\tau_i$ and generate 
+$n$ members of type $\ident{option}\langl \tau_i\rangl$. When the member is accessed, we need to perform
+a runtime shape test using \ident{hasShape} to ensure that the value has the right shape (similarly to runtime 
+type conversions from the top type in languages like Java). If the shape matches, a \ident{Some} value is 
+returned. The shape inference algorithm also guarantees that there is only one case for each shape tag 
+(\S\ref{sec:inference-commonsuper}) and so we can use the tag for the name of the generated member.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1217,21 +1296,27 @@ argument passed to conditional, pattern matching or one of the primitives from F
 \noindent  
 \begin{equation*}
 \inference
-  {L; \Gamma \vdash e_1 : \ident{StructVal}}
-  {L; \Gamma \vdash [e_1; \ldots; e_n]:\ident{StructVal}}
-\quad  
+  {~}
+  {L; \Gamma \vdash d : \ident{Data}}
+~~
 \inference
   {~}
-  {L; \Gamma \vdash n : \ident{int}}
+  {L; \Gamma \vdash i : \ident{int}}
+~~
+\inference
+  {~}
+  {L; \Gamma \vdash f : \ident{float}}
 \end{equation*}
+\vspace{0.25em}
 \begin{equation*}
 \inference
-  {L; \Gamma \vdash e_1 : \tau}
-  {L; \Gamma \vdash [e_1; \ldots; e_n]:\ident{list}\langl\tau\rangl}
+  {L; \Gamma, x : \tau_1 \vdash e : \tau_2}
+  {L; \Gamma \vdash \lambda x.e : \tau_2}
 \quad
 \inference
-  {~}
-  {L; \Gamma \vdash s : \ident{StructVal}}
+  {L; \Gamma \vdash e_2 : \tau_1 \\
+   L; \Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2}
+  {L; \Gamma \vdash e_1~e_2 : \tau_2}
 \end{equation*}
 \vspace{0.5em}
 \begin{equation*}
@@ -1252,120 +1337,69 @@ argument passed to conditional, pattern matching or one of the primitives from F
 
 % -------------------------------------------------------------------------------------------------
 
-\paragraph{Type checking.} 
-Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
-$L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
-The fragment demonstrates the key differences from Standard ML and Featherweight Java:
-%
-\begin{itemize}
-\item[--] All structural values $s$ have the type \ident{StructVal}, but some have other types
-  (Booleans, strings, integers, etc.) as illustrated by the rule for $n$.
-  For other values, \ident{StructVal} is the only type -- this includes records and \kvd{null}.
-\item[--] A list containing other structural values $[s_1; \ldots; s_n]$ has a type \ident{StructVal},
-  but can also have the $\ident{list}\langl\tau\rangl$ type. Conversely, lists that contain
-  non-structural values like objects or options are not of type \ident{StructVal}.
-\item[--] Operations $op$ (omitted) are treated as functions, accepting 
-  \ident{StructVal} and producing an appropriate result type.
-\item[--] Rules for checking class construction and member access are similar to corresponding
-  rules of Featherweight Java.  
-\end{itemize}
-%
-An important part of Featherweight Java that is omitted here is the checking of type declarations
-(ensuring the members are well-typed). We consider only classes generated by our type providers 
-and those are well-typed by construction.
-
-% -------------------------------------------------------------------------------------------------
-
 \begin{figure*}
-\noindent
-\begin{equation*}
-\quad\qquad\boxed{
-\begin{array}{rcl}
- \nameoftag(\ident{string}) &\narrow{=}& \ident{String} \\
- \nameoftag(\ident{bool}) &\narrow{=}& \ident{Boolean} \\
-\end{array}
-\qquad
-\begin{array}{rcl}
- \nameoftag(\ident{number}) &\narrow{=}& \ident{Number} \\
- \nameoftag(\ident{collection}) &\narrow{=}& \ident{List} \\
-\end{array}
-\qquad
-\begin{array}{rcl}
- \nameoftag(\ident{record}) &\narrow{=}& \ident{Record} \\
- \nameoftag(\ident{named}\;\nu) &\narrow{=}& \nu \\
-\end{array}
-}
-\end{equation*}
-
 \begin{multicols}{2}
 % Primitive structural types become corresponding F# types and conversion is inserted
 \noindent
 \begin{equation*}
-\begin{array}{l}
- \sem{\sigma_p}_e = \tau_p,op(e),\emptyset\quad\textnormal{where}~\tau_p = \sigma_p \\[0.2em]
-\quad\sigma_p, op\in  \{~(\ident{decimal},\ident{asDec}), (\ident{float},\ident{asFloat})~\}
-\end{array}
+\begin{array}{l} 
+ \sem{\sigma_p} = \tau_p,\lambda x\rightarrow op(\sigma_p, x),\emptyset\quad\textnormal{where} \\[0.6em] 
+ \quad\sigma_p, \tau_p, op\in  \{~ (\ident{bool}, \ident{bool}, \ident{convPrim})\\
+ \hspace{2.9em} (\ident{int}, \ident{int}, \ident{convPrim}), (\ident{float},\ident{float},\ident{convFloat}),\\
+ \hspace{2.9em} (\ident{string},\ident{string},\ident{convPrim}) ~\}
+\end{array} 
 \end{equation*}
 %
 % Records become classes
 \begin{equation*}
 \begin{array}{l}
- \sem{\,\nu \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,}_e = \\[0.1em]
- \quad C, \kvd{new}~C(e), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
- \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n  \\[0.1em]
- \qquad M_i = \kvd{member}~\nu_i:\tau_i=e_i\\[0.1em]
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_{e'},\;\; e'=\ident{getField}(\nu, \nu_i, e)\\[0.6em]
-\end{array}
-\end{equation*}
-%
-% Collections
-\begin{equation*}
-\begin{array}{l}
- \sem{\,[\sigma]\,}_e = \ident{list}\langl\tau\rangl, e_b, L \;\;\textnormal{where}\\[0.4em]
- \qquad e_b = \ident{map}~(\lambda x\rightarrow e')~(\ident{getChildren}(e)) \\[0.1em]
- \qquad \tau, e', L = \sem{\hat{\sigma}}_x
-\end{array}
-\end{equation*}
-%
-% Anything else
-\begin{equation*}
-\begin{array}{l}
- \sem{\bot}_e = \sem{\kvd{null}}_e = \ident{StructVal}, e, \emptyset
-\end{array}
-\end{equation*}
-
-\noindent
-\begin{equation*}
-\hspace{-2.5em}
-\begin{array}{l}
- \sem{\sigma_p}_e = \tau_p,e,\emptyset\quad\textnormal{where}~\tau_p = \sigma_p \\[0.2em]
-\quad\sigma_p \in  \{~ \ident{string},\ident{bool},\ident{int}~\}\\[0.6em]
-\end{array}
-\end{equation*}
-%
-% Sum type
-\begin{equation*}
-\hspace{-2.5em}
-\begin{array}{l}
- \sem{\,\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl\,}_e = \\[0.1em]
- \quad C, \kvd{new}~C(e), L_1\cup\ldots\cup L_n\cup\{ L \}\;\;\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\[0.1em]
- \qquad \;\,\,L = \kvd{type}~C(v:\ident{StructVal})~=~M_1\ldots M_n \\[0.1em]
- \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\[0.1em]
- \hspace{5.8em}  \kvd{if}~\ident{hasType}(\sigma_i, v)~\kvd{then}~
-     \ident{Some}(e_i)~\kvd{else}~\ident{None} \\[0.1em]
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; t_i = \tytagof{(\sigma_i)},\;\; \nu_i=\nameoftag{(t_i)}
+ \sem{\,\nu~ \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,} = \\[0.1em]
+ \quad C, \lambda x\rightarrow \kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\
+ \qquad \;\,\,L = \kvd{type}~C(x:\ident{Data})~=~M_1\ldots M_n  \\
+ \qquad M_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x, e_i),\\
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i} 
 \end{array}
 \end{equation*}
 %
 % Option values
 \begin{equation*}
-\hspace{-2.5em}
 \begin{array}{l}
- \sem{\hat{\sigma}\;\,\kvd{option}}_e = \\[0.2em]
- \hspace{1.25em} \ident{option}\langl\tau\rangl, \kvd{if}~\ident{isNull}~e~\kvd{then}~\ident{None}~\kvd{else}~\ident{Some}(e'), L\\[0.2em] 
- \hspace{1.25em} \textnormal{where}~\tau, e', L = \sem{\hat{\sigma}}_e
+ \sem{\kvd{nullable}\langl\hat{\sigma}\rangl} = \\[0.2em]
+ \qquad \ident{option}\langl\tau\rangl, \lambda x \rightarrow \ident{convNull}(x,e), L\\[0.2em] 
+ \qquad \textnormal{where}~\tau, e, L = \sem{\hat{\sigma}}
+\end{array}
+\end{equation*}
+%
+% Collections
+\begin{equation*}
+\hspace{-1.3em}
+\begin{array}{l}
+ \sem{\,[\sigma]\,} = \ident{list}\langl\tau\rangl, \lambda x \rightarrow \ident{convElements}(x, e'), L \;\;\textnormal{where}\\[0.4em]
+ \qquad \tau, e', L = \sem{\hat{\sigma}}
+\end{array}
+\end{equation*}
+%
+% Sum type
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl\,} = \\
+ \quad C, \lambda x\rightarrow\kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\;\;\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\
+ \qquad \;\,\,L = \kvd{type}~C(x:\ident{Data})~=~M_1\ldots M_n \\
+ \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\
+ \hspace{5.8em}  \kvd{if}~\ident{hasShape}(\sigma_i, x)~\kvd{then}~ \ident{Some}(e_i~x)~\kvd{else}~\ident{None} \\[0.1em]
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; \nu_i=\tytagof{(\sigma_i)}
+\end{array}
+\end{equation*}
+%
+% Anything else
+\begin{equation*}
+\hspace{-1.3em}
+\begin{array}{l}
+ \sem{\bot} = \sem{\kvd{null}} = C, \lambda x\rightarrow \kvd{new}~C(), \{ L \} \;\;\textnormal{where}\\[0.4em]
+ \qquad C~\textnormal{is a fresh class name} \\[0.1em]
+ \qquad L = \kvd{type}~C(v:\ident{Data})
 \end{array}
 \end{equation*}
 \end{multicols}
@@ -1376,63 +1410,6 @@ and those are well-typed by construction.
 \end{figure*}
 
 % -------------------------------------------------------------------------------------------------
-
-\subsection{Type providers}
-\label{sec:formal-tp}
-
-So far, we defined the type inference algorithm which produces a structural type $\sigma$ from one 
-or more sample documents (\S\ref{sec:inference}) and we defined a simplified model of evaluation
-of F\# (\S\ref{sec:formal-ff}) and F\# Data runtime (\S\ref{sec:formal-tp}). In this section, we 
-define how the type providers work, linking the two parts.
-
-All F\# Data type providers take (one or more) sample documents, infer a common supertype $\sigma$
-and then use it to generate F\# types that are exposed to the programmer.\footnote{The actual 
-implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat 
-the code as actually generated. This is an acceptable simplification, because F\# Data type providers 
-do not rely on laziness that is available through erased types.}
-
-\paragraph{Type provider mapping.}
-A type provider produces an F\# type $\tau$ together with an expression that wraps an input
-value (of type \ident{StructVal}) as a value of type $\tau$ and a collection of class definitions. 
-We express it using the following mapping:
-%
-\begin{equation*}
-\sem{-}_{-} : (\sigma\times e) \rightarrow (\tau \times e' \times L)
-\end{equation*}
-%
-The mapping $\sem{\sigma}_e$ takes an inferred structural type $\sigma$ and an expression $e$, 
-which represents code to obtain a structural value that is being wrapped. It returns an F\# type 
-$\tau$, an expression $e'$ which constructs a value of type $\tau$ using $e$ and also a set of 
-generated class definitions $L$.
-
-Figure~\ref{fig:tp-generation} shows the rules that define $\sem{-}_{-}$. Primitive types are all
-handled by two rules -- for \ident{decimal} and \ident{float}, we insert a call to an appropriate 
-conversion function from Figure~\ref{fig:op-conversions}.
-
-For records, we generate a class $C$ that takes a structural value as constructor
-parameter. For each record field, we generate a member with the same name as the field.\footnote{The actual
-F\# Data implementation also capitalizes the names.} The body of the member calls \ident{getField} and then
-wraps this expression using $\sem{\sigma_i}$ which maps the field (structural value of type $\sigma_i$) into 
-an F\# value of type $\tau_i$. The returned expression creates a new instance of $C$ and the mapping returns 
-the class $C$ together with all recursively generated classes. Note that the class
-name $C$ is not directly accessed by the user and so we can use arbitrary name, although the actual 
-implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
-\ident{\{\str{person}:\{\str{name}:\str{Tomas}\}\}}, the nested record will be named \ident{Person}
-based on the name of the parent record field.}
-
-A collection type becomes an F\# $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{getChildren}
-(which turns \kvd{null} into an empty list) and then uses \ident{map} to convert nested values to 
-values of an F\# type $\tau$. The handling of option type is similar; if the value is not \kvd{null},
-we wrap the recursively generated conversion expression $e'$ in the \ident{Some} constructor.
-
-As discussed earlier, variant types are also generated as F\# classes with properties. Given a variant
-$\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl$, we get corresponding F\# types $\tau_i$ and generate 
-$n$ members of type $\ident{option}\langl \tau_i\rangl$. When the member is accessed, we need to perform
-a runtime type test using \ident{hasType} to ensure that the value has the right type (similarly to runtime 
-type conversions from the top type in languages like Java). If the type matches, a \ident{Some} value is 
-returned. The type inference algorithm also guarantees that there is only one case for each type tag 
-(\S\ref{sec:inference-commonsuper}) and so we can use the tag when naming the generated member 
-(using the \ident{nameof} function).
 
 \paragraph{Example 1.}
 To illustrate how the mechanism works, we consider two examples. First, assume 
@@ -1467,10 +1444,10 @@ of \ident{Person} and string values:
 \begin{array}{l}
  \kvd{type}~\ident{PersonOrString}(v:\ident{StructVal})~= \\[0.1em]
  \quad \kvd{member}~\ident{Person}~:~\ident{option}\langl\ident{Person}\rangl~= \\[0.1em]
- \qquad \kvd{if}~\ident{hasType}(\{\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}\}, v)~\\[0.1em]
+ \qquad \kvd{if}~\ident{hasShape}(\{\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}\}, v)~\\[0.1em]
  \qquad\quad \kvd{then}~\ident{Some}(\kvd{new}~\ident{Person}(v))~\kvd{else}~\ident{None} \\[0.1em]
  \quad \kvd{member}~\ident{String}~:~\ident{option}\langl\ident{string}\rangl~= \\[0.1em]
- \qquad \kvd{if}~\ident{hasType}(\ident{string}, v)~\\[0.1em]
+ \qquad \kvd{if}~\ident{hasShape}(\ident{string}, v)~\\[0.1em]
  \qquad\quad \kvd{then}~\ident{Some}(\ident{asStr}(v))~\kvd{else}~\ident{None}
 \end{array}
 \end{equation*}
@@ -1483,7 +1460,7 @@ Given a structural document value $s$, the code to obtain the wrapped F\# value 
 \end{equation*}
 
 The \ident{PersonOrString} type contains one member for each of the variant case. In the body, they
-check that the value has the correct type using \ident{hasType}. This also implicitly handles \kvd{null}
+check that the value has the correct type using \ident{hasShape}. This also implicitly handles \kvd{null}
 by returning \kvd{false}. As discussed earlier, variants provide easy access to the known cases
 (\ident{string} or \ident{Person}), but they are robust with respect to unexpected inputs.
 
@@ -1537,7 +1514,7 @@ class $C$, it holds that $e.N_i \reduce^{*} v$.
 By induction over the structure of $\sem{-}_-$. For primitives, the conversion functions accept all subtypes.
 For other cases, analyze the provided code to see that it can work on all subtypes (\emph{e.g.}~\ident{getChildren}
 works on \kvd{null} values, \ident{getField} returns \kvd{null} when a field is missing and, for variants,
-the value has the correct type as guaranteed by \ident{hasType}.
+the value has the correct type as guaranteed by \ident{hasShape}.
 \end{proof}
 
 \noindent
