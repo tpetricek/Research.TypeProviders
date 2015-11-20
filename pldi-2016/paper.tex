@@ -165,15 +165,13 @@ safety guarantees when contrasted with the widely used weakly typed techniques.
 \section{Introduction}
 \label{sec:introduction}
 
-Applications for social network clients, finding tomorrow's weather or searching train schedules
-all communicate with external services. Increasingly these services provide REST-based 
-end-points that return data as CSV, XML or JSON. Despite many schematization efforts, most 
-services do not come with an explicit schema. At best, the documentation provides sample responses 
-for typical requests.
+Applications for social networks, finding tomorrow's weather or searching train schedules
+all communicate with external services. Increasingly, these services provide end-points that return 
+data as CSV, XML or JSON. Most such services do not come with an explicit schema. At best, the 
+documentation provides sample responses for typical requests.
 
-For example, \url{http://openweathermap.org/current} provides an end-point to get the current weather.
-The documentation shows one sample to illustrate the typical response. Using 
-standard JSON and web libraries, we might write:
+For example, \url{http://openweathermap.org/current} documents an end-point to get the current 
+weather with one example. Using standard libraries, we might call it as:
 
 \noindent
 \begin{equation*}
@@ -262,13 +260,14 @@ in this section illustrate the key design principles of the shape inference algo
   shape of the type.}
 
 \item The type providers prefer F\# object types with properties. This allows extensible 
-  (open-world) data formats (\S\ref{sec:providers-xml}). It also interacts well with developer tooling,
-  as most F\# editors provide auto-completion on ``.'' making values of provided types easy to use.
-  This also makes our techniques applicable any language with nominal object types -- for example
-  variations of Java or C# with a type provider mechanism added.
+  (open-world) data formats (\S\ref{sec:providers-xml}) and it interacts well with developer tooling
+  (\S\ref{sec:providers-json}). 
 
-\item Finally, the mechanism handles practical concerns including
-  support for different numerical types, \kvd{null} values and missing data.
+\item The above also makes our techniques applicable to any language with nominal 
+  object types (e.g.~variations of Java or C\# with a type provider mechanism added).
+
+\item Finally, the we handle practical concerns including
+  support for different numerical types, \kvd{null} and missing data.
 \end{itemize}
 
 % --------------------------------------------------------------------------------------------------
@@ -328,7 +327,7 @@ The notation $\ident{JsonProvider}\langl\str{people.json}\rangl$ passes a \emph{
 to the type provider. Static parameters are resolved at compile-time and have to be constant. 
 The provider analyzes the sample and provides a type  \ident{People}. F\# editors also 
 execute the type provider in the background at development-time and use the provided types 
-in auto-completion and background type-checking.
+in auto-completion on ``.'' and background type-checking.
 
 The \ident{JsonProvider} uses a shape inference algorithm and provides
 the following F\# types for the sample:
@@ -513,8 +512,7 @@ for finding a common shape.
 The shape algebra and inference presented here is influenced by the design principles
 we outlined earlier and the type definitions available in the F\# language.
 If applied to other languages, details may differe, for example
-w.r.t. numerical types and missing data.
-
+with respect to numerical types and missing data.
 
 % --------------------------------------------------------------------------------------------------
 
@@ -537,7 +535,8 @@ We distinguish between \emph{non-nullable shapes} that always have a valid value
 $\hat{\sigma}$) and \emph{nullable shapes} that encompass missing and \kvd{null} values 
 (written as $\sigma$). We write $\nu$ for record names and record field names. In the rest of the
 paper, we assume that record fields can be freely reordered:
-%
+
+\noindent
 \begin{equation*}
 \begin{array}{rcl}
  \hat{\sigma} &\narrow{=}& \nu \; \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \} \\[0.1em]
@@ -828,7 +827,7 @@ shapes of distinct tags and so no better preferred shape exists.
 
 \noindent
 Next, we extend the core model (sufficient for the relativized safety) 
-with \emph{labelled top types} discussed earleir.
+with \emph{labelled top types} discussed earlier.
 
 % --------------------------------------------------------------------------------------------------
 
