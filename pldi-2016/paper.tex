@@ -1531,8 +1531,8 @@ optional record fields, the \ident{hasShape} operation is used to guaranteed the
 
 \noindent
 This shows that provided types are correct with respect to the preferred shape relation. 
-This is an obligation upon the author of a type provider, which is why
-type soundness is ``relative''.
+In general, this is an obligation upon the author of a type provider, which is a second reason why
+the type soundness is ``relative''.
 Our key theorem states that, for any input (which is a subshape of any of the samples) and 
 any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 Using standard syntactic type safety  \cite{syntactic}, we prove type preservation 
@@ -1605,7 +1605,7 @@ The cases for the ML subset are standard. For member access, we rely on Lemma~\r
 \section{Practical experience}
 \label{sec:impl}
 
-The F\# Data library has been widely adopted by the industry and is one of the most downloaded
+The F\# Data library has been widely adopted by users and is one of the most downloaded
 F\# libraries.\footnote{At the time of writing, the library has over 80,000 downloads on NuGet 
 (package repository), 1,821 commits and 44 contributors on GitHub.} A practical demonstration of 
 development using the library can be seen in an attached screencast and additional documentation can be
@@ -1617,24 +1617,26 @@ F\# Data type providers and other notable aspects of the implementation.
 \subsection{Relativized safety in practice}
 \label{sec:safety-discuss}
 
-The \emph{relativized safety} property does not guarantee the same amount of safety as traditional
-closed-world type safety, but it reflects the reality of programming with external data that is 
-increasingly important \cite{age-of-web}. Type providers do not reduce the safety -- they simply 
-illuminate the existing issues.
+The \emph{relativized safety} property does not guarantee safety in the same way as traditional
+closed-world type safety, but it reflects the reality that programming with external data is
+increasingly important \cite{age-of-web}. Type providers increase the safety of this kind of programming,
+seen by example in \S\ref{sec:introduction}.
 
-One such issue is the handling of schema change. With type providers, the sample is captured 
-at compile-time. If the schema changes later (so that the input is no longer related to the  
-shape of the sample), the program fails at runtime and developers have to handle the exception. 
-The same problem happens when using weakly-typed techniques.
+One such issue is the handling of sample change. With type providers, the sample is captured 
+at compile-time. If the sample changes later (so that the input is no longer related to the  
+shape of the sample), the program can fail at runtime and developers have to handle the exception. 
+The same problem happens when using weakly-typed code with explicit failure cases.
 
 F\# Data can help discover such errors earlier. Our first example (\S\ref{sec:introduction})
 points the JSON type provider at a sample using a live URL. This has the advantage that a re-compilation 
-fails when the schema changes, which is an indication that the program needs to be updated to reflect the
-change.
+fails when the sample changes, which is an indication that the program needs to be updated to reflect the
+change. Repeated type-checking of programs by continuous integration systems can be used to help 
+detect such changes.
 
-In general, there is no better solution for plain XML, CSV and JSON data sources. However, some data 
-sources provide versioning support (with meta-data about how the schema changed). For those, a type 
-provider could adapt automatically, but we leave this for future work.
+In general, schema-free XML, CSV and JSON data sources will necessarily require techniques akin
+to those we have shown. However, some data sources provide schema and schema versioning support 
+(with meta-data about how the schema changed). For those, a type 
+provider could be written to adapt automatically, but we leave this for future work.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1670,7 +1672,7 @@ we also infer \ident{Autofiled} as Boolean, because the sample contains only $0$
 This is handled by adding a \ident{bit} shape which is preferred of both \ident{int} and \ident{bool}.
 
 \paragraph{Reading XML documents.}
-Mapping XML documents to structural values is perhaps the most interesting. For each node, we
+Mapping XML documents to structural values is more interesting. For each node, we
 create a record. Attributes become record fields and the body becomes a field with a special
 name:
 %
@@ -1704,8 +1706,8 @@ will be treated as values of the same type.
 \subsection{Heterogeneous collections} 
 \label{sec:impl-hetero}
 
-When introducing type providers (\S\ref{sec:providers-sum}), we mentioned that F\# Data 
-implements a special handling of heterogeneous collections. This allows us to avoid inferring a 
+When introducing type providers (\S\ref{sec:providers-sum}), we mentioned how F\# Data 
+handles heterogeneous collections. This allows us to avoid inferring 
 labelled top shapes in many common scenarios. In the earlier example, a sample collection 
 contains a record (with \strf{pages} and \strf{page} fields) and a nested collection with values.
 
@@ -1752,12 +1754,17 @@ Previous work that integrates external data, such as XML \cite{xduce,xduce-ml} a
 \cite{links,linq}, into a programming language, required the user to define the schema
 or had an ad-hoc extension that reads the schema.
 
-C$\omega$ \cite{comega-xs} is the most similar to F\# Data. It extends C\# with types similar to our
-structural types (including similar heterogeneous collections), but it does not infer the types
-from a sample. It also extends the type system of the host language (rather than using a general purpose
-embedding).
+C$\omega$ \cite{comega-xs} bears similarity to F\# Data. Like many other
+languages, it extends a host language with advanced types similar to our
+structural shapes (including similar heterogeneous collections), but it 
+does not infer the types from a sample. In contrast, in F\# Data 
+we have avoided extending F\# at all, and the simplicity of the Foo 
+target language shows we have avoided placing strong requirements 
+(such as structural records) on the host language. Instead we provide nominal 
+types based on structure, rather than adding an advanced
+system of structural types into the host language.
 
-\paragraph{Advanced type systems.}
+\paragraph{Advanced type systems with meta-programming.}
 A number of other advanced type system features could be used to tackle the problem discussed 
 in this paper. The Ur \cite{ur} language has a rich system for working with records; 
 meta-programming \cite{template-hask}, \cite{th-camlp4} and multi-stage programming \cite{multi-stage}
@@ -1769,10 +1776,10 @@ systems have been used to provide the same level of integration with XML, CSV an
 Recent work \cite{typing-json} infers a succinct type of large JSON datasets using MapReduce.
 It fuses similar types based on similarity. This is more sophisticated than our technique, but it 
 makes formal specification of safety (Theorem~\ref{thm:safety}) difficult. Extending our 
-\emph{relativized safety} to \emph{probabilistic safety} is an interesting future work.
+\emph{relativized safety} to \emph{probabilistic safety} is an interesting future direction.
 
 The PADS project \cite{pads-dsl,pads-ml} tackles a more general problem of handling \emph{any} data format.
-The schema definitions in PADS are similar to our structural type. The structure inference for LearnPADS
+The schema definitions in PADS are similar to our shapes. The structure inference for LearnPADS
 \cite{pads-learn} infers the data format from a flat input stream. A PADS type provider could follow
 many of the patterns we explore in this paper, but formally specifying the safety property would be
 more challenging.
@@ -1780,13 +1787,13 @@ more challenging.
 \section{Conclusions}
 \label{sec:conclusions}
 
-We explored the F\# Data type providers for XML, CSV and JSON. As most real-world data do not come 
+We explored the F\# Data type providers for XML, CSV and JSON. As most real-world data does not come 
 with an explicit schema, the library uses \emph{shape inference} that deduces a shape from a set of 
 samples. Our inference algorithm is based on a preferred shape relation. It prefers records to 
 encompass the open world assumption and support developer tooling. The algorithm is predictable, which is 
 important as developers need to understand how changing the samples affects the resulting types.
 
-We explore the theory behind type providers. F\# Data is a prime example of 
+We explored the theory behind type providers. F\# Data is a prime example of 
 type providers, but our work demonstrates a more general point. The types generated by type 
 providers can depend on external input and so we can only guarantee \emph{relativized safety}, 
 which says that a program is safe only if the actual inputs satisfy additional conditions.
@@ -1794,7 +1801,7 @@ which says that a program is safe only if the actual inputs satisfy additional c
 Type providers have been described before, but this paper is novel in that it explores the 
 properties of type providers that represent the ``types from data'' approach. Our experience suggests 
 that this significantly broadens the applicability of statically typed languages to real-world 
-problems that are often solved by weakly-typed techniques.
+problems that are often solved by error-prone weakly-typed techniques.
 
 % \acks
 % We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
