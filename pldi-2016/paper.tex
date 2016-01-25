@@ -722,6 +722,23 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \end{array}
 \end{equation*}
 
+\begin{equation*}
+\begin{array}{rcl}
+\ident{lub}(\sigma, \sigma) &=& \sigma \\
+\ident{lub}([\sigma_1], [\sigma_2]) &=& [\ident{lub}(\sigma_1, \sigma_2)]  \\
+\ident{lub}(\bot, \sigma) = \ident{lub}(\sigma, \bot) &=& \sigma \\
+\ident{lub}(\kvd{null}, \sigma) = \ident{lub}(\sigma, \kvd{null}) &=& \addopt{\sigma} \\
+\ident{lub}(\kvd{any}, \sigma) = \ident{lub}(\sigma, \kvd{any}) &=& \kvd{any} \\
+\ident{lub}(\kvd{float}, \kvd{int}) = \ident{lub}(\kvd{int}, \kvd{float}) &=& \kvd{float} \\
+\ident{lub}(\sigma_2, \kvd{nullable}\langl \hat{\sigma_1} \rangl) = \ident{lub}(\kvd{nullable}\langl \hat{\sigma_1} \rangl, \sigma_2) &=& \addopt{\ident{lub}(\hat{\sigma_1}, \sigma_2)} \\
+\ident{lub}(\nu \; \{ \nu_1 \!:\! \sigma_1,  \ldots \;, \nu_n \!:\! \sigma_n \}, 
+  \nu \; \{ \nu'_1 \!:\! \sigma'_1, \; \ldots \;, \nu'_m \!:\! \sigma'_m \}) &=& 
+  \nu \; \{ \nu_1 \!:\! \ident{lub}(\sigma_1, \sigma'_1), \; \ldots \; , \nu_k \!:\! \ident{lub}(\sigma_n, \sigma'_n) \}  \\[0.75em]
+\textnormal{Otherwise}~~~~ \ident{lub}(\sigma_1, \sigma_2) &=& \kvd{any} \\
+    
+\end{array}
+\end{equation*}
+
 \caption{The common preferred shape relation}
 \label{fig:subtyping-cst}
 \end{figure*}
