@@ -170,13 +170,16 @@ all communicate with external services. Increasingly, these services provide end
 data as CSV, XML or JSON. Most such services do not come with an explicit schema. At best, the 
 documentation provides sample responses for typical requests.
 
-For example, \url{http://openweathermap.org/current} contains one eample to document an end-point 
-to get the current weather. Using standard libraries, we might call it as:
+For example, \url{http://openweathermap.org/current} contains one example to document an end-point 
+to get the current weather. Using standard libraries, we might call it as\footnote{We use an abbreviation
+\url{http://api.owm.org/?q=X} for the full URL:
+\url{http://api.openweathermap.org/data/2.5/weather?q=X} 
+}:
 
 \noindent
 \begin{equation*}
 \begin{array}{l}
- \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://api.owm.org/?q=NYC}) \\
+ \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://api.owm.org/?q=NYC"}) \\
  \kvd{match}~\ident{JsonValue.Parse}(\ident{doc})~\kvd{with} \\
  |~\ident{Record}(\ident{root})\rightarrow \\
  \quad \kvd{match}~\ident{Map.find}~\str{main}~\ident{root}~\kvd{with} \\
@@ -474,7 +477,7 @@ First of all, the top-level element is a collection containing two values of dif
 The first is a record with meta-data about the current page and the second is an array with data. 
 The actual F\# Data implementation supports a concept of heterogeneous collections (briefly outlined
 in \S\ref{sec:impl-hetero}) and provides a type with properties \ident{Record} for the former and 
-\ident{Array} for the latter. Second, the the field \ident{value} is \kvd{null} for some records. Third, 
+\ident{Array} for the latter. Second, the field \ident{value} is \kvd{null} for some records. Third, 
 numbers can be represented in JSON as numeric literals (without quotes), but here, they are 
 returned as string literals instead.\footnote{This is often used to avoid non-standard numerical 
 types of JavaScript.}
@@ -671,9 +674,12 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \end{array}
 \end{equation*}
 
+{\color{red} TO BE DELETED}
+
 \vspace{-0.5em}
 \begin{equation*}
 % option types
+\color{red}
 \inference[(nullable)\;]
   {\hat{\sigma_1} \tsep \sigma_2 \vdash \sigma}
   {\kvd{nullable}\langl\hat{\sigma_1}\rangl \tsep \sigma_2 \vdash \kvd{nullable}\langl\dropopt{\sigma}\rangl}
@@ -685,6 +691,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \vspace{-2em}
 
 \begin{equation*}
+\color{red}
 \hspace{4em}
 \inference[(record)\;]
   { \forall i\in\{ 1 .. n \}.(\sigma_i \tsep \sigma'_i \vdash \sigma''_i) }
@@ -698,6 +705,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
 
 % all rules are symmetric and reflexive
 \begin{equation*}
+\color{red}
 \hspace{2em}
 \inference[(list)\;]
   {\sigma_1 \tsep \sigma_2 \vdash \sigma}
@@ -732,8 +740,8 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \ident{lub}(\kvd{float}, \kvd{int}) = \ident{lub}(\kvd{int}, \kvd{float}) &=& \kvd{float} \\
 \ident{lub}(\sigma_2, \kvd{nullable}\langl \hat{\sigma_1} \rangl) = \ident{lub}(\kvd{nullable}\langl \hat{\sigma_1} \rangl, \sigma_2) &=& \addopt{\ident{lub}(\hat{\sigma_1}, \sigma_2)} \\
 \ident{lub}(\nu \; \{ \nu_1 \!:\! \sigma_1,  \ldots \;, \nu_n \!:\! \sigma_n \}, 
-  \nu \; \{ \nu'_1 \!:\! \sigma'_1, \; \ldots \;, \nu'_m \!:\! \sigma'_m \}) &=& 
-  \nu \; \{ \nu_1 \!:\! \ident{lub}(\sigma_1, \sigma'_1), \; \ldots \; , \nu_k \!:\! \ident{lub}(\sigma_n, \sigma'_n) \}  \\[0.75em]
+  \nu \; \{ \nu_1 \!:\! \sigma'_1, \; \ldots \;, \nu_n \!:\! \sigma'_n \}) &=& 
+  \nu \; \{ \nu_1 \!:\! \ident{lub}(\sigma_1, \sigma'_1), \; \ldots \; , \nu_n \!:\! \ident{lub}(\sigma_n, \sigma'_n) \}  \\[0.75em]
 \textnormal{Otherwise}~~~~ \ident{lub}(\sigma_1, \sigma_2) &=& \kvd{any} \\
     
 \end{array}
@@ -1229,7 +1237,10 @@ and those are well-typed by construction.
  \kvd{if}~\kvd{false}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_2 \\
  \\[-0.3em]
  \textnormal{\footnotesize{(eq1)}}&
- v=v\reduce\kvd{true} \qquad \textnormal{\footnotesize{(eq2)}}~~v=v'\reduce\kvd{false}\\
+ v=v'\reduce\kvd{true} \qquad (\textnormal{when}~v = v')\\
+ \\[-0.3em]
+ \textnormal{\footnotesize{(eq2)}}&
+ v=v'\reduce\kvd{false} \qquad (\textnormal{when}~v \neq v')\\
  \\[-0.3em]
  \textnormal{\footnotesize{(fun)}}&
  \hspace{-0.4em}
@@ -1264,10 +1275,9 @@ do not rely on laziness or erasure of type provision.}
 \paragraph{Type provider mapping.}
 A type provider produces an F\# type $\tau$ together with a Foo expression and a collection of 
 class definitions. We express it using the following mapping:
-
-\noindent
+%
 \begin{equation*}
-\sem{-} : \sigma \rightarrow (\tau \times e \times L) \qquad (\textnormal{where}~L,\emptyset \vdash e:\ident{Data}\rightarrow\tau)
+\sem{\sigma} = (\tau, e, L) \qquad (\textnormal{where}~L,\emptyset \vdash e:\ident{Data}\rightarrow\tau)
 \end{equation*}
 %
 The mapping $\sem{\sigma}$ takes an inferred shape $\sigma$. It returns an F\# type $\tau$ and
@@ -1577,7 +1587,7 @@ in Figure~\ref{fig:tp-generation} is well-typed.
 
 \noindent
 The progress lemma states that evaluation of a well-typed program does not reach an undefined state. 
-This is not a problem for the (standard) ML \cite{sml} subset and object-oriented subset \cite{fwjava} of the calculus. The 
+This is not a problem for the Standard ML \cite{sml} subset and object-oriented subset \cite{fwjava} of the calculus. The 
 problematic part are the dynamic data operations (Figure~\ref{fig:op-conversions}). Given a data
 value (of type \ident{Data}), the reduction can get stuck if the value does not have a structure 
 required by a specific operation.
@@ -1753,10 +1763,14 @@ $1$ and $1?$ into $1?$).
 \section{Related and future work}
 \label{sec:related}
 
-We connect two lines of research: integration of external data into statically-typed 
-programming languages and inferring types for real-world data sources. We build on F\# type 
-providers \cite{fsharp-typeprov,fsharp-typeprov-ddfp,idris-tp,liteq}, but our paper is novel 
-in that it discusses the theory and safety of a concrete type provider. 
+We connect two lines of research: the work: inferring types for real-world data sources
+and the integration of external data into statically-typed programming langauges.
+
+Early work on F\# Data happened together with the development of the type providers mechanism in F\# 
+\cite{fsharp-typeprov,fsharp-typeprov-ddfp}, but previous publications on type providers focused on 
+the general mechanism \cite{idris-tp,liteq} rather than on concrete type providers. This paper 
+is novel in that it discusses the theory and safety of a concrete type provider from the programming
+language perspective. 
 
 \paragraph{Extending the type systems.} 
 Previous work that integrates external data, such as XML \cite{xduce,xduce-ml} and databases 
