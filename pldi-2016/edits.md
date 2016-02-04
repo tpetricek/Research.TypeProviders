@@ -115,25 +115,31 @@ Added a note that this might be preferred in OO languages
 
 Added
 
+> Fig 2, rule record: Should k be n?
+
+Fixed.
+
+> 3.5: The notion of labelled top shapes was a bit odd to me. It seems like a more 
+> general way to handle this issue is to explicitly support (some forms of) unions 
+> of shapes as shapes. Why this secondary add-on approach?
+
+Unfortunately, that breaks the existence of unique lower bound. 
+Added a footnote to clarify this.
+
+> Fig 6: This was a bit too abstract because I didn't know what the 
+> function arguments are and how they are produced (until it was described later).
+
+Moving it to later parts would probably cause more harm, but
+we rewrote the explanation to clarify the function arguments.
+
+> Fig 8: It would help to show the op rules, since those are the new ones 
+> here -- most of what's in this figure is standard.
+
+Great suggestion - added.
 
 
 
 
-
-
-
-
-Def 1: This looks like a pretty standard subtyping relationship -- what is particularly interesting?
-
-Fig 2, rule record: Should k be n?
-
-3.5: The notion of labelled top shapes was a bit odd to me. It seems like a more general way to handle this issue is to explicitly support (some forms of) unions of shapes as shapes. Why this secondary add-on approach?
-
-End of 3: "there are labels that enable typed access to every possible value in the sample, but not more." It would be useful to give this intuition earlier, and actually to state it as an explicit, ideally formalized goal. The "not more" part seems like the most interesting, since you are doing joins up the lattice, so it's hard to define what that means, let alone argue that you satisfy it.
-
-Fig 6: This was a bit too abstract because I didn't know what the function arguments are and how they are produced (until it was described later).
-
-Fig 8: It would help to show the op rules, since those are the new ones here -- most of what's in this figure is standard.
 
 5: "This is an obligation upon the author of a type provider..." I'm confused -- is Lemma 3 contingent on some assumption about the type provider code, and if so, what is that assumption?
 
@@ -142,9 +148,9 @@ Theorem 4: I don't understand the e[y <- e' d'] part. You are treating e' as a f
 
 
 
-p. 1: How dynamic are type providers, in practice? The paper's formalism generates the classes in two phases, implying a compile-time/run-time split, but in practice it seems that it could be messier; I would have liked a more direct treatment of type providers and/or more explanation of their limitations/assumptions.
 
-−
+
+
 > p. 2: "what code should be executed at run-time in place 
 > of item.Name and other operations" -- I don't get this. 
 
@@ -156,35 +162,62 @@ Changed (this was very cumbersome)
 
 Renamed section.
 
+> p. 4: You don't specifically reference figure 2 when you first start 
+> talking about it, i.e., at the start of section 3.3.
+
+Referenced now.
+
+> p. 5: Figure 4 is referenced (on this page) before Fig. 3 (which appears 
+> along with its referencing text on the following page). Reorder.
+
+Reordered.
+
+> you mention associating a \rho variable with a record, but the grammar 
+> for d in 3.4 does not show it (..) You can/should also be clearer that 
+> \theta is a global substitution, and say more about the sense in which 
+> it is "minimal". It's not clear what constraints are contributing to \rho 
+> when reading in the data, so it's not clear how to solve them minimally. 
+
+Variables appear in the shapes (Section 3.1), but not in the 'd' values
+(Section 3.4). We clarified that \theta is global and clarified 'minimal'.
+
+> p. 6: In Fig. 3 you reference option<\sigma> -- should be nullable<\sigma>.
+
+Fixed.
+
+> p. 9: The adjective "relativized" is stilted, to me. Why is "relative safety"
+> not the right phrase, rather than "relativized safety"?
+
+Changed to 'relative safety'.
+
+> p. 9: The syntax (\lambda x \rightarrow e) for functions does not match
+> the previously introduced syntax in Fig. 5 (\lambda x.e)
+
+Fixed.
+
+> Also, in Fig. 9, the rule for null and \bot generates a function that calls 
+> the class C's constructor with no argument, but the generated L 
+> defines C as having an argument.
+
+Good catch. Fixed.
 
 
 
 
-−
-p. 4: You don't specifically reference figure 2 when you first start talking about it, i.e., at the start of section 3.3.
 
-−
-p. 5: Figure 4 is referenced (on this page) before Fig. 3 (which appears along with its referencing text on the following page). Reorder.
-
-−
-p. 5: In 3.5 you mention associating a \rho variable with a record, but the grammar for d in 3.4 does not show it; it should be added there. You can/should also be clearer that \theta is a global substitution, and say more about the sense in which it is "minimal". It's not clear what constraints are contributing to \rho when reading in the data, so it's not clear how to solve them minimally. This part of the process is the least explained/most vague.
-
-−
-p. 6: In Fig. 3 you reference option<\sigma> -- should be nullable<\sigma>.
-
-−
-p. 9: The adjective "relativized" is stilted, to me. Why is "relative safety" not the right phrase, rather than "relativized safety"?
-
-−
-p. 9: The syntax (\lambda x \rightarrow e) for functions does not match the previously introduced syntax in Fig. 5 (\lambda x.e); I prefer the standard syntax (without the arrow). Also, in Fig. 9, the rule for null and \bot generates a function that calls the class C's constructor with no argument, but the generated L defines C as having an argument.
 
 −
 p. 9: The bullet list at the start of section 5 seems intuitive except for "Records in the input can have fewer fields, provided that the type of the field is nullable in some of the samples." But to have inferred a nullable field we would have seen a sample that was missing one; so I don't see in what sense the records would have "fewer fields". Indeed, Lemma 3 implies this when it says the records must have inferred sub-shapes compared to the ones from which the parser was generated. I would drop this bullet.
 
-−
-p. 10: Dangling reference after "(standard) ML".
 
 
+
+
+
+
+> p. 10: Dangling reference after "(standard) ML".
+
+Fixed.
 
 
 > (...) capitalization of field names changes
@@ -192,27 +225,29 @@ p. 10: Dangling reference after "(standard) ML".
 Added clarification in the "Implementation" section 
 with a forward reference in Section 2.
 
-
-
 > (...) could use soe extra reminders about the details of the F# libraries. 
 > The behavior of Option.iter deserves a more complete explanation
 
 Added.
 
+> There is no explanation for why null should be treated as an empty 
+> collection but not as, say, an empty record. A design choice was made here, 
+> and the rationale for it is not obvious and deserves explanation.
 
+Added a brief explanation.
 
+> Other problems with Figure 2 include: (a) missing definitions for tagof(null) 
+> and tagof(\bottom); (b) inappropriate "arguments" to "any" in the definition of 
+> "tagof(any)"; (c) missing parentheses in "tagof \sigma_2" in rule (any); (d) 
+> inappropriate "chaining" of the \neq relation in one premise of rule (any).)
 
-There is no explanation for why null should be treated as an empty collection but not as, say, an empty record. A design choice was made here, and the rationale for it is not obvious and deserves explanation.
+Figure 2 has been reworked.
 
+> On page 11, it speaks of giving the body of an XML record the special field 
+> name \bullet, at least for the purposes on the calculus, but there is no 
+> indication of how an F# programmer is to refer to that field from within code.
 
-
-
-(Other problems with Figure 2 include: (a) missing definitions for tagof(null) and tagof(\bottom); (b) inappropriate "arguments" to "any" in the definition of "tagof(any)"; (c) missing parentheses in "tagof \sigma_2" in rule (any); (d) inappropriate "chaining" of the \neq relation in one premise of rule (any).)
-
-I must say that I do like your reuse of the floor and ceiling notation to indicate removal and introduction of "nullable". Very clever.
-
-On page 11, it speaks of giving the body of an XML record the special field name \bullet, at least for the purposes on the calculus, but there is no indication of how an F# programmer is to refer to that field from within code.
-
+Addressed (as one of the top 3 issues)
 
 > page 1: last sentence in column1 says that the example will "get the current 
 > weather" but in fact it gets only the temperature. Using this more accurate 
@@ -239,11 +274,15 @@ Question marks added, figure flipped.
 Americanized for consistency.
 
 
+> First you mention \sigma_1 and \sigma_2 in that order, but then a few 
+> words later have to mention \sigma_2 before \sigma_1. (... ) using 
+> \sqsupset for your relational symbol rather than the more conventional 
+> \sqsubset (with arguments reverse). 
+
+Changed.
 
 
-## Unanswered
 
-page 4: on a related note, why the chiasmus in the second line of Definition 1? First you mention \sigma_1 and \sigma_2 in that order, but then a few words later have to mention \sigma_2 before \sigma_1. And the need for this chiasmus arises ONLY because you alreayd made the unusual choice of using \sqsupset for your relational symbol rather than the more conventional \sqsubset (with arguments reverse). This is just poor choice of, or failure to pay attention to, notation and how it helps or hinders the reader.
 
 Bibliography: Capitalization is incorrect or inconsistent in many entries. Examples: In the italicized book title of [1], all words except "of" should be capitalized. In the title of [4] "json" should be "JSON". In the title of [12], "ide" should be "IDE". In [16], the word "Of" should NOT be capitalized. The journal "SIGPLAN Notices" is mentioned in [7] as "Sigplan Notices", in [11] and [21] as "SIGPLAN Notices", and in [24] as "SIGPLAN Not." These are only a few examples; you need to double-check EVERY bibliographc entry.
 
@@ -255,3 +294,7 @@ ALWAYS inspect any BibTeX data downloaded from the Internet and edit it to confo
 
 
 page 2, column 2, second paragraph: This immediately suggests a problem not addressed by the paper: providing good examples from which all relevant properties, and no more, may be easily inferred is a difficult art in itself at which many people are surprisingly unskilled. Do we have any assurance that a sample of data provided by an automated source such as openweathermap.org will in fact be sufficiently rich to serve as a proper example from which to infer the correct type for processing other, related data? What are the fallback options if this fails?
+
+End of 3: "there are labels that enable typed access to every possible value in the sample, but not more." It would be useful to give this intuition earlier, and actually to state it as an explicit, ideally formalized goal. The "not more" part seems like the most interesting, since you are doing joins up the lattice, so it's hard to define what that means, let alone argue that you satisfy it.
+
+p. 1: How dynamic are type providers, in practice? The paper's formalism generates the classes in two phases, implying a compile-time/run-time split, but in practice it seems that it could be messier; I would have liked a more direct treatment of type providers and/or more explanation of their limitations/assumptions.
