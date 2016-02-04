@@ -11,3 +11,5 @@
 *.fdb_latexmk
 .paket
 packages
+*.debug
+build.running

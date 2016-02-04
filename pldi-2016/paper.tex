@@ -1,4 +1,4 @@
-\documentclass[10pt,preprint,clearpagebib]{sigplanconf}
+\documentclass[10pt,clearpagebib]{sigplanconf}
 
 \usepackage{listings}
 \usepackage{enumitem}
@@ -25,13 +25,6 @@
 \usepackage{flushend}
 
 % =================================================================================================
-
-% TODO: Discuss 'stability' of the inference (minor change in schema does not cause dramatic cahnges)
-% TODO: Say that variant is a last-resort thing
-% TODO: Practical evaluation (lots of downloads, lots of Github - how often people customize samples?)
-% TODO: Explain why we need option type (because T + null is a variant)
-% TODO: In the PLDI version, we delete all the unnecessary runtime conversions
-% but we should say that those happen for practical reasons (e.g. float -> int, or anyhing to string)
 
 \urlstyle{sf}
 
@@ -106,8 +99,8 @@
 \special{papersize=8.5in,11in}
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
-\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country} 
-\copyrightyear{20yy} 
+\conferenceinfo{PLDI '16}{June 13--17, 2016, Santa Barbara, CA, United States} 
+\copyrightyear{2016} 
 \copyrightdata{978-1-nnnn-nnnn-n/yy/mm} 
 %\doi{nnnnnnn.nnnnnnn}
 
@@ -136,10 +129,10 @@ as XML, JSON and CSV. Static type systems do not understand such formats, often 
 more cumbersome. Should we give up and leave the messy world of external data to dynamic typing 
 and runtime checks? Of course, not!
 
-In this paper, we integrate external structured data into F\# programming. As most real-world data
-does not come with an explicit schema, we develop a shape inference algorithm that infers a shape from 
-representative sample documents and integrates it into the F\# type system using type providers.
-We present a formalization and a relative type soundness theorem for a simplified version of this process.
+We present F\# Data, a library that integrates external structured data into F\#. As most real-world 
+data does not come with an explicit schema, we develop a shape inference algorithm that infers a 
+shape from representative sample documents. We then integrate the inferred shape into the F\# type 
+system using type providers. We formalize the process and prove a relative type soundness theorem.
 
 Our library significantly reduces the amount of data access code and it provides additional 
 safety guarantees when contrasted with the widely used weakly typed techniques.
@@ -194,9 +187,9 @@ to get the current weather. Using standard libraries, we might call it as\footno
 %
 The code assumes that the response has a particular shape described in the documentation. The
 root node must be a record with a \strf{main} field, which has to be another record containing
-a numerical \strf{temp} field. When the shape is different, the code simply fails with an exception. 
-While not immediately unsound, the code is manifestly prone to errors if strings are misspelled 
-or incorrect shape assumed.
+a numerical \strf{temp} field representing the current temperature. When the shape is different, 
+the code fails. While not immediately unsound, the code is prone to errors if strings are 
+misspelled or incorrect shape assumed.
 
 Using the JSON type provider from F\# Data, we can write code with exactly the 
 same functionality in two lines:
@@ -231,10 +224,6 @@ in heterogeneous systems. Our contributions are as follows:
   \emph{relativized type safety} for the type providers (\S\ref{sec:safety}).
 \end{itemize}
 
-\vspace{-0.1em}
-\noindent
-The supplementary screencast illustrates the practical developer experience using 
-  F\# Data with JSON, XML and CSV.
 
 
 % =================================================================================================
@@ -257,10 +246,8 @@ JSON and XML. We introduce the necessary aspects of F\# type providers along the
 in this section illustrate the key design principles of the shape inference algorithm:
 
 \begin{itemize}
-\item The mechanism is predictable. The user directly works with the provided types and should 
-  understand why a specific type was produced from a given sample.\footnote{In particular, we do 
-  not use probabilistic methods where adding an additional sample could completely change the 
-  shape of the type.}
+\item The mechanism is predictable (\S\ref{sec:impl-stable}). The user directly works with the 
+  provided types and should understand why a specific type was produced from a given sample.
 
 \item The type providers prefer F\# object types with properties. This allows extensible 
   (open-world) data formats (\S\ref{sec:providers-xml}) and it interacts well with developer tooling
@@ -273,6 +260,10 @@ in this section illustrate the key design principles of the shape inference algo
   support for different numerical types, \kvd{null} and missing data.
 \end{itemize}
 
+\noindent
+The supplementary screencast provides further illustration of the practical developer
+experience using F\# Data.
+  
 % --------------------------------------------------------------------------------------------------
 
 \subsection{Working with JSON documents}
@@ -285,10 +276,12 @@ used earlier (\S\ref{sec:introduction}) to represent JSON data:
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{JsonValue} = \\[0.1em]
- \quad|~ \ident{Number}~\kvd{of}~\ident{float} ~~~~|~ \ident{Boolean}~\kvd{of}~\ident{bool} \\[0.1em]
- \quad|~ \ident{String}~\kvd{of}~\ident{string} ~~~~~\, |~ \ident{Null} \\[0.1em]
+ \quad|~ \ident{Number}~\kvd{of}~\ident{float} \\[0.1em]
+ \quad|~ \ident{Boolean}~\kvd{of}~\ident{bool} \\[0.1em]
+ \quad|~ \ident{String}~\kvd{of}~\ident{string}\\[0.1em]
  \quad|~ \ident{Record}~\kvd{of}~\ident{Map}\langl\ident{string}, \ident{JsonValue}\rangl \\[0.1em]
  \quad|~ \ident{Array}~\kvd{of}~\ident{JsonValue}[] \\[0.1em]
+ \quad|~ \ident{Null} \\[0.1em]
 \end{array}
 \end{equation*}
 %
@@ -297,7 +290,8 @@ aspects of the JSON type provider, we look at an example that also involves an a
 %
 {\small{
 \begin{verbatim}
-  [ { "name":"Jan", "age":25 }, { "name":"Tomas" },
+  [ { "name":"Jan", "age":25 }, 
+    { "name":"Tomas" },
     { "name":"Alexander", "age":3.5 } ]
 \end{verbatim}
 }}
@@ -348,16 +342,19 @@ the following F\# types for the sample:
 %
 The type \ident{Entity} represents the person. The field \ident{Name} is available for all
 sample values and is inferred as \ident{string}. The field \ident{Age} is marked as optional,
-because the value is missing in one sample. The two age values are an integer $25$ and a 
-float $3.5$ and so the common inferred type is \ident{float}.
+because the value is missing in one sample. In F\#, we can then use \ident{Option.iter} to call
+the specified function (printing) only when an optional value is available. The two age values 
+are an integer $25$ and a float $3.5$ and so the common inferred type is \ident{float}.
+The names of the properties are normalized to follow standard F\# naming conventions
+as discussed later (\S\ref{sec:impl-naming}).
 
 The type \ident{People} has two methods for reading data. \ident{GetSample} parses the
 sample used for the inference and \ident{Parse} parses a JSON string. This lets us read
 data at runtime, provided that it has the same shape as the static sample.
 
 \paragraph{Error handling.}
-In addition to the structure of the types, the type provider also specifies what code should be 
-executed at run-time in place of \ident{item.Name} and other operations. The runtime behaviour is 
+In addition to the structure of the types, the type provider also specifies the code of 
+operations such as \ident{item.Name}. The runtime behaviour is 
 the same as in the earlier hand-written sample (\S\ref{sec:introduction}) -- a member access 
 throws an exception if data does not have the expected shape.
 
@@ -444,9 +441,14 @@ it with labels capturing the statically known possibilities (\S\ref{sec:inferenc
 \end{array}
 \end{equation*}
 %
-This provides access to the elements known statically from the sample. However the type is 
-deliberately `weak', because the user needs to explicitly handle the case when a value is not 
-a statically known element. The above code uses \ident{Option.iter} to skip all unknown elements. 
+\ident{Element} is an abstract type with properties. It can represent the statically known
+elements, but it is not limited to them. For a table element, all three properties would return 
+\ident{None}.
+
+Using a type with optional properties provides access to the elements known statically from the 
+sample. However the user needs to explicitly handle the case when a value is not a statically 
+known element. In object-oriented languages, the same could be done by providing a class hierarchy, 
+but this loses the easy discoverability when ``.'' is typed.
 
 The provided type is also consistent with our design principles, which prefers optional properties. 
 The gain is that the provided types support both open-world data and developer tooling. It is also 
@@ -455,16 +457,17 @@ worth noting that our shape inference uses labelled top shapes only as the last 
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Summary}
+\subsection{Real-world JSON services}
 \label{sec:providers-sum}
-Throughout the introduction, we used data sets that demonstrate the typical problems that are frequent
+
+Throughout the introduction, we used data sets that demonstrate the typical problems frequent
 in the real-world (missing data, inconsistent encoding of primitive values and heterogeneous shapes). 
-The following JSON response with government debt information returned by the World Bank\footnote{Available at 
-\url{http://data.worldbank.org}} demonstrates all three problems:
+The government debt information returned by the World Bank\footnote{Available at 
+\url{http://data.worldbank.org}} demonstrates all three:
 %
 {\small{
 \begin{verbatim}
-  [ { "page": 1, "pages": 5 },
+  [ { "pages": 5 },
     [ { "indicator": "GC.DOD.TOTL.GD.ZS",
         "date": "2012", "value": null },
       { "indicator": "GC.DOD.TOTL.GD.ZS",
@@ -473,19 +476,35 @@ The following JSON response with government debt information returned by the Wor
 }}
 %
 \noindent
-First of all, the top-level element is a collection containing two values of different shape.
-The first is a record with meta-data about the current page and the second is an array with data. 
-The actual F\# Data implementation supports a concept of heterogeneous collections (briefly outlined
-in \S\ref{sec:impl-hetero}) and provides a type with properties \ident{Record} for the former and 
-\ident{Array} for the latter. Second, the field \ident{value} is \kvd{null} for some records. Third, 
-numbers can be represented in JSON as numeric literals (without quotes), but here, they are 
-returned as string literals instead.\footnote{This is often used to avoid non-standard numerical 
-types of JavaScript.}
+First, the field \ident{value} is \kvd{null} for some records. Second, numbers in JSON can be 
+represented as numeric literals (without quotes), but here, they are returned as string literals 
+instead.\footnote{This is often used to avoid non-standard numerical types of JavaScript.}
+Finally, the top-level element is a collection containing two values of different shape.
+The record contains meta-data with the total number of pages and the array contains the data.
+F\# Data supports a concept of heterogeneous collection (outlined in in \S\ref{sec:impl-hetero})
+and provides the following type:
+%
+\begin{equation*}
+\begin{array}{l}
+\kvd{type}~\ident{Record}~=  \\
+ \quad \kvd{member}~\ident{Pages}~:~\ident{int} \\[0.5em]
+\kvd{type}~\ident{Item}~=  \\
+ \quad \kvd{member}~\ident{Date}~:~\ident{int} \\
+ \quad \kvd{member}~\ident{Indicator}~:~\ident{string} \\
+ \quad \kvd{member}~\ident{Value}~:~\ident{option}\langl \ident{float}\rangl\\[0.5em]
+\kvd{type}~\ident{WorldBank}~=  \\
+ \quad \kvd{member}~\ident{Record}~:~\ident{Record}\\
+ \quad \kvd{member}~\ident{Array}~:~\ident{Item}[]\\[0.5em]
+\end{array}
+\end{equation*}
+%
+The inference for heterogeneous collections infers the multiplicities and shapes of nested 
+elements. As there is exactly one record and one array, the provided type \ident{WorldBank} exposes 
+them as properties \ident{Record} and \ident{Array}. 
 
 In addition to type providers for JSON and XML, F\# Data also implements a type provider for CSV 
 (\S\ref{sec:impl-parsing}). We treat CSV files as lists of records (with field for each column) 
 and so CSV is handled directly by our inference algorithm.
-
 
 % =================================================================================================
 %
@@ -1023,7 +1042,7 @@ fields of records.
 %
 % ==================================================================================================
 
-\section{Formalising type providers}
+\section{Formalizing type providers}
 \label{sec:formal}
 
 This section presents the formal model of type providers for structured data. 
@@ -1746,6 +1765,20 @@ collections is analogous to the handling of labelled top types. We merge cases w
 their common shape) and calculate their new shared multiplicity (for example, by turning 
 $1$ and $1?$ into $1?$).
 
+
+% -------------------------------------------------------------------------------------------------
+
+\subsection{Capitalization} 
+\label{sec:impl-naming}
+
+% -------------------------------------------------------------------------------------------------
+
+\subsection{Predictability and stability} 
+\label{sec:impl-stable}
+
+In particular, we do 
+not use probabilistic methods where adding an additional sample could completely change the 
+shape of the type.
 
 
 % ==================================================================================================

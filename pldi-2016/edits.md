@@ -1,9 +1,38 @@
 ## Top 3
 
-1) Address the technical issue pointed out by reviewer E (in Figure 2)
-2) Substantiate the claim that the inference is predictable / stable
+> (1) Address the technical issue pointed out by reviewer E (in Figure 2)
+
+We changed the Figure 2 so that it defines a function `lub` rather than
+defining a relation and then (laborously) proving that it is a function.
+This is shorter and more direct definition. We dropped the previous Lemma 1 
+(lub is a function) and adapted Lemma 2 (it, indeed, defines least upper 
+bound). We corrected the error pointed out by reviewer E (the case for 
+handling nullables now results in `\ceil{lub(\sigma1, \sigma2)}`).
+
+> (2) Substantiate the claim that the inference is predictable / stable
+
+
+
+A full treatment of issue (2) would likely require more space than
+available. However, we would like to add a brief section that makes the
+following point: When a new sample is added to an existing set of samples,
+the inferred shape can change only in certain limited ways (i.e. certain
+parts may become optional). The fact that this change of shape is limited
+shows that the inference algorithm is "stable" (users only need to do small
+changes in their code). This is also relevant for the practical problem of
+"choosing a representative sample". If an initial sample is not
+representative and is refined later, the user will see which inferred types
+became optional - and can adjust the program accordingly.
+
 3) Add clarification of how XML is handled & discuss mixed-content XML
 nodes
+
+To address the concerns related to XML, we will add an expanded explanation
+based on the one in the author response (also including a discussion of
+mixed-content nodes as suggested by the additional comment from the
+reviewer).
+
+
 
 ## Other random issues
 
@@ -67,13 +96,32 @@ Changed.
 
 Replaced.
 
-Specific comments:
+> 2.2: The discussion of the open world and the type Element was confusing. 
+> I thought an open world would mean that you don't assume that documents only have 
+> heading, p, and image tags but also allow them to have other tags.
 
-2.2: The discussion of the open world and the type Element was confusing. I thought an open world would mean that you don't assume that documents only have heading, p, and image tags but also allow them to have other tags. But your Element type doesn't illustrate that. The choice of representing the "disjoint union" of these tags as a bunch of optional fields is also worth discussing. Another choice, for example, would be to have a class for each of them, and make all of those classes be subclasses of a top Element class.
+This was not clear - `Element` can represent other tags.
+Added a brief note to clarify this.
 
-2.3: It would be useful to show the shape you would infer for the example here.
+> The choice of representing the "disjoint union" (...) Another choice, for 
+> example, would be to have a class for each of them, and make all of those 
+> classes be subclasses of a top Element class.
 
-Fig 1: In the bottom right should float be "float?" ?
+Added a note that this might be preferred in OO languages
+(Although the nice '.' discoverability would be lost.)
+
+
+> 2.3: It would be useful to show the shape you would infer for the example here.
+
+Added
+
+
+
+
+
+
+
+
 
 Def 1: This looks like a pretty standard subtyping relationship -- what is particularly interesting?
 
@@ -92,13 +140,25 @@ Fig 8: It would help to show the op rules, since those are the new ones here -- 
 Theorem 4: I don't understand the e[y <- e' d'] part. You are treating e' as a function but it has type tau'.
 
 
+
+
 p. 1: How dynamic are type providers, in practice? The paper's formalism generates the classes in two phases, implying a compile-time/run-time split, but in practice it seems that it could be messier; I would have liked a more direct treatment of type providers and/or more explanation of their limitations/assumptions.
 
 −
-p. 2: "what code should be executed at run-time in place of item.Name and other operations" -- I don't get this. item.Name is a field, so no code should be executed. Later (Fig. 9), it seems that code that is generated is to initialize this field (i.e., it's part of the constructor).
+> p. 2: "what code should be executed at run-time in place 
+> of item.Name and other operations" -- I don't get this. 
 
-−
-p. 3: I found it odd that 2.3 is a "summary" but then it introduces another example, and forward references a feature not actually mentioned in section 2.
+Changed (this was very cumbersome)
+
+
+> p. 3: I found it odd that 2.3 is a "summary" but then it introduces another example, 
+> and forward references a feature not actually mentioned in section 2.
+
+Renamed section.
+
+
+
+
 
 −
 p. 4: You don't specifically reference figure 2 when you first start talking about it, i.e., at the start of section 3.3.
@@ -125,35 +185,27 @@ p. 9: The bullet list at the start of section 5 seems intuitive except for "Reco
 p. 10: Dangling reference after "(standard) ML".
 
 
-The thing that jumped out at me on page 1 is that the capitalization of field names changes. On page 1, top of column 32, the first example uses the field names (mentioned as strings) "main" and "temp", but in the second example, halfway down the column, uses "Main" and "Temp" as selectors. I searched the entire paper but found no explanation for this apparently gratuitous capitalization. And this could be a problem in practice: both JSON and XML are case-sensitive. What does your tool do with a data sample such as
 
-[ { "n":3, "N":5 }, { "n":7, "N":2 } ]
 
-? It is an array of records, each having two fields, one named "n" and one named "N". Perfectly legitimate JSON, and it won't do to say that the selectors are "N" and "N". Same thing for the sample XML
+> (...) capitalization of field names changes
 
-<rack><Box>bar<Box><box>baz</box><BOX>foo</BOX></rack> 
+Added clarification in the "Implementation" section 
+with a forward reference in Section 2.
 
-That rack has three different kinds of box, and it won't do to say that the selector for all three, or even the first two, is "Box". XML, unlike HTML, is case-sensitive. The issue must be addressed.
 
-Although I have a passing reading knowledge of F# syntax, by page 3 I was beginning to think that I, and probably the average PLDI reader, could use soe extra reminders about the details of the F# libraries. The behavior of Option.iter deserves a more complete explanation, for example. Don't assume your reader knows F# well.
+
+> (...) could use soe extra reminders about the details of the F# libraries. 
+> The behavior of Option.iter deserves a more complete explanation
+
+Added.
+
+
+
 
 There is no explanation for why null should be treated as an empty collection but not as, say, an empty record. A design choice was made here, and the rationale for it is not obvious and deserves explanation.
 
-Calling \triangledown a "relation", only to turn around and prove that it's a function, is confusing and unnecessary. Even if it were a relation, \vdash is not the correct symbol to use to describe its output. This appears to be a standard construction: you have evidently defined \sqsupset to be a lattice, and \triangledown is the join or least-upper-bound operator (which is to say, two-argument function) associated with that lattice. Enough said; no need for proofs. Well, it is evident that you have defined a partial order, and you need to prove it's a lattice, but that is straightforward (evident from inspection of Figure 1) but that is a much clearer way to say it than saying you need to prove \triangledown is a function. For that matter, it might have been better to use the conventional symbol \sqcup rather than \triangledown. Then it is clear that in Figure 2, the rule (sym) should actually be a rule of commutativity---familiar behavior for the LUB operator in a lattice, and written more concisely as
 
-\sigma_1 \triangledown \sigma_2 = \sigma_2 \triangledown \sigma_1
 
-Note that "=" is properly used instead of \vdash to describe such relationships.
-
-There is, unfortunately, a SERIOUS error in Figure 2, which makes me doubt the soundness of the rest of your mathematics. By rule (any) I can prove that
-
-bool \triangledown any \vdash any
-
-which is correct: "any" is the least upper bound of "bool" and "any". But then I can use this as the premise for rule (nullable) with \sigma_1 = bool and \sigma_2 = any, and conclude that
-
-nullable<bool> \triangledown any \vdash nullable<any>
-
-but the shape "nullable<any>" is forbidden by the syntax on page 4.
 
 (Other problems with Figure 2 include: (a) missing definitions for tagof(null) and tagof(\bottom); (b) inappropriate "arguments" to "any" in the definition of "tagof(any)"; (c) missing parentheses in "tagof \sigma_2" in rule (any); (d) inappropriate "chaining" of the \neq relation in one premise of rule (any).)
 
@@ -161,37 +213,45 @@ I must say that I do like your reuse of the floor and ceiling notation to indica
 
 On page 11, it speaks of giving the body of an XML record the special field name \bullet, at least for the purposes on the calculus, but there is no indication of how an F# programmer is to refer to that field from within code.
 
-If this paper is accepted, it will need serious shepherding.
 
-Additional minor comments:
+> page 1: last sentence in column1 says that the example will "get the current 
+> weather" but in fact it gets only the temperature. Using this more accurate 
+> term "temperature" might help the poor reader to guess that "temp" in the 
+> example code abbreviates "temperature" rather than "temporary"!
 
-page 1: "eample"
+The record contains other fields but we added a note saying "the `temp` field
+representing the current temperature" to clarify what `temp` stands for.
 
-page 1: last sentence in column1 says that the example will "get the current weather" but in fact it gets only the temperature. Using this more accurate term "temperature" might help the poor reader to guess that "temp" in the example code abbreviates "temperature" rather than "temporary"!
 
-page 1: The name "F# Data" is not mentioned in the abstract and appears out of the blue, without explanation, in column 2.
+> page 1: The name "F# Data" is not mentioned in the abstract and appears 
+> out of the blue, without explanation, in column 2.
 
-page 2, column 2, second paragraph: This immediately suggests a problem not addressed by the paper: providing good examples from which all relevant properties, and no more, may be easily inferred is a difficult art in itself at which many people are surprisingly unskilled. Do we have any assurance that a sample of data provided by an automated source such as openweathermap.org will in fact be sufficiently rich to serve as a proper example from which to infer the correct type for processing other, related data? What are the fallback options if this fails?
+Added mention into the abstract.
 
-page 4, figure 1: I think there are two question marks missing in the bottom half of the figure: one at the botto right after "float" and one on the left after the record shape. Also, WHY OH WHY did you orient the figures so as to put "bottom" at the TOP of the figure? This only makes the figure harder to think about.
+> page 4, figure 1: (...) two question marks missing (...) Also, WHY OH WHY 
+> did you orient the figures so as to put "bottom" at the TOP of the figure?
+
+Question marks added, figure flipped.
+
+> page 6: the section title for Section 4 has "Formalising" (with an "s") 
+> but the abstract uses the spelling "formalization" (with a "z")
+
+Americanized for consistency.
+
+
+
+
+## Unanswered
 
 page 4: on a related note, why the chiasmus in the second line of Definition 1? First you mention \sigma_1 and \sigma_2 in that order, but then a few words later have to mention \sigma_2 before \sigma_1. And the need for this chiasmus arises ONLY because you alreayd made the unusual choice of using \sqsupset for your relational symbol rather than the more conventional \sqsubset (with arguments reverse). This is just poor choice of, or failure to pay attention to, notation and how it helps or hinders the reader.
-
-page 6: the section title for Section 4 has "Formalising" (with an "s") but the abstract uses the spelling "formalization" (with a "z")
 
 Bibliography: Capitalization is incorrect or inconsistent in many entries. Examples: In the italicized book title of [1], all words except "of" should be capitalized. In the title of [4] "json" should be "JSON". In the title of [12], "ide" should be "IDE". In [16], the word "Of" should NOT be capitalized. The journal "SIGPLAN Notices" is mentioned in [7] as "Sigplan Notices", in [11] and [21] as "SIGPLAN Notices", and in [24] as "SIGPLAN Not." These are only a few examples; you need to double-check EVERY bibliographc entry.
 
 ALWAYS inspect any BibTeX data downloaded from the Internet and edit it to conform to your chosen consistent style. Do NOT trust BibTeX data downloaded from the ACM Digital Library or other online resources; it is a good starting point, but must always be verified and usually edited to remove small problems. It is your responsibility to ensure a correct and consistent bibliographic style AND to verify the bibliographic data against the actual original paper.
 
-Now that I have looked at the bibliography, here is a thought: regarding the capitalization of field names, I am now not certain whether the tool described in the paper actually maps JSON and XML field names to capitalized names (such as "temp" to "Temp"), or whether the problem is simply that the author has introduced incorrect capitalization in describing the F# code.
-
-ADDED AFTER AUTHOR RESPONSE:
-
-I have read the author response in full. I am quite satisfied with the author response. No update to my review is required. I expect that the authors will be able to address my concerns during the shepherding process.
-
-## Unanswered
-
 −Does the library handle variations in the data format as type errors, or is there a way to capture choices using the shape inference algorithm?
 −What do you think it would take to generalize type providers the way PADS has? 
 −Did you observe any bottlenecks for the shape inference algorithm?
 
+
+page 2, column 2, second paragraph: This immediately suggests a problem not addressed by the paper: providing good examples from which all relevant properties, and no more, may be easily inferred is a difficult art in itself at which many people are surprisingly unskilled. Do we have any assurance that a sample of data provided by an automated source such as openweathermap.org will in fact be sufficiently rich to serve as a proper example from which to infer the correct type for processing other, related data? What are the fallback options if this fails?

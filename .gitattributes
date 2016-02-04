@@ -26,3 +26,5 @@
 
 *.png binary
 *.exe binary
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.avi filter=lfs diff=lfs merge=lfs -text
