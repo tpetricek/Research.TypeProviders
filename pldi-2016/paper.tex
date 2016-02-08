@@ -993,8 +993,13 @@ op &\narrow{=}& \ident{convFloat}(\sigma, e) \lsep \ident{convPrim}(\sigma, e) \
 
 \begin{figure*}
 \noindent
+\begin{center}
+\textbf{Part I.} Reduction rules for conversion functions
+\end{center}
+
+\vspace{0.5em}
+\noindent
 \begin{equation*}
-\hspace{1.1em}
 \begin{array}{l}
 \ident{hasShape}(\nu~ \{ \nu_1 \!:\! \sigma_1, \ldots, \nu_n \!:\! \sigma_n \}, \nu'~\{ \nu'_1\mapsto d_1, \ldots, \nu'_m\mapsto d_m \}) \reduce (\nu = \nu') ~\wedge \\
   \quad (~ ((\nu_1 = \nu'_1) \wedge \ident{hasShape}(\sigma_1, d_1)) \vee\ldots\vee ((\nu_1 = \nu'_m) \wedge \ident{hasShape}(\sigma_1, d_m)) \vee \ldots \vee\\
@@ -1016,6 +1021,7 @@ op &\narrow{=}& \ident{convFloat}(\sigma, e) \lsep \ident{convPrim}(\sigma, e) \
 \vspace{-0.75em}
 %
 \begin{equation*}
+\hspace{-1.1em}
 \begin{array}{l}
 \ident{hasShape}(\ident{string}, s) \reduce \kvd{true} \\
 \ident{hasShape}(\ident{int}, i) \reduce \kvd{true}\\
@@ -1035,9 +1041,77 @@ op &\narrow{=}& \ident{convFloat}(\sigma, e) \lsep \ident{convPrim}(\sigma, e) \
 \end{array}
 \end{equation*}
 
-\caption{Reduction rules for conversion functions}
-\label{fig:op-conversions}
-\vspace{-0.5em}
+\noindent
+\begin{center}
+\textbf{Part II.} Reduction rules for the rest of the Foo calculus 
+\end{center}
+
+\vspace{0.5em}
+\noindent
+\begin{equation*}
+\begin{array}{rl}
+ \textnormal{\footnotesize{(member)}}&
+ \hspace{-0.6em}
+ \inference
+ { \kvd{type}~C(\overline{x:\tau})= \kvd{member}~N_i : \tau_i = e_i \ldots \in L }
+ { L, (\kvd{new}~C(\overline{v})).N_i \reduce e_i[\overline{x} \leftarrow \overline{v}] }\\
+ \\[-0.2em]
+ \textnormal{\footnotesize{(cond1)}}&
+ \hspace{-0.4em}
+ \kvd{if}~\kvd{true}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_1 \\
+ \\[-0.2em]
+ \textnormal{\footnotesize{(cond2)}}&
+ \hspace{-0.4em}
+ \kvd{if}~\kvd{false}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_2 \\
+ \\[-0.3em]
+ \textnormal{\footnotesize{(eq1)}}&
+ v=v'\reduce\kvd{true} \qquad (\textnormal{when}~v = v')\\
+ \\[-0.3em]
+ \textnormal{\footnotesize{(eq2)}}&
+ v=v'\reduce\kvd{false} \qquad (\textnormal{when}~v \neq v')\\
+ \\[-0.3em]
+ \textnormal{\footnotesize{(fun)}}&
+ \hspace{-0.4em}
+ (\lambda x.e)~v ~\reduce~ e[x\leftarrow v] \\
+\end{array}
+\quad
+\begin{array}{rl}
+ \textnormal{\footnotesize{(match1)}}&
+ \hspace{-1em}
+ \begin{array}{l}
+  \kvd{match}~\ident{None}~\kvd{with} \\
+  \ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2
+ \end{array} \hspace{-0.5em} ~\reduce~ e_2 \\
+ \\[-0.2em]
+ \textnormal{\footnotesize{(match2)}}&
+ \hspace{-1em}
+ \begin{array}{l}
+    \kvd{match}~\ident{Some}(v)~\kvd{with} \\
+    \ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2
+ \end{array} \hspace{-0.5em} ~\reduce~ e_1[x\leftarrow v]\\
+ \\[-0.2em]
+ \textnormal{\footnotesize{(match3)}}&
+ \hspace{-1em}
+ \begin{array}{l}
+  \kvd{match}~\kvd{nil}~\kvd{with} \\[0em]
+  x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
+ \end{array} \hspace{-0.5em} ~\reduce~ e_2\\
+ \\[-0.2em]
+ \textnormal{\footnotesize{(match4)}}&
+ \hspace{-1em}
+ \begin{array}{l}
+  \kvd{match}~v_1::v_2~\kvd{with} \\[0em]
+  x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
+ \end{array} \hspace{-0.5em} ~\reduce~ e_1[\overline{x}\leftarrow\overline{v}] \\
+\\[-0.3em]
+\textnormal{\footnotesize{(ctx)}}&
+\hspace{-0.4em}
+E[e] \reduce E[e'] \qquad\qquad(\textnormal{when}~e \reduce e')\\
+\end{array}
+\end{equation*}
+
+\caption{Foo -- Reduction rules for the Foo calculus and dynamic data operations}
+\label{fig:ff-reduction}
 \end{figure*}
 
 % -------------------------------------------------------------------------------------------------
@@ -1069,7 +1143,7 @@ The Foo programs can only work with \ident{Data} values using certain primitive 
 by the $op$ primitives. In F\# Data, those are internal and users never access them directly.
 
 The behaviour of the dynamic data operations is defined by the reduction rules in 
-Figure~\ref{fig:op-conversions}. The typing is shown in Figure~\ref{fig:ff-typecheck} and is 
+Figure~\ref{fig:ff-reduction} (Part I). The typing is shown in Figure~\ref{fig:ff-typecheck} and is 
 discussed later. The \ident{hasShape} function represents a runtime shape test.
 It checks whether a \ident{Data} value $d$ (Section~\ref{sec:formal-inferval}) passed as the second
 argument has a shape specified by the first argument. For records, we have to check that for each 
@@ -1093,13 +1167,80 @@ $v_1 :: \ldots :: v_n :: \kvd{nil}$ and a \kvd{null} value into an empty list.
 
 % -------------------------------------------------------------------------------------------------
 
+\begin{figure*}
+\noindent  
+\begin{equation*}
+\begin{array}{c}  
+\inference
+  {~}
+  {\hspace{-0.5em}L; \Gamma \vdash d : \ident{Data}\hspace{-0.5em}}
+~~
+\inference
+  {~}
+  {\hspace{-0.5em}L; \Gamma \vdash i : \ident{int}\hspace{-0.5em}}
+~~
+\inference
+  {~}
+  {\hspace{-0.5em}L; \Gamma \vdash f : \ident{float}\hspace{-0.5em}}
+~~
+\inference
+  {L; \Gamma, x : \tau_1 \vdash e : \tau_2}
+  {L; \Gamma \vdash \lambda x.e : \tau_2}
+~~
+\inference
+  {L; \Gamma \vdash e_2 : \tau_1 &
+   L; \Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2}
+  {L; \Gamma \vdash e_1~e_2 : \tau_2}
+\\[1.75em]
+\inference
+  {L; \Gamma \vdash e : \ident{Data}}
+  {L; \Gamma \vdash \ident{hasShape}(\sigma, e) : \ident{bool}}
+\quad
+\inference
+  { L; \Gamma \vdash e : \tau & \tau \in \{ \ident{int}, \ident{float} \} }
+  { L; \Gamma \vdash \ident{convFloat}(\sigma, e) : \ident{float} }
+\quad
+\inference
+  { L; \Gamma \vdash e_1 : \ident{Data} & L; \Gamma \vdash e_2 : \ident{Data} \rightarrow \tau }
+  { L; \Gamma \vdash \ident{convNull}(e_1, e_2) : \ident{option}\langle\tau\rangle }
+\\[1.75em]
+\inference
+  { L; \Gamma \vdash e : \ident{Data} \\
+    \ident{prim}\in\{ \ident{int}, \ident{string}, \ident{bool} \} }
+  { L; \Gamma \vdash \ident{convPrim}(\ident{prim}, e) : \ident{prim} }
+\quad
+\inference
+  { L; \Gamma \vdash e_1 : \ident{Data} \\ L; \Gamma \vdash e_2 : \ident{Data} \rightarrow \tau }
+  { L; \Gamma \vdash \ident{convElements}(e_1, e_2) : \ident{list}\langle\tau\rangle } 
+\quad
+\inference
+  { L; \Gamma \vdash e_1 : \ident{Data} \\ L; \Gamma \vdash e_2 : \ident{Data} \rightarrow \tau }
+  { L; \Gamma \vdash \ident{convField}(\nu, \nu', e_1, e_2) : \tau }
+\\[1.75em]
+\inference
+  {L; \Gamma \vdash e : C \\ \kvd{type}~C(\overline{x:\tau}) = ..\;\kvd{member}~N_i : \tau_i = e_i\;.. \in L}
+  {L; \Gamma \vdash e.N_i:\tau_i}
+\qquad
+\inference
+  {L; \Gamma \vdash e_i : \tau_i & \kvd{type}~C(x_1:\tau_1, \ldots, x_n:\tau_n) = \ldots \in L}
+  {L; \Gamma \vdash \kvd{new}~C(e_1, \ldots, e_n):C}
+\end{array}
+\end{equation*}
+
+
+\caption{Foo -- Fragment of type checking}
+\label{fig:ff-typecheck}
+\end{figure*}
+
+% -------------------------------------------------------------------------------------------------
+
 \paragraph{Reduction.}
 The reduction relation is of the form $L, e \reduce e'$. We omit class declarations 
 $L$ where implied by context and write $e \reduce^{*} e'$ for
 the reflexive, transitive closure of $\reduce$. 
 
-Figure~\ref{fig:ff-reduction} shows the reduction rules.  The (\emph{member}) rule reduces a member access using a class 
-definition in the assumption. The (\emph{ctx}) rule models the eager
+Figure~\ref{fig:ff-reduction} (Part II) shows the reduction rules.  The (\emph{member}) rule reduces 
+a member access using a class definition in the assumption. The (\emph{ctx}) rule models the eager
 evaluation of F\# and performs a reduction inside a sub-expression specified by an evaluation 
 context $E$:
 %
@@ -1154,74 +1295,6 @@ and those are well-typed by construction.
 
 % -------------------------------------------------------------------------------------------------
 
-\begin{figure}
-\noindent
-\begin{equation*}
-\begin{array}{rl}
- \textnormal{\footnotesize{(member)}}&
- \hspace{-0.6em}
- \inference
- { \kvd{type}~C(\overline{x:\tau})= \kvd{member}~N_i : \tau_i = e_i \ldots \in L }
- { L, (\kvd{new}~C(\overline{v})).N_i \reduce e_i[\overline{x} \leftarrow \overline{v}] }\\
- \\[-0.2em]
- \textnormal{\footnotesize{(match1)}}&
- \hspace{-1em}
- \begin{array}{l}
-  \kvd{match}~\ident{None}~\kvd{with} \\
-  \ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2
- \end{array} \hspace{-0.5em} ~\reduce~ e_2 \\
- \\[-0.2em]
- \textnormal{\footnotesize{(match2)}}&
- \hspace{-1em}
- \begin{array}{l}
-    \kvd{match}~\ident{Some}(v)~\kvd{with} \\
-    \ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2
- \end{array} \hspace{-0.5em} ~\reduce~ e_1[x\leftarrow v]\\
- \\[-0.2em]
- \textnormal{\footnotesize{(match3)}}&
- \hspace{-1em}
- \begin{array}{l}
-  \kvd{match}~\kvd{nil}~\kvd{with} \\[0em]
-  x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
- \end{array} \hspace{-0.5em} ~\reduce~ e_2\\
- \\[-0.2em]
- \textnormal{\footnotesize{(match4)}}&
- \hspace{-1em}
- \begin{array}{l}
-  \kvd{match}~v_1::v_2~\kvd{with} \\[0em]
-  x_1::x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
- \end{array} \hspace{-0.5em} ~\reduce~ e_1[\overline{x}\leftarrow\overline{v}] \\
- \\[-0.2em]
- \textnormal{\footnotesize{(cond1)}}&
- \hspace{-0.4em}
- \kvd{if}~\kvd{true}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_1 \\
- \\[-0.2em]
- \textnormal{\footnotesize{(cond2)}}&
- \hspace{-0.4em}
- \kvd{if}~\kvd{false}~\kvd{then}~e_1~\kvd{else}~e_2 ~\reduce~ e_2 \\
- \\[-0.3em]
- \textnormal{\footnotesize{(eq1)}}&
- v=v'\reduce\kvd{true} \qquad (\textnormal{when}~v = v')\\
- \\[-0.3em]
- \textnormal{\footnotesize{(eq2)}}&
- v=v'\reduce\kvd{false} \qquad (\textnormal{when}~v \neq v')\\
- \\[-0.3em]
- \textnormal{\footnotesize{(fun)}}&
- \hspace{-0.4em}
- (\lambda x.e)~v ~\reduce~ e[x\leftarrow v] \\
- \\[-0.3em]
- \textnormal{\footnotesize{(ctx)}}&
- \hspace{-0.4em}
-  E[e] \reduce E[e'] \qquad\qquad(\textnormal{when}~e \reduce e')\\
-\end{array}
-\end{equation*}
-
-\caption{Foo -- Remaining reduction rules}
-\label{fig:ff-reduction}
-\end{figure}
-
-% -------------------------------------------------------------------------------------------------
-
 \subsection{Type providers}
 \label{sec:formal-tp}
 
@@ -1246,73 +1319,6 @@ class definitions. We express it using the following mapping:
 
 % -------------------------------------------------------------------------------------------------
 
-\begin{figure}
-\noindent  
-\begin{equation*}
-\begin{array}{c}  
-\inference
-  {~}
-  {L; \Gamma \vdash d : \ident{Data}}
-~~
-\inference
-  {~}
-  {L; \Gamma \vdash i : \ident{int}}
-~~
-\inference
-  {~}
-  {L; \Gamma \vdash f : \ident{float}}
-\\[1.75em]
-\inference
-  {L; \Gamma, x : \tau_1 \vdash e : \tau_2}
-  {L; \Gamma \vdash \lambda x.e : \tau_2}
-\quad
-\inference
-  {L; \Gamma \vdash e_2 : \tau_1 \\
-   L; \Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2}
-  {L; \Gamma \vdash e_1~e_2 : \tau_2}
-\\[1.75em]
-\inference
-  {L; \Gamma \vdash e : C \\ \kvd{type}~C(\overline{x:\tau}) = ..\;\kvd{member}~N_i : \tau_i = e_i\;.. \in L}
-  {L; \Gamma \vdash e.N_i:\tau_i}
-\\[1.75em]
-\inference
-  {L; \Gamma \vdash e_i : \tau_i & \kvd{type}~C(x_1:\tau_1, \ldots, x_n:\tau_n) = \ldots \in L}
-  {L; \Gamma \vdash \kvd{new}~C(e_1, \ldots, e_n):C}
-\\[1.75em]
-\inference
-  {L; \Gamma \vdash e : \ident{Data}}
-  {L; \Gamma \vdash \ident{hasShape}(\sigma, e) : \ident{bool}}
-\\[1.75em]
-\inference
-  { L; \Gamma \vdash e : \tau & \tau \in \{ \ident{int}, \ident{float} \} }
-  { L; \Gamma \vdash \ident{convFloat}(\sigma, e) : \ident{float} }
-\\[1.75em]
-\inference
-  { L; \Gamma \vdash e_1 : \ident{Data} & L; \Gamma \vdash e_2 : \ident{Data} \rightarrow \tau }
-  { L; \Gamma \vdash \ident{convNull}(e_1, e_2) : \ident{option}\langle\tau\rangle }
-\\[1.75em]
-\inference
-  { L; \Gamma \vdash e : \ident{Data} \\
-    (\sigma,\tau)\in\{ (\ident{int},\ident{int}), (\ident{string},\ident{string}), (\ident{bool},\ident{bool}) \} }
-  { L; \Gamma \vdash \ident{convPrim}(\sigma, e) : \tau }
-\\[1.75em]
-\inference
-  { L; \Gamma \vdash e_1 : \ident{Data} & L; \Gamma \vdash e_2 : \ident{Data} \rightarrow \tau }
-  { L; \Gamma \vdash \ident{convElements}(e_1, e_2) : \ident{list}\langle\tau\rangle } 
-\\[1.75em]
-\inference
-  { L; \Gamma \vdash e_1 : \ident{Data} & L; \Gamma \vdash e_2 : \ident{Data} \rightarrow \tau }
-  { L; \Gamma \vdash \ident{convField}(\nu, \nu', e_1, e_2) : \tau }
-\end{array}
-\end{equation*}
-
-
-\caption{Foo -- Fragment of type checking}
-\label{fig:ff-typecheck}
-\end{figure}
-
-% -------------------------------------------------------------------------------------------------
-
 \noindent
 The mapping $\sem{\sigma}$ takes an inferred shape $\sigma$. It returns an F\# type $\tau$ and
 a function that turns the input data (value of type \ident{Data}) into a Foo value of type $\tau$. 
@@ -1321,29 +1327,6 @@ The type provider also generates class definitions that may be used by $e$.
 Figure~\ref{fig:tp-generation} defines $\sem{-}$. Primitive types are handled by a single rule that
 inserts an appropriate conversion function; \ident{convPrim} just checks that the shape matches
 and \ident{convFloat} converts numbers to a floating-point.
-
-For records, we generate a class $C$ that takes a data value as constructor parameter. For each 
-record field, we generate a member with the same name as the field. The body of the member calls 
-\ident{convField} with a function obtained from $\sem{\sigma_i}$. This function turns the field 
-value (data of shape $\sigma_i$) into a Foo value of type $\tau_i$. The returned expression creates a new instance of 
-$C$ and the mapping returns the class $C$ together with all recursively generated classes. Note that 
-the class name $C$ is not directly accessed by the user and so we can use an arbitrary name, although the 
-actual implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
-\ident{\{\str{person}:\{\str{name}:\str{Tomas}\}\}}, the nested record will be named \ident{Person}
-based on the name of the parent record field.}
-
-A collection shape becomes a Foo $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{convElements}
-(which returns the empty list for data value \kvd{null}). The last parameter is the recursively obtained
-conversion function for the shape of elements $\sigma$. The handling of the nullable shape is similar,
-but uses \ident{convNull}.
-
-As discussed earlier, labelled top shapes are also generated as Foo classes with properties. Given 
-$\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl$, we get corresponding F\# types $\tau_i$ and generate 
-$n$ members of type $\ident{option}\langl \tau_i\rangl$. When the member is accessed, we need to perform
-a runtime shape test using \ident{hasShape} to ensure that the value has the right shape (similarly to runtime 
-type conversions from the top type in languages like Java). If the shape matches, a \ident{Some} value is 
-returned. The shape inference algorithm also guarantees that there is only one case for each shape tag 
-(\S\ref{sec:inference-commonsuper}) and so we can use the tag for the name of the generated member.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1427,14 +1410,44 @@ returned. The shape inference algorithm also guarantees that there is only one c
 
 % -------------------------------------------------------------------------------------------------
 
+For records, we generate a class $C$ that takes a data value as constructor parameter. For each 
+record field, we generate a member with the same name as the field. The body of the member calls 
+\ident{convField} with a function obtained from $\sem{\sigma_i}$. This function turns the field 
+value (data of shape $\sigma_i$) into a Foo value of type $\tau_i$. The returned expression creates a new instance of 
+$C$ and the mapping returns the class $C$ together with all recursively generated classes. Note that 
+the class name $C$ is not directly accessed by the user and so we can use an arbitrary name, although the 
+actual implementation in F\# Data attempts to infer a reasonable name.\footnote{For example, in 
+\ident{\{\str{person}:\{\str{name}:\str{Tomas}\}\}}, the nested record will be named \ident{Person}
+based on the name of the parent record field.}
+
+A collection shape becomes a Foo $\ident{list}\langl\tau\rangl$. The returned expression calls \ident{convElements}
+(which returns the empty list for data value \kvd{null}). The last parameter is the recursively obtained
+conversion function for the shape of elements $\sigma$. The handling of the nullable shape is similar,
+but uses \ident{convNull}.
+
+As discussed earlier, labelled top shapes are also generated as Foo classes with properties. Given 
+$\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl$, we get corresponding F\# types $\tau_i$ and generate 
+$n$ members of type $\ident{option}\langl \tau_i\rangl$. When the member is accessed, we need to perform
+a runtime shape test using \ident{hasShape} to ensure that the value has the right shape (similarly to runtime 
+type conversions from the top type in languages like Java). If the shape matches, a \ident{Some} value is 
+returned. The shape inference algorithm also guarantees that there is only one case for each shape tag 
+(\S\ref{sec:inference-commonsuper}) and so we can use the tag for the name of the generated member.
+
+
 \paragraph{Example 1.}
 To illustrate how the mechanism works, we consider two examples. First, assume 
 that the inferred shape is a record  
 $\ident{Person}~\{~\ident{Age}\!:\!\kvd{option}\langl\ident{int}\rangl, \ident{Name}\!:\!\ident{string}~ \}$. 
-The rules from Figure~\ref{fig:tp-generation} produce the following class (we reduce some 
-function applications for readability):
+The rules from Figure~\ref{fig:tp-generation} produce the following class \ident{Person} (shown below)
+with two members.
+
+The body of the \ident{Age} member uses \ident{convField} as specified by the case for optional
+record fields. The field shape is nullable and so \ident{convNull} is used in the continuation to 
+convert the value to \ident{None} if \ident{convField} produces a \kvd{null} data value and 
+\ident{hasShape} is used to ensure that the field has the correct shape. The \ident{Name} value should
+be always available and should have the right shape so \ident{convPrim} appears directly in the 
+continuation. This is where the evaluation can get stuck if the field value was missing:
 %
-\vspace{-0.1em}
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{Person}(x_1:\ident{Data})~= \\[0.1em]
@@ -1447,20 +1460,13 @@ function applications for readability):
 \end{array}
 \end{equation*}
 %
-The body of the \ident{Age} member uses \ident{convField} as specified by the case for optional
-record fields. The field shape is nullable and so \ident{convNull} is used in the continuation to 
-convert the value to \ident{None} if \ident{convField} produces a \kvd{null} data value and 
-\ident{hasShape} is used to ensure that the field has the correct shape. The \ident{Name} value should
-be always available and should have the right shape so \ident{convPrim} appears directly in the 
-continuation. This is where the evaluation can get stuck if the field value was missing. The F\# 
-type corresponding to the record shape is \ident{Person} the function to create it from a data value 
+The function to create the Foo value \ident{Person} from a data value 
 is $\lambda x . \kvd{new}~\ident{Person}(x)$.
 
 \paragraph{Example 2.} The second example illustrates the handling of collections and 
 labelled top types. Reusing \ident{Person} from the previous example, consider 
 $[\kvd{any}\langl\ident{Person}~\{ \ldots \},\ident{string}\rangl]$:
-
-\noindent
+%
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{PersonOrString}(x:\ident{Data})~= \\[0.1em]
@@ -1475,7 +1481,8 @@ $[\kvd{any}\langl\ident{Person}~\{ \ldots \},\ident{string}\rangl]$:
 %
 The type provider maps the collection of labelled top shapes to a type $\ident{list}\langl\ident{PersonOrString}\rangl$
 and returns a function that parses a data value as follows:
-%
+
+\noindent
 \begin{equation*}
 \lambda x_1\rightarrow \ident{convElements}(x_1\lambda x_2\rightarrow\kvd{new}~\ident{PersonOrString}(x_2))
 \end{equation*}
@@ -1513,7 +1520,8 @@ the inferred shape of the input is preferred with respect to the shape of any of
 \begin{itemize}
 \item[--] Input can contain smaller numerical values (e.g., if a sample contains float, the input can contain an integer)
 \item[--] Records in the input can have additional fields
-\item[--] Records in the input can have fewer fields, provided that the type of the field is nullable in some of the samples
+\item[--] Records in the input can have fewer fields than some of the records in the sample 
+  document, provided that the sample also contains records that do not have the field 
 \item[--] When a labelled top type is inferred from the sample, the actual input can also contain any other value,
   which implements the open world assumption  
 \end{itemize}
@@ -1539,8 +1547,6 @@ optional record fields, the \ident{hasShape} operation is used to guaranteed the
 
 \noindent
 This shows that provided types are correct with respect to the preferred shape relation. 
-This is an obligation upon the author of a type provider, which is a second reason why
-the type soundness is ``relative''.
 Our key theorem states that, for any input which is a subshape the inferred shape and 
 any expression $e$, a well-typed program that uses the provided types does not ``go wrong''.
 Using standard syntactic type safety  \cite{syntactic}, we prove type preservation 
@@ -1577,7 +1583,7 @@ in Figure~\ref{fig:tp-generation} is well-typed.
 \noindent
 The progress lemma states that evaluation of a well-typed program does not reach an undefined state. 
 This is not a problem for the Standard ML \cite{sml} subset and object-oriented subset \cite{fwjava} of the calculus. The 
-problematic part are the dynamic data operations (Figure~\ref{fig:op-conversions}). Given a data
+problematic part are the dynamic data operations (Figure~\ref{fig:ff-reduction}). Given a data
 value (of type \ident{Data}), the reduction can get stuck if the value does not have a structure 
 required by a specific operation.
 
@@ -1589,7 +1595,7 @@ the code generated by a type provider works directly with data values.
 \begin{lemma}[Progress]
 \label{thm:rs-progress}
 Given the assumptions and definitions from Theorem~\ref{thm:safety}, there exists $e''$ such that
-$e[y\leftarrow e'~d'] \reduce e''$.
+$e'[y\leftarrow e~d'] \reduce e''$.
 \end{lemma}
 \begin{proof}
 Proceed by induction over the typing derivation of $L; \emptyset \vdash e[y\leftarrow e'~d'] : \tau'$. 

@@ -137,19 +137,18 @@ we rewrote the explanation to clarify the function arguments.
 
 Great suggestion - added.
 
+> 5: "This is an obligation upon the author of a type provider..." I'm confused
+> is Lemma 3 contingent on some assumption about the type provider code, 
+> and if so, what is that assumption?
 
+This sentence was confusing and we deleted it.
 
+> Theorem 4: I don't understand the e[y <- e' d'] part. You are 
+> treating e' as a function but it has type tau'.
 
-
-5: "This is an obligation upon the author of a type provider..." I'm confused -- is Lemma 3 contingent on some assumption about the type provider code, and if so, what is that assumption?
-
-Theorem 4: I don't understand the e[y <- e' d'] part. You are treating e' as a function but it has type tau'.
-
-
-
-
-
-
+Good catch - thanks! Should have been e'[y <- e d'].
+(We pass data d' to provided function e and use that
+as input y in the user code e').
 
 > p. 2: "what code should be executed at run-time in place 
 > of item.Name and other operations" -- I don't get this. 
@@ -201,19 +200,15 @@ Fixed.
 
 Good catch. Fixed.
 
+> The bullet list at the start of section 5 seems intuitive except for 
+> "Records in the input can have fewer fields, provided that the type of the 
+> field is nullable in some of the samples." But to have inferred a nullable 
+> field we would have seen a sample that was missing one; so I don't see in 
+> what sense the records would have "fewer fields". 
 
-
-
-
-
-−
-p. 9: The bullet list at the start of section 5 seems intuitive except for "Records in the input can have fewer fields, provided that the type of the field is nullable in some of the samples." But to have inferred a nullable field we would have seen a sample that was missing one; so I don't see in what sense the records would have "fewer fields". Indeed, Lemma 3 implies this when it says the records must have inferred sub-shapes compared to the ones from which the parser was generated. I would drop this bullet.
-
-
-
-
-
-
+This has been clarified (it can contain fewer fields
+than some of the samples, provided that there are some
+which do not contain the field).
 
 > p. 10: Dangling reference after "(standard) ML".
 
