@@ -1,40 +1,101 @@
-## Top 3
+# Shepherding corrections summary
+
+Below are excerpts with concrete points made in the reviews together with 
+a brief summary of our response & changes made in the final version.
+
+
+
+## Top 3 issues from the shepherding summary
 
 > (1) Address the technical issue pointed out by reviewer E (in Figure 2)
 
-We changed the Figure 2 so that it defines a function `lub` rather than
+We changed the Figure 2 so that it defines a function `csh` rather than
 defining a relation and then (laborously) proving that it is a function.
+(`csh` stands for "common preferred shape").
+
 This is shorter and more direct definition. We dropped the previous Lemma 1 
-(lub is a function) and adapted Lemma 2 (it, indeed, defines least upper 
-bound). We corrected the error pointed out by reviewer E (the case for 
+(`csh` is a function) and adapted Lemma 2 (the `csh` function defines a least 
+upper bound). We corrected the error pointed out by reviewer E (the case for 
 handling nullables now results in `\ceil{lub(\sigma1, \sigma2)}`).
 
 > (2) Substantiate the claim that the inference is predictable / stable
 
 
 
-A full treatment of issue (2) would likely require more space than
-available. However, we would like to add a brief section that makes the
-following point: When a new sample is added to an existing set of samples,
-the inferred shape can change only in certain limited ways (i.e. certain
-parts may become optional). The fact that this change of shape is limited
-shows that the inference algorithm is "stable" (users only need to do small
-changes in their code). This is also relevant for the practical problem of
-"choosing a representative sample". If an initial sample is not
-representative and is refined later, the user will see which inferred types
-became optional - and can adjust the program accordingly.
-
-3) Add clarification of how XML is handled & discuss mixed-content XML
-nodes
-
-To address the concerns related to XML, we will add an expanded explanation
-based on the one in the author response (also including a discussion of
-mixed-content nodes as suggested by the additional comment from the
-reviewer).
 
 
 
-## Other random issues
+
+> (3) Add clarification of how XML is handled & discuss mixed-content XML nodes
+
+This is discussed in the added Section 6.3. The new section clarifies the
+transformations we perform including:
+
+ - Lifting of members nested under `\bullet` for XML 
+ - Renaming of remaining `\bullet` members to `Value`
+ - Capitalization and handling of conflicts
+
+The section also discusses mixed-content nodes (those are not handled by 
+the type provider, but can be accessed using a fallback to standard 
+weakly-typed techniques.)
+
+
+
+## Larger changes made in response to reviews
+
+> Fig 8: It would help to show the op rules, since those are the new ones 
+> here -- most of what's in this figure is standard.
+
+Great suggestion - added.
+
+> page 4, figure 1: (...) two question marks missing (...) Also, WHY OH WHY 
+> did you orient the figures so as to put "bottom" at the TOP of the figure?
+
+Question marks added, figure flipped.
+
+> page 2, column 2, second paragraph: This immediately suggests a problem 
+> not addressed by the paper: providing good examples (...)
+
+Added a brief paragraph 'Representative samples' in Section 6.1.
+
+> fig 2, record rule -- by using v1', ..., vm', you suggest that the field labels 
+> in the 2nd record may be different from the field labels in the first record.
+>  But I think you intend them to be same set of labels. 
+
+This was an error, thanks! Corrected in the new formalization.
+
+> consider replacing reference [8] with the following more complete work:
+> From Dirt to Shovels: Fully Automatic Tool Generation From Ad Hoc Data. (...) POPL 2008.
+
+Replaced.
+
+> 2.2: The discussion of the open world and the type Element was confusing. 
+> I thought an open world would mean that you don't assume that documents only have 
+> heading, p, and image tags but also allow them to have other tags.
+
+This was not clear - `Element` can represent other tags.
+Added a brief note to clarify this.
+
+> Theorem 4: I don't understand the e[y <- e' d'] part. You are 
+> treating e' as a function but it has type tau'.
+
+Good catch - thanks! Should have been e'[y <- e d'].
+(We pass data d' to provided function e and use that
+as input y in the user code e').
+
+> p. 9: The adjective "relativized" is stilted, to me. Why is "relative safety"
+> not the right phrase, rather than "relativized safety"?
+
+Changed to 'relative safety'.
+
+> (...) capitalization of field names changes
+
+Added clarification in the "Implementation" section 
+with a forward reference in Section 2.
+
+
+
+## Minor issues, formatting, spelling, clarifications
 
 > The relationship with the previous technical communications on 
 > type providers is not entirely clear, but it may improve after 
@@ -46,8 +107,6 @@ as the development of F# type providers)
 > p. 10, the reference for standard ML is broken
 
 Fixed.
-
-## Minor
 
 > sec 1, para 2: eample --> example
 
@@ -61,7 +120,6 @@ Fixed.
 Added a footnote (api.owm.org is an abbreviation used for
 space and formatting reasons.)
 
-
 > pg 3: "the the field" --> the field
 
 Fixed.
@@ -69,12 +127,6 @@ Fixed.
 > fig 2, any rule -- missing parens above the line, tagof(\sigma_2)
 
 Deleted as part of another change.
-
-> fig 2, record rule -- by using v1', ..., vm', you suggest that the field labels 
-> in the 2nd record may be different from the field labels in the first record.
->  But I think you intend them to be same set of labels. 
-
-This was an error, thanks! Corrected in the new formalization.
 
 > a very pendantic notational comment (sorry): fig 7, rule (eq2) you write:
 > v = v' \rigtharrow false; typically, v and v' are interpreted as meta-variables that may 
@@ -91,25 +143,12 @@ Clarified (moved v \neq v' or v = v' into a meta-language side-condition)
 
 Changed.
 
-> consider replacing reference [8] with the following more complete work:
-> From Dirt to Shovels: Fully Automatic Tool Generation From Ad Hoc Data. (...) POPL 2008.
-
-Replaced.
-
-> 2.2: The discussion of the open world and the type Element was confusing. 
-> I thought an open world would mean that you don't assume that documents only have 
-> heading, p, and image tags but also allow them to have other tags.
-
-This was not clear - `Element` can represent other tags.
-Added a brief note to clarify this.
-
 > The choice of representing the "disjoint union" (...) Another choice, for 
 > example, would be to have a class for each of them, and make all of those 
 > classes be subclasses of a top Element class.
 
 Added a note that this might be preferred in OO languages
 (Although the nice '.' discoverability would be lost.)
-
 
 > 2.3: It would be useful to show the shape you would infer for the example here.
 
@@ -132,29 +171,16 @@ Added a footnote to clarify this.
 Moving it to later parts would probably cause more harm, but
 we rewrote the explanation to clarify the function arguments.
 
-> Fig 8: It would help to show the op rules, since those are the new ones 
-> here -- most of what's in this figure is standard.
-
-Great suggestion - added.
-
 > 5: "This is an obligation upon the author of a type provider..." I'm confused
 > is Lemma 3 contingent on some assumption about the type provider code, 
 > and if so, what is that assumption?
 
 This sentence was confusing and we deleted it.
 
-> Theorem 4: I don't understand the e[y <- e' d'] part. You are 
-> treating e' as a function but it has type tau'.
-
-Good catch - thanks! Should have been e'[y <- e d'].
-(We pass data d' to provided function e and use that
-as input y in the user code e').
-
 > p. 2: "what code should be executed at run-time in place 
 > of item.Name and other operations" -- I don't get this. 
 
 Changed (this was very cumbersome)
-
 
 > p. 3: I found it odd that 2.3 is a "summary" but then it introduces another example, 
 > and forward references a feature not actually mentioned in section 2.
@@ -184,11 +210,6 @@ Variables appear in the shapes (Section 3.1), but not in the 'd' values
 
 Fixed.
 
-> p. 9: The adjective "relativized" is stilted, to me. Why is "relative safety"
-> not the right phrase, rather than "relativized safety"?
-
-Changed to 'relative safety'.
-
 > p. 9: The syntax (\lambda x \rightarrow e) for functions does not match
 > the previously introduced syntax in Fig. 5 (\lambda x.e)
 
@@ -213,12 +234,6 @@ which do not contain the field).
 > p. 10: Dangling reference after "(standard) ML".
 
 Fixed.
-
-
-> (...) capitalization of field names changes
-
-Added clarification in the "Implementation" section 
-with a forward reference in Section 2.
 
 > (...) could use soe extra reminders about the details of the F# libraries. 
 > The behavior of Option.iter deserves a more complete explanation
@@ -252,22 +267,15 @@ Addressed (as one of the top 3 issues)
 The record contains other fields but we added a note saying "the `temp` field
 representing the current temperature" to clarify what `temp` stands for.
 
-
 > page 1: The name "F# Data" is not mentioned in the abstract and appears 
 > out of the blue, without explanation, in column 2.
 
 Added mention into the abstract.
 
-> page 4, figure 1: (...) two question marks missing (...) Also, WHY OH WHY 
-> did you orient the figures so as to put "bottom" at the TOP of the figure?
-
-Question marks added, figure flipped.
-
 > page 6: the section title for Section 4 has "Formalising" (with an "s") 
 > but the abstract uses the spelling "formalization" (with a "z")
 
 Americanized for consistency.
-
 
 > First you mention \sigma_1 and \sigma_2 in that order, but then a few 
 > words later have to mention \sigma_2 before \sigma_1. (... ) using 
@@ -275,6 +283,17 @@ Americanized for consistency.
 > \sqsubset (with arguments reverse). 
 
 Changed.
+
+> p. 1: How dynamic are type providers, in practice? (...)
+> I would have liked a more direct treatment of type providers 
+> and/or more explanation of their limitations/assumptions.
+
+This should be addressed by a more prominent reference
+to our earlier work on F# type type providers [23,24].
+
+
+
+
 
 
 
@@ -288,8 +307,4 @@ ALWAYS inspect any BibTeX data downloaded from the Internet and edit it to confo
 −Did you observe any bottlenecks for the shape inference algorithm?
 
 
-page 2, column 2, second paragraph: This immediately suggests a problem not addressed by the paper: providing good examples from which all relevant properties, and no more, may be easily inferred is a difficult art in itself at which many people are surprisingly unskilled. Do we have any assurance that a sample of data provided by an automated source such as openweathermap.org will in fact be sufficiently rich to serve as a proper example from which to infer the correct type for processing other, related data? What are the fallback options if this fails?
-
 End of 3: "there are labels that enable typed access to every possible value in the sample, but not more." It would be useful to give this intuition earlier, and actually to state it as an explicit, ideally formalized goal. The "not more" part seems like the most interesting, since you are doing joins up the lattice, so it's hard to define what that means, let alone argue that you satisfy it.
-
-p. 1: How dynamic are type providers, in practice? The paper's formalism generates the classes in two phases, implying a compile-time/run-time split, but in practice it seems that it could be messier; I would have liked a more direct treatment of type providers and/or more explanation of their limitations/assumptions.

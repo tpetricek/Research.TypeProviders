@@ -665,7 +665,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \ident{csh}(\nu \; \{ \nu_1 \!:\! \sigma_1,  \ldots \;, \nu_n \!:\! \sigma_n \}, 
   \nu \; \{ \nu_1 \!:\! \sigma'_1, \; \ldots \;, \nu_n \!:\! \sigma'_n \}) &=& 
   \nu \; \{ \nu_1 \!:\! \ident{csh}(\sigma_1, \sigma'_1), \; \ldots \; , \nu_n \!:\! \ident{csh}(\sigma_n, \sigma'_n) \} & (\emph{recd}) \\
-\ident{csh}(\sigma_1, \sigma_2) &=& \kvd{any} & (\emph{any})\\
+\ident{csh}(\sigma_1, \sigma_2) &=& \kvd{any} \quad(\textnormal{when}~\sigma_1\neq\nu\;\{ \ldots \}~\textnormal{or}~\sigma_2\neq\nu\;\{ \ldots \} ) & (\emph{any})\\
 \end{array}
 \end{equation*}
 %
@@ -682,7 +682,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \end{array}
 \end{equation*}
 
-\caption{The common preferred shape relation}
+\caption{The rules that define the common preferred shape function}
 \label{fig:subtyping-cst}
 \end{figure*}
 
@@ -718,7 +718,7 @@ Here is a summary of the key aspects of the definition:
 Given two ground shapes, the \emph{common preferred shape} is the least upper bound of the
 shape with respect to the preferred shape relation. The least upper bound prefers records, 
 which is important for usability as discussed earlier (\S\ref{sec:providers-xml}).
-
+%
 \begin{definition}
 A \emph{common preferred shape} of two ground shapes $\sigma_1$ and $\sigma_2$ is a shape 
 $\ident{csh}(\sigma_1, \sigma_2)$ obtained according to Figure~\ref{fig:subtyping-cst}. 
@@ -729,28 +729,71 @@ The rules are matched from top to bottom.
 The fact that the rules of \ident{csh} are matched from top to bottom resolves the ambiguity 
 between certain rules. Most importantly (\emph{any}) is used only as the last resort.
 When finding a common shape of two records (\emph{recd}) we find common preferred shapes of their 
-respective fields. The field labels of two record types can always be made to match, through the 
-shape inference from sample (\S\ref{sec:formal-inferval}), \emph{before} finding a common preferred 
-shape using $\ident{csh}$.
+respective fields. The \ident{csh} function is not defined for two records with mis-matching 
+fields, however, the fields can always be made to match, through the shape inference 
+from sample (\S\ref{sec:formal-inferval}), \emph{before} finding a common preferred shape 
+using $\ident{csh}$.
 
 We can find a common shape of two different numbers (\emph{num}); for two collections,
 we combine their elements (\emph{list}). When one shape is nullable (\emph{opt}), we find
 the common non-nullable shape and ensure the result is nullable using $\addopt{-}$, which
 is also applied when one of the shapes is \kvd{null} (\emph{null}). 
 
-The \ident{csh} function finds the unique least upper bound of the partially ordered 
+When defined, \ident{csh} finds the unique least upper bound of the partially ordered 
 set of ground shapes (Lemma~\ref{thm:lub}). 
 
 \begin{lemma}[Least upper bound]
 \label{thm:lub}
-For ground $\sigma_1$ and $\sigma_2$, if $\sigma_1 \triangledown \sigma_2 \vdash \sigma$ then $\sigma$ is a least upper bound by $\sqsupseteq$.
+For ground $\sigma_1$ and $\sigma_2$, if $\ident{csh}(\sigma_1, \sigma_2) \vdash \sigma$ then $\sigma$ is a least upper bound by $\sqsupseteq$.
 \end{lemma}
+\begin{proof}
+By induction over the structure of the shapes $\sigma_1,\sigma_2$. Note that \ident{csh} only infers the top shape 
+\kvd{any} when on of the shapes is the top shape (\emph{top}) or when there is no other option 
+(\emph{any}); a nullable shape is introduced in $\addopt{-}$ only when no non-nullable shape can
+be used (\emph{null}), (\emph{opt}).
+\end{proof}
+
+\subsection{Inferring shapes from samples}
+\label{sec:formal-inferval}
+
+We now specify how we obtain the shape from data. As clrified later (\S\ref{sec:impl-parsing}), 
+we represent JSON, XML and CSV documents using the same first-order \emph{data} value:
+
+\noindent
+\begin{equation*}
+\begin{array}{lcl}
+  \\[-0.5em]
+ d &\narrow{=}& i \lsep f \lsep s \lsep \kvd{true} \lsep \kvd{false} \lsep \kvd{null} \\[0.1em]
+   &\narrow{|}& [d_1; \ldots; d_n] \lsep \nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}
+\end{array}
+\end{equation*}
+%
+The definition includes primitive values ($i$ for integers, $f$ for floats
+and $s$ for strings) and \kvd{null}. A collection is written as a 
+list of values in square brackets. A record starts with a name $\nu$, followed by a 
+sequence of field assignments $\nu_i \mapsto d_i$.
+
+Figure~\ref{fig:shape-inference} defines a mapping $\semalt{d_1,\ldots,d_n}$ which turns a 
+collection of sample data $d_1, \ldots, d_n$ into a shape $\sigma$. Before applying $S$, we assume 
+each record in each $d_i$ is marked with a fresh row inference variable $\rho_i$. 
+We then choose a ground, minimal substitution $\theta$ for row variables. Because $\rho_i$ variables 
+represent potentially missing fields, the $\addopt{-}$ operator from Figure~\ref{fig:subtyping-cst} 
+is applied to all types in the vector. 
+
+This is sufficient to equate the record field labels and satisfy the pre-conditions in rule 
+(\emph{recd}) when multiple record samples are merged. In practice, $\theta$ is found via row 
+variable unification \cite{rows-remy}. We omit the details here. No $\rho_i$ variables remain after 
+inference as the substitution chosen is ground.
+
+Primitive  values are mapped to their corresponding shapes. 
+When infering a shape from multiple samples, we use the common preferred shape relation to find a 
+common shape for all values (starting with $\bot$). This operation is used  
+when calling a type provider with multiple samples and also when inferring the shape of collection
+elements.
 
 % --------------------------------------------------------------------------------------------------
 
 \begin{figure}[!h]
-\vspace{0em}  
-\noindent
 \begin{equation*}
 \begin{array}{rclcrclcrcl}
  \semalt{i} &\narrow{=}& \ident{int} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} && \semalt{\kvd{true}} &\narrow{=}& \ident{bool}\\
@@ -773,56 +816,8 @@ For ground $\sigma_1$ and $\sigma_2$, if $\sigma_1 \triangledown \sigma_2 \vdash
 \end{equation*}
 \caption{Shape inference from sample data}
 \label{fig:shape-inference}
-\vspace{-0.5em}
+\vspace{-1em}
 \end{figure}
-
-% --------------------------------------------------------------------------------------------------
-
-\begin{proof}
-By induction over the definition of $\ident{csh}$. Note that the algorithm only infers the top shape 
-\kvd{any} when on of the shapes is the top shape (\emph{top}) or when there is no other option 
-(\emph{any}); a nullable shape is introduced in $\addopt{-}$ only when no non-nullable shape can
-be used (\emph{null}), (\emph{opt}).
-\end{proof}
-
-\subsection{Inferring shapes from samples}
-\label{sec:formal-inferval}
-
-We now specify how we obtain the shape from data. As clrified later (\S\ref{sec:impl-parsing}), 
-we represent JSON, XML and CSV documents using the same first-order \emph{data} value:
-%
-\begin{equation*}
-\begin{array}{lcl}
- d &\narrow{=}& i \lsep f \lsep s \lsep \kvd{true} \lsep \kvd{false} \lsep \kvd{null} \\[0.1em]
-   &\narrow{|}& [d_1; \ldots; d_n] \lsep \nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}
-\end{array}
-\end{equation*}
-%
-The definition includes primitive values ($i$ for integers, $f$ for floats
-and $s$ for strings) and \kvd{null}. A collection is written as a 
-list of values in square brackets. A record starts with a name $\nu$, followed by a 
-sequence of field assignments $\nu_i \mapsto d_i$.
-
-Figure~\ref{fig:shape-inference} defines a mapping $\semalt{d_1,\ldots,d_n}$ which turns a 
-collection of sample data $d_1, \ldots, d_n$ into a shape $\sigma$. Before applying $S$, we assume 
-each record in each $d_i$ is marked with a fresh row inference variable $\rho_i$. 
-
-We then choose a ground, minimal, global substitution $\theta$ for row variables. The substitution
-is minimal in the sense that it introduces as few new fields as possible, but no additional fields, 
-and the newly introduced fields have the most specific shape. Because $\rho_i$ variables represent 
-potentially missing fields, the $\addopt{-}$ operator from Figure~\ref{fig:subtyping-cst} is applied 
-to all types in the vector. 
-
-This is sufficient to equate the record field labels and satisfy the pre-conditions in rule 
-(\emph{recd}) when multiple record samples are merged. In practice, $\theta$ is found via row 
-variable unification \cite{rows-remy}. We omit the details here. No $\rho_i$ variables remain after 
-inference as the substitution chosen is ground.
-
-Primitive  values are mapped to their corresponding shapes. 
-When infering a shape from multiple samples, we use the common preferred shape relation to find a 
-common shape for all values (starting with $\bot$). This operation is used  
-when calling a type provider with multiple samples and also when inferring the shape of collection
-elements.
 
 % --------------------------------------------------------------------------------------------------
 
@@ -1197,7 +1192,7 @@ $v_1 :: \ldots :: v_n :: \kvd{nil}$ and a \kvd{null} value into an empty list.
   {L; \Gamma \vdash \ident{hasShape}(\sigma, e) : \ident{bool}}
 \quad
 \inference
-  { L; \Gamma \vdash e : \tau & \tau \in \{ \ident{int}, \ident{float} \} }
+  { L; \Gamma \vdash e : \ident{Data} & \tau \in \{ \ident{int}, \ident{float} \} }
   { L; \Gamma \vdash \ident{convFloat}(\sigma, e) : \ident{float} }
 \quad
 \inference
@@ -1528,12 +1523,12 @@ the inferred shape of the input is preferred with respect to the shape of any of
 %
 The following lemma states that the provided code (generated in Figure~\ref{fig:tp-generation})
 works correctly on an input $d'$ that is a subshape of $d$. More formally, the provided
-provided expression (with input $d'$) can be reduced to a value and, if it is a class,
+expression (with input $d'$) can be reduced to a value and, if it is a class,
 all its members can also be reduced to values.
 
 \begin{lemma}[Correctness of provided types]
 \label{thm:tp-correctness}
-Given sample data $d$ and an input data value $d'$ such that $\semalt{d} \sqsupseteq \semalt{d'}$
+Given sample data $d$ and an input data value $d'$ such that $\semalt{d'} \sqsubseteq \semalt{d}$
 and provided type, expression and classes $\tau, e, L = \sem{\semalt{d}}$, 
 then $L, e~d' \reduce^{*} v$ and if $\tau$ is a class ($\tau=C$) then for all members $N_i$ of the 
 class $C$, it holds that $L, (e~d').N_i \reduce^{*} v$.
@@ -1541,8 +1536,8 @@ class $C$, it holds that $L, (e~d').N_i \reduce^{*} v$.
 \begin{proof}
 By induction over the structure of $\sem{-}$. For primitives, the conversion functions accept all subtypes.
 For other cases, analyze the provided code to see that it can work on all subtypes (for example~\ident{convElements}
-works on \kvd{null} values, \ident{convFloat} accepts an integer); for labelled top types and
-optional record fields, the \ident{hasShape} operation is used to guaranteed the correct shape at runtime.
+works on \kvd{null} values, \ident{convFloat} accepts an integer). Finally, for labelled top types,
+the \ident{hasShape} operation is used to guaranteed the correct shape at runtime.
 \end{proof}
 
 \noindent
@@ -1558,9 +1553,10 @@ Assume $d_1, \ldots, d_n$ are samples, $\sigma=\semalt{d_1, \ldots, d_n}$ is an 
 shape and $\tau,e,L = \sem{\sigma}$ are a type, expression and class definitions generated by a 
 type provider.
 
-For all inputs $d'$ such that $\sigma \sqsupseteq \semalt{d'}$ and all expressions $e'$
-(representing the user code) such that $e'$ does not contain primitive operations $op$ as a sub-expression and
-$\emptyset; y\!:\!\tau \vdash e'\!:\!\tau'$, it is the case that $L, e[y\leftarrow e'~d'] \reduce^{*} v$ for some value $v$ and
+For all inputs $d'$ such that $\semalt{d'} \sqsubseteq \sigma$ and all expressions $e'$
+(representing the user code) such that $e'$ does not contain any of the dynamic data operations $op$
+and any \ident{Data} values as sub-expressions and $L; y\!:\!\tau \vdash e'\!:\!\tau'$, it is 
+the case that $L, e[y\leftarrow e'~d'] \reduce^{*} v$ for some value $v$ and
 also $\emptyset; \vdash v : \tau'$.
 \end{theorem}
 \begin{proof}
@@ -1583,7 +1579,7 @@ in Figure~\ref{fig:tp-generation} is well-typed.
 \noindent
 The progress lemma states that evaluation of a well-typed program does not reach an undefined state. 
 This is not a problem for the Standard ML \cite{sml} subset and object-oriented subset \cite{fwjava} of the calculus. The 
-problematic part are the dynamic data operations (Figure~\ref{fig:ff-reduction}). Given a data
+problematic part are the dynamic data operations (Figure~\ref{fig:ff-reduction}, Part I). Given a data
 value (of type \ident{Data}), the reduction can get stuck if the value does not have a structure 
 required by a specific operation.
 
@@ -1620,8 +1616,8 @@ The cases for the ML subset are standard. For member access, we rely on Lemma~\r
 \label{sec:impl}
 
 The F\# Data library has been widely adopted by users and is one of the most downloaded
-F\# libraries.\footnote{At the time of writing, the library has over 80,000 downloads on NuGet 
-(package repository), 1,821 commits and 44 contributors on GitHub.} A practical demonstration of 
+F\# libraries.\footnote{At the time of writing, the library has over 100,000 downloads on NuGet 
+(package repository), 1,844 commits and 44 contributors on GitHub.} A practical demonstration of 
 development using the library can be seen in an attached screencast and additional documentation can be
 found at \url{http://fsharp.github.io/FSharp.Data}.
 
@@ -1633,24 +1629,31 @@ F\# Data type providers and other notable aspects of the implementation.
 
 The \emph{relative safety} property does not guarantee safety in the same way as traditional
 closed-world type safety, but it reflects the reality that programming with external data is
-increasingly important \cite{age-of-web}. Type providers increase the safety of this kind of programming,
-as seen earlier (\S\ref{sec:introduction}).
+increasingly important \cite{age-of-web}. Type providers increase the safety of this kind of 
+programming.
 
-One common issue is the handling of schema change. With type providers, the sample is captured 
-at compile-time. If the schema changes (so that the input is no longer related to the  
-shape of the sample), the program can fail at runtime and developers have to handle the exception. 
-The same problem happens when using weakly-typed code with explicit failure cases.
+\paragraph{Representative samples.}
+When choosing a representative sample document, the user does not need to provide a sample 
+that represents all possible inputs. They merely need to provide a sample that is representative
+with respect to data they intend to access. This makes the task of choosing a representative
+sample easier.
+
+\paragraph{Schema change.}
+Type providers are invoked at compile-time. If the schema changes (so that inputs are no longer 
+related to the shape of the sample used at compile-time), the program can fail at runtime and 
+developers have to handle the exception. The same problem happens when using weakly-typed code 
+with explicit failure cases.
 
 F\# Data can help discover such errors earlier. Our first example (\S\ref{sec:introduction})
-points the JSON type provider at a sample using a live URL. This has the advantage that a re-compilation 
-fails when the sample changes, which is an indication that the program needs to be updated to reflect the
-change. Repeated type-checking of programs by continuous integration systems can be used to help 
-detect such changes.
+points the JSON type provider at a sample using a live URL. This has the advantage that a 
+re-compilation fails when the sample changes, which is an indication that the program needs to be 
+updated to reflect the change. 
 
-In general, XML, CSV and JSON data sources without explicit schema will necessarily require techniques akin
-to those we have shown. However, some data sources provide explicit schema with schema versioning support 
-(with meta-data about how the schema changed). For those, a type 
-provider could be written to adapt automatically, but we leave this for future work.
+\paragraph{Richer data sources.}
+In general, XML, CSV and JSON data sources without explicit schema will necessarily require 
+techniques akin to those we have shown. However, some data sources provide explicit schema with 
+schema versioning support. For those, a type provider could be written to adapt automatically, 
+but we leave this for future work.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1707,13 +1710,50 @@ infer shape of primitive values:
 \ident{root}~\{ \ident{id} \mapsto 1, \bullet \mapsto [ \ident{item}~\{ \bullet \mapsto \str{Hello!} \}] \}
 \end{equation*}
 %
-When generating F\# types for XML documents, we also lifts the members nested under the $\bullet$ 
-field into the parent type to simplify the structure of the generated type.
-
 The XML type provider also includes an option to use \emph{global inference}. In that case, 
 the inference from values (\S\ref{sec:formal-inferval}) unifies the shapes of \emph{all} records with the 
 same name. This is useful because, for example, in XHTML all {\small\ttfamily <table>} elements
 will be treated as values of the same type.
+
+% -------------------------------------------------------------------------------------------------
+
+\subsection{Providing idiomatic F\# types} 
+\label{sec:impl-naming}
+
+In order to provide types that are easy to use and follow the F\# coding guidelines,
+we perform a number of transformations on the provided types that simplify their structure
+and use more idiomatic naming of fields. For example, the type provided for the XML document in 
+\S\ref{sec:impl-parsing} is:
+%
+\begin{equation*}
+\begin{array}{l}
+ \kvd{type}~\ident{Root}~=  \\
+ \quad \kvd{member}~\ident{Id}~:~\ident{int} \\
+ \quad \kvd{member}~\ident{Item}~:~\ident{string}
+\end{array}
+\end{equation*}
+%
+To obtain the type signature, we used the type provider as defined in Figure~\ref{fig:tp-generation}
+and applied three additional transformations and simplifications:
+
+\begin{itemize}
+\item When a class $C$ contains a member $\bullet$, which is a class with further members, the
+  nested members are lifted into the class $C$. For example, the above type \ident{Root}
+  directly contains \ident{Item} rather than containing a member $\bullet$ returning a 
+  class with a member \ident{Item}.
+
+\item Remaining members named $\bullet$ in the provided classes (typically of primitive
+  types) are renamed to \ident{Value}.
+  
+\item Class members are renamed to follow \ident{PascalCase} naming convention, when a 
+  colision occurs, a number is appended to the end as in \ident{PascalCase2}. The provided
+  implementation preforms the lookup using the original name.
+\end{itemize}
+
+Our current implementation also adds an additional member to each class that returns the
+underlying JSON node (called \ident{JsonValue}) or XML element (called \ident{XElement}). 
+Those return standard .NET or F\# representation of the value and can be used to dynamically 
+access data not exposed by the type providers, such as textual values inside mixed-content XML elements.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1723,7 +1763,7 @@ will be treated as values of the same type.
 When introducing type providers (\S\ref{sec:providers-sum}), we mentioned how F\# Data 
 handles heterogeneous collections. This allows us to avoid inferring 
 labelled top shapes in many common scenarios. In the earlier example, a sample collection 
-contains a record (with \strf{pages} and \strf{page} fields) and a nested collection with values.
+contains a record (with \strf{pages} field) and a nested collection with values.
 
 Rather than storing a single shape for the collection elements as in $[\sigma]$, heterogeneous
 collections store multiple possible element shapes together with their \emph{  inferred multiplicity} 
@@ -1744,17 +1784,78 @@ $1$ and $1?$ into $1?$).
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Capitalization} 
-\label{sec:impl-naming}
-
-% -------------------------------------------------------------------------------------------------
-
 \subsection{Predictability and stability} 
 \label{sec:impl-stable}
+
+One of the design motivations mentioned in Section~\ref{sec:providers} is that the inference
+mechanism is predictable and stable. Informally this means that ...
 
 In particular, we do 
 not use probabilistic methods where adding an additional sample could completely change the 
 shape of the type.
+
+For the purpose of this section, assume conversion function \ident{int} and an error value
+\ident{error} that propagates, i.e. $C[\ident{error}]\reduce\ident{error}$
+
+\begin{theorem}[Stability of inference]
+
+Given set of samples $d_1, \ldots, d_n$
+
+And $\tau_1, e_1, L_1 = \sem{\semalt{d_1, \ldots, d_n}}$
+
+And some code $L_1; x:\tau_1\vdash e : \tau$
+
+~
+
+Now, add $d_{n+1}$ and let
+ $\tau_2, e_2, L_2 = \sem{\semalt{d_1, \ldots, d_n, d_{n+1}}}$
+
+There is $e'$ 
+
+such that $L_2; x:\tau_2\vdash e' : \tau$
+
+and if for some $d$ it is the case that $e[x\leftarrow e_1~d] \reduce v$ then
+also $e'[x\leftarrow e_2~d] \reduce v$ 
+
+
+Obtained by changing
+
+\begin{itemize}
+\item[--]
+$e$ to $\kvd{match}~e~\kvd{with}~\ident{Some}(v) \rightarrow v~|~\ident{None} \rightarrow \ident{wrong}$
+\item[--]
+$e$ to $e.\ident{Member}$ where $\ident{Member} = \tytagof(\sigma)$ for some $\sigma$
+\item[--]
+$e$ to $\ident{int}(e)$
+\end{itemize}
+\end{theorem}
+\begin{proof}
+  
+Primitive type - can turn into float or into any with the primitive 
+type exposed as one of the members (because it has unique tag), possibly turned to float
+
+Record - introduce new fields, change types of fields - by induction
+or not record, in which case it becomes member via any
+
+List - element type change or becomes member of any
+
+Any - ok
+
+nullable - stays nullable, or if they're not compatible, part of any
+
+\end{proof}
+
+
+A full treatment of issue (2) would likely require more space than
+available. However, we would like to add a brief section that makes the
+following point: When a new sample is added to an existing set of samples,
+the inferred shape can change only in certain limited ways (i.e. certain
+parts may become optional). The fact that this change of shape is limited
+shows that the inference algorithm is "stable" (users only need to do small
+changes in their code). This is also relevant for the practical problem of
+"choosing a representative sample". If an initial sample is not
+representative and is refined later, the user will see which inferred types
+became optional - and can adjust the program accordingly.
 
 
 % ==================================================================================================
@@ -1835,9 +1936,9 @@ properties of type providers that represent the ``types from data'' approach. Ou
 that this significantly broadens the applicability of statically typed languages to real-world 
 problems that are often solved by error-prone weakly-typed techniques.
 
-% \acks
-% We would like to thank to the F\# Data contributors on GitHub and other colleagues working on type providers,
-% including Jomo Fisher, Keith Battocchi and Kenji Takeda.
+\acks
+We would like to thank to the F\# Data contributors on GitHub and other colleagues working 
+on type providers, including Jomo Fisher, Keith Battocchi and Kenji Takeda.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
