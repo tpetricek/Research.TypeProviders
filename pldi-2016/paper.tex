@@ -566,7 +566,7 @@ For JSON records we always use a single name $\,\bullet$. We assume that record 
 reordered.
 
 We include two numerical primitives, \ident{int} for integers and \ident{float} for floating-point 
-numbers. The two are related by the perference relation and we prefer \ident{int}.
+numbers. The two are related by the preference relation and we prefer \ident{int}.
 
 Any non-nullable shape $\hat{\sigma}$ can be wrapped as $\kvd{nullable}\langl\hat{\sigma}\rangl$ to 
 explicitly permit the \kvd{null} value. Type providers map \kvd{nullable} shapes to the F\# option
@@ -762,7 +762,7 @@ be used (\emph{null}), (\emph{opt}).
 \subsection{Inferring shapes from samples}
 \label{sec:formal-inferval}
 
-We now specify how we obtain the shape from data. As clrified later (\S\ref{sec:impl-parsing}), 
+We now specify how we obtain the shape from data. As clarified later (\S\ref{sec:impl-parsing}), 
 we represent JSON, XML and CSV documents using the same first-order \emph{data} value:
 
 \noindent
@@ -792,7 +792,7 @@ variable unification \cite{rows-remy}. We omit the details here. No $\rho_i$ var
 inference as the substitution chosen is ground.
 
 Primitive  values are mapped to their corresponding shapes. 
-When infering a shape from multiple samples, we use the common preferred shape relation to find a 
+When inferring a shape from multiple samples, we use the common preferred shape relation to find a 
 common shape for all values (starting with $\bot$). This operation is used  
 when calling a type provider with multiple samples and also when inferring the shape of collection
 elements.
@@ -1752,7 +1752,7 @@ and applied three additional transformations and simplifications:
   types) are renamed to \ident{Value}.
   
 \item Class members are renamed to follow \ident{PascalCase} naming convention, when a 
-  colision occurs, a number is appended to the end as in \ident{PascalCase2}. The provided
+  collision occurs, a number is appended to the end as in \ident{PascalCase2}. The provided
   implementation preforms the lookup using the original name.
 \end{itemize}
 
