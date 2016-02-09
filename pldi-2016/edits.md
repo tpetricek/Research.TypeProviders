@@ -18,12 +18,16 @@ This is shorter and more direct definition. We dropped the previous Lemma 1
 upper bound). We corrected the error pointed out by reviewer E (the case for 
 handling nullables now results in `\ceil{lub(\sigma1, \sigma2)}`).
 
+
 > (2) Substantiate the claim that the inference is predictable / stable
 
-
-
-
-
+A general theory of predictability and stability of type providers
+is a topic for a separate paper, but we include a brief observation about
+F# Data in newly added Section 6.5. Briefly, it states that when a new sample 
+is added to an existing set of samples, the inferred shape can change only in 
+certain limited ways (i.e. certain parts may become optional) - and so user
+code only need to be changed in limited ways. This is one practically important
+property (which would not hold for some probabilistic approaches).
 
 
 > (3) Add clarification of how XML is handled & discuss mixed-content XML nodes
@@ -291,20 +295,7 @@ Changed.
 This should be addressed by a more prominent reference
 to our earlier work on F# type type providers [23,24].
 
+> Bibliography: Capitalization is incorrect or inconsistent in many entries.
+> You need to double-check EVERY bibliographc entry.
 
-
-
-
-
-
-
-Bibliography: Capitalization is incorrect or inconsistent in many entries. Examples: In the italicized book title of [1], all words except "of" should be capitalized. In the title of [4] "json" should be "JSON". In the title of [12], "ide" should be "IDE". In [16], the word "Of" should NOT be capitalized. The journal "SIGPLAN Notices" is mentioned in [7] as "Sigplan Notices", in [11] and [21] as "SIGPLAN Notices", and in [24] as "SIGPLAN Not." These are only a few examples; you need to double-check EVERY bibliographc entry.
-
-ALWAYS inspect any BibTeX data downloaded from the Internet and edit it to conform to your chosen consistent style. Do NOT trust BibTeX data downloaded from the ACM Digital Library or other online resources; it is a good starting point, but must always be verified and usually edited to remove small problems. It is your responsibility to ensure a correct and consistent bibliographic style AND to verify the bibliographic data against the actual original paper.
-
-−Does the library handle variations in the data format as type errors, or is there a way to capture choices using the shape inference algorithm?
-−What do you think it would take to generalize type providers the way PADS has? 
-−Did you observe any bottlenecks for the shape inference algorithm?
-
-
-End of 3: "there are labels that enable typed access to every possible value in the sample, but not more." It would be useful to give this intuition earlier, and actually to state it as an explicit, ideally formalized goal. The "not more" part seems like the most interesting, since you are doing joins up the lattice, so it's hard to define what that means, let alone argue that you satisfy it.
+Double-checked.

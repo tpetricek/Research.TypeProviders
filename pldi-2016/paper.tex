@@ -1,4 +1,4 @@
-\documentclass[10pt,clearpagebib]{sigplanconf}
+\documentclass[10pt]{sigplanconf}
 
 \usepackage{listings}
 \usepackage{enumitem}
@@ -23,6 +23,8 @@
 \usepackage[hang,flushmargin]{footmisc} 
 \usepackage[notquote]{hanging}
 \usepackage{flushend}
+\usepackage{enumerate}
+\usepackage{etoolbox}
 
 % =================================================================================================
 
@@ -89,8 +91,12 @@
 
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
+\newtheorem{remark}{Remark}
 \newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{lemma}[theorem]{Lemma}
+\newenvironment{proofoutline}
+ {\renewcommand\qedsymbol{}\proof[Proof outline]}
+ {\endproof}
 
 % =================================================================================================
 
@@ -1787,75 +1793,77 @@ $1$ and $1?$ into $1?$).
 \subsection{Predictability and stability} 
 \label{sec:impl-stable}
 
-One of the design motivations mentioned in Section~\ref{sec:providers} is that the inference
-mechanism is predictable and stable. Informally this means that ...
+As discussed in \S\ref{sec:providers}, our inference algorithm is designed to be predictable
+and stable. When a user writes a program using the provided type and then adds another sample 
+(e.g.~with more missing values), they should not need to restructure their program. 
+For this reason, we keep the algorithm simple. For example, we do not use probabilistic methods to 
+asses similarity of record types, because a small change in the sample could cause a large change 
+in the provided types.
 
-In particular, we do 
-not use probabilistic methods where adding an additional sample could completely change the 
-shape of the type.
+We leave a general theory of stability and predictability of type providers to future work, but
+we formalize a brief observation in this section. Say we write a program using a provided type
+that is based on a collection of samples. When a new sample is added, the program can be modified
+to run as before with only small local changes. 
 
-For the purpose of this section, assume conversion function \ident{int} and an error value
-\ident{error} that propagates, i.e. $C[\ident{error}]\reduce\ident{error}$
+For the purpose of this section, assume that the Foo calculus also contains an \ident{exn} 
+value representing a runtime exception that propagates in the usual way, 
+i.e.~$C[\ident{exn}]\reduce\ident{exn}$, and also a conversion function \ident{int} that
+turns floating-point number into an integer.
 
-\begin{theorem}[Stability of inference]
+\begin{remark}[Stability of inference]
+Assume we have a set of samples $d_1, \ldots, d_n$, provided type based on the samples
+$\tau_1, e_1, L_1 = \sem{\semalt{d_1, \ldots, d_n}}$ and some user code $e$ written using
+the provided type, such that $L_1; x:\tau_1\vdash e : \tau$. 
 
-Given set of samples $d_1, \ldots, d_n$
+Next, we add a new sample $d_{n+1}$ and consider a new provided type 
+$\tau_2, e_2, L_2 = \sem{\semalt{d_1, \ldots, d_n, d_{n+1}}}$.
 
-And $\tau_1, e_1, L_1 = \sem{\semalt{d_1, \ldots, d_n}}$
+Now there exists $e'$ such that $L_2; x:\tau_2\vdash e' : \tau$ and if
+for some $d$ it is the case that $e[x\leftarrow e_1~d] \reduce v$ then
+also $e'[x\leftarrow e_2~d] \reduce v$.
 
-And some code $L_1; x:\tau_1\vdash e : \tau$
+Such $e'$ is obtained by applying one or more transformations to sub-expressions of $e$
+that transform:
+%
+\begin{enumerate}[(i)]
+\item
+$C[e]$ to $C[\kvd{match}~e~\kvd{with}~\ident{Some}(v) \rightarrow v~|~\ident{None} \rightarrow \ident{exn}]$
+\item
+$C[e]$ to $C[e.\ident{M}]$ where $\ident{M} = \tytagof(\sigma)$ for some $\sigma$
+\item
+$C[e]$ to $C[\ident{int}(e)]$
+\end{enumerate}
+\end{remark}
 
-~
-
-Now, add $d_{n+1}$ and let
- $\tau_2, e_2, L_2 = \sem{\semalt{d_1, \ldots, d_n, d_{n+1}}}$
-
-There is $e'$ 
-
-such that $L_2; x:\tau_2\vdash e' : \tau$
-
-and if for some $d$ it is the case that $e[x\leftarrow e_1~d] \reduce v$ then
-also $e'[x\leftarrow e_2~d] \reduce v$ 
-
-
-Obtained by changing
+\begin{proof}
+For each case in the type provision (Figure~\ref{fig:tp-generation}) an original shape $\sigma$
+may be replaced by a less preferred shape $\sigma'$. The user code can always be transformed
+to use the newly provided shape:
 
 \begin{itemize}
-\item[--]
-$e$ to $\kvd{match}~e~\kvd{with}~\ident{Some}(v) \rightarrow v~|~\ident{None} \rightarrow \ident{wrong}$
-\item[--]
-$e$ to $e.\ident{Member}$ where $\ident{Member} = \tytagof(\sigma)$ for some $\sigma$
-\item[--]
-$e$ to $\ident{int}(e)$
+\item[--] Primitive shapes can become nullable (i), \ident{int} can become \ident{float} (iii)
+  or can become a part of labelled top type (ii).
+\item[--] Record shape fields can change shape (recursively) and record may become a part
+  of labelled top type (ii).
+\item[--] For list and nullable shape, the shape of the value may change (we apply the 
+  transformations recursively).
+\item[--] For any shape, the original code will continue to work (label is never removed).
 \end{itemize}
-\end{theorem}
-\begin{proof}
-  
-Primitive type - can turn into float or into any with the primitive 
-type exposed as one of the members (because it has unique tag), possibly turned to float
-
-Record - introduce new fields, change types of fields - by induction
-or not record, in which case it becomes member via any
-
-List - element type change or becomes member of any
-
-Any - ok
-
-nullable - stays nullable, or if they're not compatible, part of any
-
+\vspace{-1.5em}
 \end{proof}
+%
+\noindent
+Intuitively, the first transformation is needed when the new sample makes a type optional.
+This happens when it contains a \kvd{null} value or a record that does not contain a field 
+that all previous samples have. The second transformation is needed when a shape $\sigma$ 
+becomes $\kvd{any}\langle\sigma, \ldots\rangle$ and the third one is needed when $\ident{int}$
+becomes \ident{float}.
 
+This property also underlines a common way of handling errors when using F\# Data type providers.
+When a program fails on some input, the input can be added as another sample. This makes some
+fields optional and the code can be updated accordingly, using a variation of (i) that uses
+an appropriate default value rather than throwing an exception.
 
-A full treatment of issue (2) would likely require more space than
-available. However, we would like to add a brief section that makes the
-following point: When a new sample is added to an existing set of samples,
-the inferred shape can change only in certain limited ways (i.e. certain
-parts may become optional). The fact that this change of shape is limited
-shows that the inference algorithm is "stable" (users only need to do small
-changes in their code). This is also relevant for the practical problem of
-"choosing a representative sample". If an initial sample is not
-representative and is refined later, the user will see which inferred types
-became optional - and can adjust the program accordingly.
 
 
 % ==================================================================================================
@@ -1873,24 +1881,30 @@ became optional - and can adjust the program accordingly.
 \section{Related and future work}
 \label{sec:related}
 
-We connect two lines of research: the work: inferring types for real-world data sources
-and the integration of external data into statically-typed programming langauges.
+The F\# Data library connects two lines of research that have been previously disconnected. The first is 
+extending the type systems of programming languages to accommodate external data sources and the second
+is inferring types for real-world data sources.
 
-Early work on F\# Data happened together with the development of the type providers mechanism in F\# 
-\cite{fsharp-typeprov,fsharp-typeprov-ddfp}, but previous publications on type providers focused on 
-the general mechanism \cite{idris-tp,liteq} rather than on concrete type providers. This paper 
-is novel in that it discusses the theory and safety of a concrete type provider from the programming
-language perspective. 
+The type provider mechanism has been introduced in F\# \cite{fsharp-typeprov,fsharp-typeprov-ddfp}, 
+added to Idris  \cite{idris-tp} and used in areas such as semantic web \cite{liteq}. The F\# Data 
+library has been developed as part of the early F\# type provider research, but previous 
+publications focused on the general mechanisms. This paper is novel in that it shows the 
+programming language theory behind a concrete type providers. 
 
 \paragraph{Extending the type systems.} 
-Previous work that integrates external data, such as XML \cite{xduce,xduce-ml} and databases 
-\cite{links,linq}, into a programming language, required the user to define the schema
-or had an ad-hoc extension that reads the schema.
+Several systems integrate external data into a programming language. Those include 
+XML \cite{xduce,xduce-ml} and databases \cite{links}. In both of these, the system requires
+the user to explicitly define the schema (using the host language) or it has an ad-hoc extension 
+that reads the schema (\emph{e.g.}~from a database). LINQ \cite{linq} is more general, but relies
+on code generation when importing the schema.
 
-C$\omega$ \cite{comega-xs} bears similarity to F\# Data. Like many other
-languages, it extends a host language with advanced types similar to our
-structural shapes (including similar heterogeneous collections), but it 
-does not infer the types from a sample. In contrast, in F\# Data 
+The work that is most similar to F\# Data is the data integration in C$\omega$ \cite{comega-xs}.
+It extends C\# language with types similar to our structural types 
+(including nullable types, choices with subtyping and heterogeneous collections with multiplicities).
+However, C$\omega$ does not infer the types from samples and extends the type system of the host
+language (rather than using a general purpose embedding mechanism).
+
+In contrast, in F\# Data 
 we have avoided extending F\# at all, and the simplicity of the Foo 
 target language shows we have avoided placing strong requirements 
 (such as structural records) on the host language. Instead we provide nominal 
@@ -1938,7 +1952,8 @@ problems that are often solved by error-prone weakly-typed techniques.
 
 \acks
 We would like to thank to the F\# Data contributors on GitHub and other colleagues working 
-on type providers, including Jomo Fisher, Keith Battocchi and Kenji Takeda.
+on type providers, including Jomo Fisher, Keith Battocchi and Kenji Takeda. We are also
+grateful to anonymous reviewers of the paper for their valuable feedback.
 
 \bibliographystyle{abbrvnat}
 \bibliography{paper}
