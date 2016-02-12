@@ -674,7 +674,7 @@ The shape preference relation is defined as a transitive reflexive closure of th
 \ident{csh}(\sigma_1, \sigma_2) &=& \kvd{any} \quad(\textnormal{when}~\sigma_1\neq\nu\;\{ \ldots \}~\textnormal{or}~\sigma_2\neq\nu\;\{ \ldots \} ) & (\emph{any})\\
 \end{array}
 \end{equation*}
-%
+
 \begin{equation*}
 \quad\qquad
 \begin{array}{rcll}
@@ -734,13 +734,9 @@ The rules are matched from top to bottom.
 \noindent
 The fact that the rules of \ident{csh} are matched from top to bottom resolves the ambiguity 
 between certain rules. Most importantly (\emph{any}) is used only as the last resort.
-When finding a common shape of two records (\emph{recd}) we find common preferred shapes of their 
-respective fields. The \ident{csh} function is not defined for two records with mis-matching 
-fields, however, the fields can always be made to match, through the shape inference 
-from sample (\S\ref{sec:formal-inferval}), \emph{before} finding a common preferred shape 
-using $\ident{csh}$.
 
-We can find a common shape of two different numbers (\emph{num}); for two collections,
+When finding a common shape of two records (\emph{recd}) we find common preferred shapes of their 
+respective fields. We can find a common shape of two different numbers (\emph{num}); for two collections,
 we combine their elements (\emph{list}). When one shape is nullable (\emph{opt}), we find
 the common non-nullable shape and ensure the result is nullable using $\addopt{-}$, which
 is also applied when one of the shapes is \kvd{null} (\emph{null}). 
@@ -773,7 +769,10 @@ we represent JSON, XML and CSV documents using the same first-order \emph{data} 
    &\narrow{|}& [d_1; \ldots; d_n] \lsep \nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}
 \end{array}
 \end{equation*}
-%
+
+~
+
+\noindent
 The definition includes primitive values ($i$ for integers, $f$ for floats
 and $s$ for strings) and \kvd{null}. A collection is written as a 
 list of values in square brackets. A record starts with a name $\nu$, followed by a 
@@ -787,7 +786,9 @@ represent potentially missing fields, the $\addopt{-}$ operator from Figure~\ref
 is applied to all types in the vector. 
 
 This is sufficient to equate the record field labels and satisfy the pre-conditions in rule 
-(\emph{recd}) when multiple record samples are merged. In practice, $\theta$ is found via row 
+(\emph{recd}) when multiple record shapes are combined. The \ident{csh} function is not defined for 
+two records with mis-matching fields, however, the fields can always be made to match, through 
+a substitution for row variables. In practice, $\theta$ is found via row 
 variable unification \cite{rows-remy}. We omit the details here. No $\rho_i$ variables remain after 
 inference as the substitution chosen is ground.
 
@@ -1811,7 +1812,7 @@ i.e.~$C[\ident{exn}]\reduce\ident{exn}$, and also a conversion function \ident{i
 turns floating-point number into an integer.
 
 \begin{remark}[Stability of inference]
-Assume we have a set of samples $d_1, \ldots, d_n$, provided type based on the samples
+Assume we have a set of samples $d_1, \ldots, d_n$, a provided type based on the samples
 $\tau_1, e_1, L_1 = \sem{\semalt{d_1, \ldots, d_n}}$ and some user code $e$ written using
 the provided type, such that $L_1; x:\tau_1\vdash e : \tau$. 
 
@@ -1845,9 +1846,9 @@ to use the newly provided shape:
   or can become a part of labelled top type (ii).
 \item[--] Record shape fields can change shape (recursively) and record may become a part
   of labelled top type (ii).
-\item[--] For list and nullable shape, the shape of the value may change (we apply the 
+\item[--] For list and nullable shapes, the shape of the value may change (we apply the 
   transformations recursively).
-\item[--] For any shape, the original code will continue to work (label is never removed).
+\item[--] For the any shape, the original code will continue to work (the label is never removed).
 \end{itemize}
 \vspace{-1.5em}
 \end{proof}
