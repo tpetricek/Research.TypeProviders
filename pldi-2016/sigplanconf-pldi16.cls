@@ -1,5 +1,5 @@
 %
-% IMPORTANT:  Please only use this class file for submissions to PLDI'15
+% IMPORTANT:  Please only use this class file for submissions to PLDI'16
 %
 %
 % In the future, please use the 3.X official releases of this class
@@ -36,7 +36,7 @@
 
 
 \NeedsTeXFormat{LaTeX2e}[1995/12/01]
-\ProvidesClass{sigplanconf-pldi15}[2014/08/18 v3.0x ACM SIGPLAN Proceedings]
+\ProvidesClass{sigplanconf-pldi16}[2014/08/18 v3.0x ACM SIGPLAN Proceedings]
 
 % The following few pages contain LaTeX programming extensions adapted
 % from the ZzTeX macro package.
@@ -226,7 +226,7 @@
 \@setflag \@pldi = \@false
 \@setflag \@pldicrc = \@false
 \@setflag \@clearpagebib = \@false
- 
+
 % Note that all the dangerous article class options are trapped.
 
 \DeclareOption{9pt}{\@setflag \@ninepoint = \@true
@@ -301,10 +301,44 @@
 
 \DeclareOption{clearpagebib}{\@setflag \@clearpagebib = \@true}
 
-\DeclareOption{pldi}{\PassOptionsToClass{10pt}{article}%
+\DeclareOption{pldi}{\PassOptionsToClass{10pt}{article} %
                      \@setflag \@ninepoint = \@false
                      \@setflag \@tenpoint = \@true
                      \@setflag \@explicitsize = \@true
+		     \@setflag \@authoryear = \@false
+                     \@setflag \@squareay = \@true
+                     \@setflag \@blind = \@true
+                     \@setflag \@preprint = \@true
+                     \@setflag \@clearpagebib = \@true
+		     }
+
+\DeclareOption{pldi-cameraready}{\PassOptionsToClass{10pt}{article} %
+                     \@setflag \@ninepoint = \@false
+                     \@setflag \@tenpoint = \@true
+                     \@setflag \@explicitsize = \@true
+		     \@setflag \@authoryear = \@false
+                     \@setflag \@squareay = \@true
+                     \@setflag \@blind = \@false
+                     \@setflag \@preprint = \@false
+                     \@setflag \@clearpagebib = \@false
+		     }
+
+\DeclareOption{pldinumbers}{\PassOptionsToClass{10pt}{article} %
+                     \@setflag \@ninepoint = \@false
+                     \@setflag \@tenpoint = \@true
+                     \@setflag \@explicitsize = \@true
+		     \@setflag \@authoryear = \@false
+                     \@setflag \@squareay = \@true
+                     \@setflag \@blind = \@true
+                     \@setflag \@preprint = \@true
+                     \@setflag \@clearpagebib = \@true
+		     }
+
+\DeclareOption{pldiauthoryear}{\PassOptionsToClass{10pt}{article} %
+                     \@setflag \@ninepoint = \@false
+                     \@setflag \@tenpoint = \@true
+                     \@setflag \@explicitsize = \@true
+		     \@setflag \@authoryear = \@true
                      \@setflag \@squareay = \@true
                      \@setflag \@blind = \@true
                      \@setflag \@preprint = \@true
@@ -538,6 +572,7 @@
 \renewenvironment{thebibliography}[1]
      {\section*{%
       \if \@clearpagebib
+      zzzzz
         \clearpage
       \fi
         \refname
@@ -1255,7 +1290,7 @@
     \noindent
     \@authori = 4
     {\let \\ = ,%
-     \loop 
+     \loop
        \textbf{\@name{\@authorname\romannumeral\@authori}},
        \@name{\@authoraffil\romannumeral\@authori},
        email: \@name{\@authoremail\romannumeral\@authori}.%
@@ -1400,7 +1435,7 @@
 %                               environment. Also add to template so it will
 %                               happen with natbib.
 
-%  2009.09.30   PCA     2.3     Remove \softraggedright from thebibliography.  
+%  2009.09.30   PCA     2.3     Remove \softraggedright from thebibliography.
 %                               Just include in the template.
 
 %  2010.05.24   PCA     2.4     Obfuscate class author's email address.

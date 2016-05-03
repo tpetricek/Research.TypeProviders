@@ -1,12 +1,10 @@
-\documentclass[10pt]{sigplanconf}
+\documentclass[pldi-cameraready]{sigplanconf-pldi16}
+
+\RequirePackage[loading]{tracefnt}
 
 \usepackage{listings}
 \usepackage{enumitem}
 \usepackage[hyphens]{url}
-\usepackage[svgnames]{xcolor}
-\definecolor{lcl}{RGB}{140,0,100}
-\usepackage[colorlinks=true,breaklinks,draft=false]{hyperref}
-\hypersetup{urlcolor=lcl,linkcolor=lcl,citecolor=lcl}
 \newcommand{\doi}[1]{doi:~\href{http://dx.doi.org/#1}{\Hurl{#1}}}
 \usepackage{amssymb}
 \usepackage{multicol}
@@ -17,7 +15,6 @@
 \usepackage{stmaryrd}
 \usepackage{amsthm}
 \usepackage{ftnright}
-\usepackage[T1]{fontenc}
 \usepackage{semantic}
 \usepackage{enumitem}
 \usepackage[hang,flushmargin]{footmisc}
@@ -27,6 +24,14 @@
 \usepackage{etoolbox}
 
 % =================================================================================================
+
+\CopyrightYear{2016}
+%\setcopyright{acmlicensed}
+\conferenceinfo{PLDI '16,}{June 13 - 17, 2016, Santa Barbara, CA, USA}
+\copyrightdata{978-1-4503-4261-2/16/06}
+%\acmPrice{\$15.00}
+\copyrightdoi{2908080.2908115}
+
 
 \urlstyle{sf}
 
@@ -102,28 +107,20 @@
 
 \begin{document}
 
-\special{papersize=8.5in,11in}
-\setlength{\pdfpageheight}{\paperheight}
-\setlength{\pdfpagewidth}{\paperwidth}
-\conferenceinfo{PLDI '16}{June 13--17, 2016, Santa Barbara, CA, United States}
-\copyrightyear{2016}
-\copyrightdata{978-1-nnnn-nnnn-n/yy/mm}
-%\doi{nnnnnnn.nnnnnnn}
-
 %\titlebanner{Unpublished draft, March 2015}        % These are ignored unless
 %\preprintfooter{short description of paper}        % 'preprint' option specified.
 
-\title{Types from data: \textnormal{Making structured data first-class citizens in F\#}}
+\title{Types from Data: Making Structured Data First-Class Citizens in F\#}
 %\subtitle{Subtitle Text, if any}
 
 \authorinfo{Tomas Petricek}
-           {University of Cambridge}
+           {University of Cambridge, UK}
            {tomas@tomasp.net}
 \authorinfo{Gustavo Guerra}
-           {Microsoft Corporation, London}
+           {Microsoft Corporation, UK}
            {gustavo@codebeside.org}
 \authorinfo{Don Syme}
-           {Microsoft Research, Cambridge}
+           {Microsoft Research Cambridge, UK}
            {dsyme@microsoft.com}
 \maketitle
 
@@ -145,6 +142,7 @@ safety guarantees when contrasted with the widely used weakly typed techniques.
 \end{abstract}
 
 \category{D.3.3}{Programming Languages}{Language Constructs and Features }
+\terms{Languages, Theory}
 \keywords F\#, Type Providers, Inference, JSON, XML
 
 
@@ -173,8 +171,7 @@ For example, \url{http://openweathermap.org/current} contains one example to doc
 to get the current weather. Using standard libraries, we might call it as\footnote{We abbreviate
 the full URL and omit application key (available after registration). The returned JSON is shown
 in Appendix~\ref{sec:appendix-weather} and can be used to run the code against a local file.}:
-
-\noindent
+%
 \begin{equation*}
 \begin{array}{l}
  \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://api.owm.org/?q=NYC}) \\
@@ -199,7 +196,6 @@ misspelled or incorrect shape assumed.
 Using the JSON type provider from F\# Data, we can write code with exactly the
 same functionality in two lines:
 %
-\vspace{-0.1em}
 \begin{equation*}
 \begin{array}{l}
  \kvd{type}~\ident{W} = \ident{JsonProvider}\langl\str{http://api.owm.org/?q=NYC}\rangl \\[0.1em]
@@ -243,7 +239,7 @@ in heterogeneous systems. Our contributions are as follows:
 %
 % =================================================================================================
 
-\section{Type providers for structured data}
+\section{Type Providers for Structured Data}
 \label{sec:providers}
 
 We start with an informal overview that shows how F\# Data type providers simplify working with
@@ -271,7 +267,7 @@ experience using F\# Data.\footnote{Available at \url{http://tomasp.net/academic
 
 % --------------------------------------------------------------------------------------------------
 
-\subsection{Working with JSON documents}
+\subsection{Working with JSON Documents}
 \label{sec:providers-json}
 
 The JSON format is a popular data exchange format based on
@@ -383,7 +379,7 @@ such as Idris \cite{idris-tools} might have different preferences.
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Processing XML documents}
+\subsection{Processing XML Documents}
 \label{sec:providers-xml}
 
 XML documents are formed by nested elements with attributes. We can view elements as records with
@@ -462,7 +458,7 @@ worth noting that our shape inference uses labelled top shapes only as the last 
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Real-world JSON services}
+\subsection{Real-world JSON Services}
 \label{sec:providers-sum}
 
 Throughout the introduction, we used data sets that demonstrate the typical problems frequent
@@ -523,7 +519,7 @@ and so CSV is handled directly by our inference algorithm.
 %
 % =================================================================================================
 
-\section{Shape inference for structured data}
+\section{Shape Inference for Structured Data}
 \label{sec:inference}
 
 The shape inference algorithm for structured data is based on a shape preference relation. When
@@ -542,7 +538,7 @@ with respect to numerical types and missing data.
 
 % --------------------------------------------------------------------------------------------------
 
-\subsection{Inferred shapes}
+\subsection{Inferred Shapes}
 \label{sec:inference-types}
 
 We distinguish between \emph{non-nullable shapes} that always have a valid value (written as
@@ -591,7 +587,8 @@ giving an inferred shape $\ident{Point}\,\{ \ident{x}\!:\!\ident{int},~ \ident{y
 
 \begin{figure}
 \begin{center}
-\includegraphics[scale=0.80,trim=5mm 5mm 5mm 5mm,clip]{images/hierarchy.pdf} % left bottom right top
+% \includegraphics[scale=0.80,trim=5mm 5mm 5mm 5mm,clip]{images/hierarchy.pdf} % left bottom right top
+\includegraphics[scale=0.80,clip]{images/hierarchy.png} % left bottom right top
 \end{center}
 \vspace{-0.5em}
 \caption{Important aspects of the preferred shape relation}
@@ -600,7 +597,7 @@ giving an inferred shape $\ident{Point}\,\{ \ident{x}\!:\!\ident{int},~ \ident{y
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Preferred shape relation}
+\subsection{Preferred Shape Relation}
 \label{sec:inference-subtyping}
 
 Figure~\ref{fig:subtyping-diagram} provides an intuition about the preference between
@@ -717,7 +714,7 @@ Here is a summary of the key aspects of the definition:
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Common preferred shape relation}
+\subsection{Common Preferred Shape Relation}
 \label{sec:inference-commonsuper}
 
 Given two ground shapes, the \emph{common preferred shape} is the least upper bound of the
@@ -754,7 +751,7 @@ By induction over the structure of the shapes $\sigma_1,\sigma_2$. Note that \id
 be used (\emph{null}), (\emph{opt}).
 \end{proof}
 
-\subsection{Inferring shapes from samples}
+\subsection{Inferring Shapes from Samples}
 \label{sec:formal-inferval}
 
 We now specify how we obtain the shape from data. As clarified later (\S\ref{sec:impl-parsing}),
@@ -796,34 +793,6 @@ When inferring a shape from multiple samples, we use the common preferred shape 
 common shape for all values (starting with $\bot$). This operation is used
 when calling a type provider with multiple samples and also when inferring the shape of collection
 values.
-
-% --------------------------------------------------------------------------------------------------
-
-\begin{figure}[!h]
-\begin{equation*}
-\begin{array}{rclcrclcrcl}
- \semalt{i} &\narrow{=}& \ident{int} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} && \semalt{\kvd{true}} &\narrow{=}& \ident{bool}\\
- \semalt{f} &\narrow{=}& \ident{float} && \semalt{s} &\narrow{=}& \ident{string} && \semalt{\kvd{false}}  &\narrow{=}& \ident{bool}\\
-\end{array}
-\end{equation*}
-\noindent
-\vspace{-0.5em}
-\begin{equation*}
-\begin{array}{l}
- \semalt{[d_1; \ldots; d_n]} = [\semalt{d_1, \ldots, d_n}]
- \\[0.5em]
- \semalt{\nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}_{\rho_i}} =\\[0.1em]
- \qquad\nu~\{ \nu_1:\semalt{d_1}, \ldots, \nu_n :\semalt{d_n}, \addopt{\theta(\rho_i)} \}
- \\[0.5em]
- \semalt{d_1, \ldots, d_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
- \qquad\sigma_0 = \bot,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{d_i} \vdash \sigma_i \\[0.6em]
- \textnormal{Choose minimal}\ \theta\ \textnormal{by ordering}\ \sqsubseteq\ \textnormal{lifted over substitutions} \\[0.1em]
-\end{array}
-\end{equation*}
-\caption{Shape inference from sample data}
-\label{fig:shape-inference}
-\vspace{-1em}
-\end{figure}
 
 % --------------------------------------------------------------------------------------------------
 
@@ -892,7 +861,7 @@ values.
 
 % --------------------------------------------------------------------------------------------------
 
-\subsection{Adding labelled top shapes}
+\subsection{Adding Labelled Top Shapes}
 \label{sec:inference-vars}
 
 When analyzing the structure of shapes, it suffices to consider a single top shape \kvd{any}.
@@ -951,7 +920,7 @@ fields of records.
 %
 % ==================================================================================================
 
-\section{Formalizing type providers}
+\section{Formalizing Type Providers}
 \label{sec:formal}
 
 This section presents the formal model of F\# Data integration. To represent the programming
@@ -959,6 +928,33 @@ language that hosts the type provider, we introduce the Foo calculus, a subset o
 and properties, extended with operations for working with weakly typed structured data along the
 lines of the F\# Data runtime. Finally, we describe how
 type providers turn inferred shapes into Foo classes (\S\ref{sec:formal-tp}).
+
+% --------------------------------------------------------------------------------------------------
+
+\begin{figure}[!h]
+\begin{equation*}
+\begin{array}{rclcrclcrcl}
+ \semalt{i} &\narrow{=}& \ident{int} && \semalt{\kvd{null}}  &\narrow{=}& \kvd{null} && \semalt{\kvd{true}} &\narrow{=}& \ident{bool}\\
+ \semalt{f} &\narrow{=}& \ident{float} && \semalt{s} &\narrow{=}& \ident{string} && \semalt{\kvd{false}}  &\narrow{=}& \ident{bool}\\
+\end{array}
+\end{equation*}
+\noindent
+\begin{equation*}
+\begin{array}{l}
+ \semalt{[d_1; \ldots; d_n]} = [\semalt{d_1, \ldots, d_n}]
+ \\[0.5em]
+ \semalt{\nu~\{ \nu_1 \mapsto d_1, \ldots, \nu_n \mapsto d_n \}_{\rho_i}} =\\[0.1em]
+ \qquad\nu~\{ \nu_1:\semalt{d_1}, \ldots, \nu_n :\semalt{d_n}, \addopt{\theta(\rho_i)} \}
+ \\[0.5em]
+ \semalt{d_1, \ldots, d_n} = \sigma_n \quad\textnormal{where}\\[0.1em]
+ \qquad\sigma_0 = \bot,~ \forall i\in \{ 1.. n \}.~ \sigma_{i-1} \triangledown \semalt{d_i} \vdash \sigma_i \\[0.6em]
+ \textnormal{Choose minimal}\ \theta\ \textnormal{by ordering}\ \sqsubseteq\ \textnormal{lifted over substitutions} \\[0.1em]
+\end{array}
+\end{equation*}
+\caption{Shape inference from sample data}
+\label{fig:shape-inference}
+\end{figure}
+
 
 % -------------------------------------------------------------------------------------------------
 
@@ -989,6 +985,57 @@ op &\narrow{=}& \ident{convFloat}(\sigma, e) \lsep \ident{convPrim}(\sigma, e) \
 \label{fig:foo-syntax}
 \vspace{-0.5em}
 \end{figure}
+
+% -------------------------------------------------------------------------------------------------
+
+Type providers for structured data map the ``dirty'' world of weakly typed
+structured data into a ``nice'' world of strong types. To model this, the Foo calculus
+does not have \kvd{null} values and data values $d$ are never directly exposed.
+Furthermore Foo is simply typed: despite using class types and object notation
+for notational convenience, it has no subtyping.
+
+% --------------------------------------------------------------------------------------------------
+
+\subsection{The Foo Calculus}
+\label{sec:formal-ff}
+
+The syntax of the calculus is shown in Figure~\ref{fig:foo-syntax}.
+The type \ident{Data} is the type of structural data $d$. A class definition $L$ consists of
+a single constructor and zero or more parameter-less members. The declaration implicitly closes
+over the constructor parameters.
+Values $v$ include previously defined data $d$; expressions
+$e$ include class construction, member access, usual functional constructs (functions,
+lists, options) and conditionals. The $op$ constructs are discussed next.
+
+% -------------------------------------------------------------------------------------------------
+
+\paragraph{Dynamic data operations.}
+
+The Foo programs can only work with \ident{Data} values using certain primitive operations. Those are modelled
+by the $op$ primitives. In F\# Data, those are internal and users never access them directly.
+
+The behaviour of the dynamic data operations is defined by the reduction rules in
+Figure~\ref{fig:ff-reduction} (Part I). The typing is shown in Figure~\ref{fig:ff-typecheck} and is
+discussed later. The \ident{hasShape} function represents a runtime shape test.
+It checks whether a \ident{Data} value $d$ (Section~\ref{sec:formal-inferval}) passed as the second
+argument has a shape specified by the first argument. For records, we have to check that for each
+field $\nu_1, \ldots, \nu_n$ in the record, the actual record value has a field of the same name
+with a matching shape. The last line defines a ``catch all'' pattern, which returns \kvd{false}
+for all remaining cases. We treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as a syntactic sugar for
+\kvd{if}\,.\,.\,\kvd{then}\,.\,.\,\kvd{else} so the result of the reduction is just a Foo
+expression.
+
+The remaining operations convert data values into values of less preferred shape.
+The \ident{convPrim} and \ident{convFloat} operations take the required shape and a data value.
+When the data does not match the required type, they do not reduce. For example,
+$\ident{convPrim}(\kvd{bool}, \num{42})$ represents a stuck state, but $\ident{convFloat}(\kvd{float}, \num{42})$
+turns an integer \num{42} into a floating-point numerical value \num{42.0}.
+
+The \ident{convNull}, \ident{convElements} and \ident{convField} operations take an additional
+parameter $e$ which represents a function to be used in order to convert a contained value (non-null
+optional value, list elements or field value); \ident{convNull} turns \kvd{null} data value into
+\ident{None} and \ident{convElements} turns a data collection $[d_1, \ldots, d_n]$ into a Foo list
+$v_1 :: \ldots :: v_n :: \kvd{nil}$ and a \kvd{null} value into an empty list.
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1117,54 +1164,101 @@ E[e] \reduce E[e'] \qquad\qquad(\textnormal{when}~e \reduce e')\\
 
 % -------------------------------------------------------------------------------------------------
 
-Type providers for structured data map the ``dirty'' world of weakly typed
-structured data into a ``nice'' world of strong types. To model this, the Foo calculus
-does not have \kvd{null} values and data values $d$ are never directly exposed.
-Furthermore Foo is simply typed: despite using class types and object notation
-for notational convenience, it has no subtyping.
+\paragraph{Reduction.}
+The reduction relation is of the form $L, e \reduce e'$. We omit class declarations
+$L$ where implied by the context and write $e \reduce^{*} e'$ for
+the reflexive, transitive closure of $\reduce$.
 
-% --------------------------------------------------------------------------------------------------
+Figure~\ref{fig:ff-reduction} (Part II) shows the reduction rules.  The (\emph{member}) rule reduces
+a member access using a class definition in the assumption. The (\emph{ctx}) rule models the eager
+evaluation of F\# and performs a reduction inside a sub-expression specified by an evaluation
+context $E$:
+%
+\begin{equation*}
+\begin{array}{rcl}
+ E &\narrow{=}& v::E \lsep v~E \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e})\\[0.1em]
+   &\narrow{|}&  \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2  \lsep E = e \lsep v = E \\[0.1em]
+   &\narrow{|}& \ident{Some}(E) \lsep op(\overline{v}, E, \overline{e})\\[0.1em]
+   &\narrow{|}& \kvd{match}~E~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\[0.1em]
+   &\narrow{|}& \kvd{match}~E~\kvd{with}~x_1 :: x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
+\end{array}
+\end{equation*}
 
-\subsection{The Foo calculus}
-\label{sec:formal-ff}
-
-The syntax of the calculus is shown in Figure~\ref{fig:foo-syntax}.
-The type \ident{Data} is the type of structural data $d$. A class definition $L$ consists of
-a single constructor and zero or more parameter-less members. The declaration implicitly closes
-over the constructor parameters.
-Values $v$ include previously defined data $d$; expressions
-$e$ include class construction, member access, usual functional constructs (functions,
-lists, options) and conditionals. The $op$ constructs are discussed next.
+\noindent
+The evaluation proceeds from left to right as denoted by $\overline{v}, E, \overline{e}$ in
+constructor and dynamic data operation arguments or $v::E$ in list initialization.
+We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
+values $\overline{v}$ in an expression. The remaining six rules
+give standard reductions.
 
 % -------------------------------------------------------------------------------------------------
 
-\paragraph{Dynamic data operations.}
+\paragraph{Type checking.}
+Well-typed Foo programs reduce to a value in a finite number of steps or get stuck due to an
+error condition. The stuck states can only be due to the dynamic data operations (e.g. an attempt
+to convert \kvd{null} value to a number $\ident{convFloat}(\ident{float},\kvd{null})$). The relative safety (Theorem~\ref{thm:safety})
+characterizes the additional conditions on input data under which Foo programs do not get stuck.
 
-The Foo programs can only work with \ident{Data} values using certain primitive operations. Those are modelled
-by the $op$ primitives. In F\# Data, those are internal and users never access them directly.
+Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
+$L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
+The fragment demonstrates the differences and similarities with Featherweight Java \cite{fwjava} and
+typing rules for the dynamic data operations $op$:
+%
+\begin{itemize}
+\item[--] All data values $d$ have the type \ident{Data}, but primitive data values (Booleans,
+  strings, integers and floats) can be implicitly converted to Foo values and so they also have a
+  primitive type as illustrated by the rule for $i$ and $f$.
 
-The behaviour of the dynamic data operations is defined by the reduction rules in
-Figure~\ref{fig:ff-reduction} (Part I). The typing is shown in Figure~\ref{fig:ff-typecheck} and is
-discussed later. The \ident{hasShape} function represents a runtime shape test.
-It checks whether a \ident{Data} value $d$ (Section~\ref{sec:formal-inferval}) passed as the second
-argument has a shape specified by the first argument. For records, we have to check that for each
-field $\nu_1, \ldots, \nu_n$ in the record, the actual record value has a field of the same name
-with a matching shape. The last line defines a ``catch all'' pattern, which returns \kvd{false}
-for all remaining cases. We treat $e_1 \vee e_2$ and $e_1 \wedge e_2$ as a syntactic sugar for
-\kvd{if}\,.\,.\,\kvd{then}\,.\,.\,\kvd{else} so the result of the reduction is just a Foo
-expression.
+\item[--] For non-primitive data values (including \kvd{null}, data collections and records),
+  \ident{Data} is the only type.
 
-The remaining operations convert data values into values of less preferred shape.
-The \ident{convPrim} and \ident{convFloat} operations take the required shape and a data value.
-When the data does not match the required type, they do not reduce. For example,
-$\ident{convPrim}(\kvd{bool}, \num{42})$ represents a stuck state, but $\ident{convFloat}(\kvd{float}, \num{42})$
-turns an integer \num{42} into a floating-point numerical value \num{42.0}.
+\item[--] Operations $op$ accept \ident{Data} as one of the arguments and produce a non-\ident{Data}
+  Foo type. Some of them require a function specifying the conversion for nested values.
 
-The \ident{convNull}, \ident{convElements} and \ident{convField} operations take an additional
-parameter $e$ which represents a function to be used in order to convert a contained value (non-null
-optional value, list elements or field value); \ident{convNull} turns \kvd{null} data value into
-\ident{None} and \ident{convElements} turns a data collection $[d_1, \ldots, d_n]$ into a Foo list
-$v_1 :: \ldots :: v_n :: \kvd{nil}$ and a \kvd{null} value into an empty list.
+\item[--] Rules for checking class construction and member access are similar to corresponding
+  rules of Featherweight Java.
+\end{itemize}
+%
+An important part of Featherweight Java that is omitted here is the checking of type declarations
+(ensuring the members are well-typed). We consider only classes generated by our type providers
+and those are well-typed by construction.
+
+% -------------------------------------------------------------------------------------------------
+
+\subsection{Type Providers}
+\label{sec:formal-tp}
+
+So far, we defined the type inference algorithm which produces a shape $\sigma$ from one
+or more sample documents (\S\ref{sec:inference}) and we defined a simplified model of evaluation
+of F\# (\S\ref{sec:formal-ff}) and F\# Data runtime (\S\ref{sec:formal-tp}). In this section, we
+define how the type providers work, linking the two parts.
+
+All F\# Data type providers take (one or more) sample documents, infer a common preferred shape $\sigma$
+and then use it to generate F\# types that are exposed to the programmer.\footnote{The actual
+implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat
+the code as actually generated. This is an acceptable simplification, because F\# Data type providers
+do not rely on laziness or erasure of type provision.}
+
+\paragraph{Type provider mapping.}
+A type provider produces an F\# type $\tau$ together with a Foo expression and a collection of
+class definitions. We express it using the following mapping:
+%
+\begin{equation*}
+\sem{\sigma} = (\tau, e, L) \qquad (\textnormal{where}~L,\emptyset \vdash e:\ident{Data}\rightarrow\tau)
+\end{equation*}
+
+% -------------------------------------------------------------------------------------------------
+
+\noindent
+The mapping $\sem{\sigma}$ takes an inferred shape $\sigma$. It returns an F\# type $\tau$ and
+a function that turns the input data (value of type \ident{Data}) into a Foo value of type $\tau$.
+The type provider also generates class definitions that may be used by $e$.
+
+Figure~\ref{fig:tp-generation} defines $\sem{-}$. Primitive types are handled by a single rule that
+inserts an appropriate conversion function; \ident{convPrim} just checks that the shape matches
+and \ident{convFloat} converts numbers to a floating-point.
+
+% -------------------------------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------------------------------
 
@@ -1231,182 +1325,6 @@ $v_1 :: \ldots :: v_n :: \kvd{nil}$ and a \kvd{null} value into an empty list.
 
 \caption{Foo -- Fragment of type checking}
 \label{fig:ff-typecheck}
-\end{figure*}
-
-% -------------------------------------------------------------------------------------------------
-
-\paragraph{Reduction.}
-The reduction relation is of the form $L, e \reduce e'$. We omit class declarations
-$L$ where implied by the context and write $e \reduce^{*} e'$ for
-the reflexive, transitive closure of $\reduce$.
-
-Figure~\ref{fig:ff-reduction} (Part II) shows the reduction rules.  The (\emph{member}) rule reduces
-a member access using a class definition in the assumption. The (\emph{ctx}) rule models the eager
-evaluation of F\# and performs a reduction inside a sub-expression specified by an evaluation
-context $E$:
-%
-\begin{equation*}
-\begin{array}{rcl}
- E &\narrow{=}& v::E \lsep v~E \lsep E.N \lsep \kvd{new}~C(\overline{v}, E, \overline{e})\\[0.1em]
-   &\narrow{|}&  \kvd{if}~E~\kvd{then}~e_1~\kvd{else}~e_2  \lsep E = e \lsep v = E \\[0.1em]
-   &\narrow{|}& \ident{Some}(E) \lsep op(\overline{v}, E, \overline{e})\\[0.1em]
-   &\narrow{|}& \kvd{match}~E~\kvd{with}~\ident{Some}(x) \rightarrow e_1 \,|\, \ident{None} \rightarrow e_2 \\[0.1em]
-   &\narrow{|}& \kvd{match}~E~\kvd{with}~x_1 :: x_2 \rightarrow e_1 \,|\, \kvd{nil} \rightarrow e_2
-\end{array}
-\end{equation*}
-
-\noindent
-The evaluation proceeds from left to right as denoted by $\overline{v}, E, \overline{e}$ in
-constructor and dynamic data operation arguments or $v::E$ in list initialization.
-We write $e[\overline{x} \leftarrow \overline{v}]$ for the result of replacing variables $\overline{x}$ by
-values $\overline{v}$ in an expression. The remaining six rules
-give standard reductions.
-
-% -------------------------------------------------------------------------------------------------
-
-\paragraph{Type checking.}
-Well-typed Foo programs reduce to a value in a finite number of steps or get stuck due to an
-error condition. The stuck states can only be due to the dynamic data operations (e.g. an attempt
-to convert \kvd{null} value to a number $\ident{convFloat}(\ident{float},\kvd{null})$). The relative safety (Theorem~\ref{thm:safety})
-characterizes the additional conditions on input data under which Foo programs do not get stuck.
-
-Typing rules in Figure~\ref{fig:ff-typecheck} are written using a judgement
-$L; \Gamma \vdash e : \tau$ where the context also contains a set of class declarations $L$.
-The fragment demonstrates the differences and similarities with Featherweight Java \cite{fwjava} and
-typing rules for the dynamic data operations $op$:
-%
-\begin{itemize}
-\item[--] All data values $d$ have the type \ident{Data}, but primitive data values (Booleans,
-  strings, integers and floats) can be implicitly converted to Foo values and so they also have a
-  primitive type as illustrated by the rule for $i$ and $f$.
-
-\item[--] For non-primitive data values (including \kvd{null}, data collections and records),
-  \ident{Data} is the only type.
-
-\item[--] Operations $op$ accept \ident{Data} as one of the arguments and produce a non-\ident{Data}
-  Foo type. Some of them require a function specifying the conversion for nested values.
-
-\item[--] Rules for checking class construction and member access are similar to corresponding
-  rules of Featherweight Java.
-\end{itemize}
-%
-An important part of Featherweight Java that is omitted here is the checking of type declarations
-(ensuring the members are well-typed). We consider only classes generated by our type providers
-and those are well-typed by construction.
-
-% -------------------------------------------------------------------------------------------------
-
-\subsection{Type providers}
-\label{sec:formal-tp}
-
-So far, we defined the type inference algorithm which produces a shape $\sigma$ from one
-or more sample documents (\S\ref{sec:inference}) and we defined a simplified model of evaluation
-of F\# (\S\ref{sec:formal-ff}) and F\# Data runtime (\S\ref{sec:formal-tp}). In this section, we
-define how the type providers work, linking the two parts.
-
-All F\# Data type providers take (one or more) sample documents, infer a common preferred shape $\sigma$
-and then use it to generate F\# types that are exposed to the programmer.\footnote{The actual
-implementation provides \emph{erased types} as described in \cite{fsharp-typeprov}. Here, we treat
-the code as actually generated. This is an acceptable simplification, because F\# Data type providers
-do not rely on laziness or erasure of type provision.}
-
-\paragraph{Type provider mapping.}
-A type provider produces an F\# type $\tau$ together with a Foo expression and a collection of
-class definitions. We express it using the following mapping:
-%
-\begin{equation*}
-\sem{\sigma} = (\tau, e, L) \qquad (\textnormal{where}~L,\emptyset \vdash e:\ident{Data}\rightarrow\tau)
-\end{equation*}
-
-% -------------------------------------------------------------------------------------------------
-
-\noindent
-The mapping $\sem{\sigma}$ takes an inferred shape $\sigma$. It returns an F\# type $\tau$ and
-a function that turns the input data (value of type \ident{Data}) into a Foo value of type $\tau$.
-The type provider also generates class definitions that may be used by $e$.
-
-Figure~\ref{fig:tp-generation} defines $\sem{-}$. Primitive types are handled by a single rule that
-inserts an appropriate conversion function; \ident{convPrim} just checks that the shape matches
-and \ident{convFloat} converts numbers to a floating-point.
-
-% -------------------------------------------------------------------------------------------------
-
-\begin{figure*}
-\begin{multicols}{2}
-
-% Primitives
-\noindent
-\begin{equation*}
-\begin{array}{l}
- \sem{\sigma_p} = \tau_p,\lambda x. op(\sigma_p, x),\emptyset\quad\textnormal{where} \\[0.6em]
- \quad\sigma_p, \tau_p, op\in  \{~ (\ident{bool}, \ident{bool}, \ident{convPrim})\\
- \hspace{2.9em} (\ident{int}, \ident{int}, \ident{convPrim}), (\ident{float},\ident{float},\ident{convFloat}),\\
- \hspace{2.9em} (\ident{string},\ident{string},\ident{convPrim}) ~\}
-\end{array}
-\end{equation*}
-\vspace{-2em}
-
-% Records
-\begin{equation*}
-\begin{array}{l}
- \sem{\,\nu~ \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,} = \\[0.1em]
- \quad C, \lambda x. \kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\
- \qquad \;\,\,L = \kvd{type}~C(x_1\!:\!\ident{Data})=M_1 \ldots M_n \\
- \qquad M_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x_1, e_i),\\
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i}
-\end{array}
-\end{equation*}
-\vspace{-2em}
-
-% Collections
-\begin{equation*}
-\begin{array}{l}
- \sem{\,[\sigma]\,} = \ident{list}\langl\tau\rangl, \lambda x . \ident{convElements}(x, e'), L \;\;\textnormal{where}\\[0.4em]
- \qquad \tau, e', L = \sem{\hat{\sigma}}
-\end{array}
-\end{equation*}
-
-% Labelled top
-\noindent
-\begin{equation*}
-\begin{array}{l}
- \sem{\,\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl\,} = \\
- \quad C, \lambda x.\kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\;\;\textnormal{where}\\[0.6em]
- \qquad \;\;C~\textnormal{is a fresh class name} \\
- \qquad \;\,\,L = \kvd{type}~C(x:\ident{Data})~=~M_1\ldots M_n \\
- \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\
- \hspace{5.8em}  \kvd{if}~\ident{hasShape}(\sigma_i, x)~\kvd{then}~ \ident{Some}(e_i~x)~\kvd{else}~\ident{None} \\[0.1em]
- \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; \nu_i=\tytagof{(\sigma_i)}
-\end{array}
-\end{equation*}
-\vspace{-2em}
-
-% Nullables
-\begin{equation*}
-\hspace{-1.3em}
-\begin{array}{l}
- \sem{\kvd{nullable}\langl\hat{\sigma}\rangl} = \\[0.2em]
- \qquad \ident{option}\langl\tau\rangl, \lambda x . \ident{convNull}(x,e), L\\[0.2em]
- \qquad \textnormal{where}~\tau, e, L = \sem{\hat{\sigma}}
-\end{array}
-\end{equation*}
-\vspace{-2em}
-
-% Anything else
-\begin{equation*}
-\hspace{-1.3em}
-\begin{array}{l}
- \sem{\bot} = \sem{\kvd{null}} = C, \lambda x. \kvd{new}~C(x), \{ L \} \;\;\textnormal{where}\\[0.4em]
- \qquad C~\textnormal{is a fresh class name} \\[0.1em]
- \qquad L = \kvd{type}~C(v:\ident{Data})
-\end{array}
-\end{equation*}
-\end{multicols}
-
-\caption{Type provider -- generation of Foo types from inferred structural types}
-\label{fig:tp-generation}
-\vspace{-0.5em}
 \end{figure*}
 
 % -------------------------------------------------------------------------------------------------
@@ -1493,6 +1411,88 @@ check that the input data value has the correct shape using \ident{hasShape}. Th
 handles \kvd{null} by returning \kvd{false}. As discussed earlier, labelled top types provide easy
 access to the known cases (\ident{string} or \ident{Person}), but they require a runtime shape check.
 
+% -------------------------------------------------------------------------------------------------
+
+\begin{figure*}
+\begin{multicols}{2}
+
+% Primitives
+\noindent
+\begin{equation*}
+\begin{array}{l}
+ \sem{\sigma_p} = \tau_p,\lambda x. op(\sigma_p, x),\emptyset\quad\textnormal{where} \\[0.6em]
+ \quad\sigma_p, \tau_p, op\in  \{~ (\ident{bool}, \ident{bool}, \ident{convPrim})\\
+ \hspace{2.9em} (\ident{int}, \ident{int}, \ident{convPrim}), (\ident{float},\ident{float},\ident{convFloat}),\\
+ \hspace{2.9em} (\ident{string},\ident{string},\ident{convPrim}) ~\}
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Records
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,\nu~ \{ \nu_1 : \sigma_1, \ldots, \nu_n : \sigma_n \}\,} = \\[0.1em]
+ \quad C, \lambda x. \kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\quad\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\
+ \qquad \;\,\,L = \kvd{type}~C(x_1\!:\!\ident{Data})=M_1 \ldots M_n \\
+ \qquad M_i = \kvd{member}~\nu_i:\tau_i=\ident{convField}(\nu, \nu_i, x_1, e_i),\\
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i}
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Collections
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,[\sigma]\,} = \ident{list}\langl\tau\rangl, \lambda x . \ident{convElements}(x, e'), L \;\;\textnormal{where}\\[0.4em]
+ \qquad \tau, e', L = \sem{\hat{\sigma}}
+\end{array}
+\end{equation*}
+
+% Labelled top
+\noindent
+\begin{equation*}
+\begin{array}{l}
+ \sem{\,\kvd{any}\langl\sigma_1, \ldots, \sigma_n\rangl\,} = \\
+ \quad C, \lambda x.\kvd{new}~C(x), L_1\cup\ldots\cup L_n\cup\{ L \}\;\;\textnormal{where}\\[0.6em]
+ \qquad \;\;C~\textnormal{is a fresh class name} \\
+ \qquad \;\,\,L = \kvd{type}~C(x:\ident{Data})~=~M_1\ldots M_n \\
+ \qquad M_i = \kvd{member}~\nu_i:\ident{option}\langl\tau_i\rangl=\\
+ \hspace{5.8em}  \kvd{if}~\ident{hasShape}(\sigma_i, x)~\kvd{then}~ \ident{Some}(e_i~x)~\kvd{else}~\ident{None} \\[0.1em]
+ \qquad \tau_i, e_i, L_i = \sem{\sigma_i}_e,\;\; \nu_i=\tytagof{(\sigma_i)}
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Nullables
+\begin{equation*}
+\hspace{-1.3em}
+\begin{array}{l}
+ \sem{\kvd{nullable}\langl\hat{\sigma}\rangl} = \\[0.2em]
+ \qquad \ident{option}\langl\tau\rangl, \lambda x . \ident{convNull}(x,e), L\\[0.2em]
+ \qquad \textnormal{where}~\tau, e, L = \sem{\hat{\sigma}}
+\end{array}
+\end{equation*}
+\vspace{-2em}
+
+% Anything else
+\begin{equation*}
+\hspace{-1.3em}
+\begin{array}{l}
+ \sem{\bot} = \sem{\kvd{null}} = C, \lambda x. \kvd{new}~C(x), \{ L \} \;\;\textnormal{where}\\[0.4em]
+ \qquad C~\textnormal{is a fresh class name} \\[0.1em]
+ \qquad L = \kvd{type}~C(v:\ident{Data})
+\end{array}
+\end{equation*}
+\end{multicols}
+
+\caption{Type provider -- generation of Foo types from inferred structural types}
+\label{fig:tp-generation}
+\vspace{-0.5em}
+\end{figure*}
+
+% -------------------------------------------------------------------------------------------------
+
 % ==================================================================================================
 %
 %    #######
@@ -1505,7 +1505,7 @@ access to the known cases (\ident{string} or \ident{Person}), but they require a
 %
 % ==================================================================================================
 
-\section{Relative type safety}
+\section{Relative Type Safety}
 \label{sec:safety}
 
 Informally, the safety property for structural type providers states that, given representative sample
@@ -1618,7 +1618,7 @@ The cases for the ML subset are standard. For member access, we rely on Lemma~\r
 %
 % ==================================================================================================
 
-\section{Practical experience}
+\section{Practical Experience}
 \label{sec:impl}
 
 The F\# Data library has been widely adopted by users and is one of the most downloaded
@@ -1630,7 +1630,7 @@ found at \url{http://fsharp.github.io/FSharp.Data}.
 In this section, we discuss our experience with the safety guarantees provided by the
 F\# Data type providers and other notable aspects of the implementation.
 
-\subsection{Relative safety in practice}
+\subsection{Relative Safety in Practice}
 \label{sec:safety-discuss}
 
 The \emph{relative safety} property does not guarantee safety in the same way as traditional
@@ -1663,7 +1663,7 @@ but we leave this for future work.
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Parsing structured data}
+\subsection{Parsing Structured Data}
 \label{sec:impl-parsing}
 
 In our formalization, we treat XML, JSON and CSV uniformly as \emph{data values}. With the addition of
@@ -1723,7 +1723,7 @@ will be treated as values of the same type.
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Providing idiomatic F\# types}
+\subsection{Providing Idiomatic F\# Types}
 \label{sec:impl-naming}
 
 In order to provide types that are easy to use and follow the F\# coding guidelines,
@@ -1763,7 +1763,7 @@ access data not exposed by the type providers, such as textual values inside mix
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Heterogeneous collections}
+\subsection{Heterogeneous Collections}
 \label{sec:impl-hetero}
 
 When introducing type providers (\S\ref{sec:providers-sum}), we mentioned how F\# Data
@@ -1790,7 +1790,7 @@ $1$ and $1?$ into $1?$).
 
 % -------------------------------------------------------------------------------------------------
 
-\subsection{Predictability and stability}
+\subsection{Predictability and Stability}
 \label{sec:impl-stable}
 
 As discussed in \S\ref{sec:providers}, our inference algorithm is designed to be predictable
@@ -1878,7 +1878,7 @@ an appropriate default value rather than throwing an exception.
 %
 % ==================================================================================================
 
-\section{Related and future work}
+\section{Related and Future Work}
 \label{sec:related}
 
 The F\# Data library connects two lines of research that have been previously disconnected. The first is
