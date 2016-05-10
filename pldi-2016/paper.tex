@@ -1,5 +1,5 @@
-\documentclass[10pt]{sigplanconf}
-
+\documentclass[10pt,nocopyrightspace]{sigplanconf}
+\pdfoutput=1
 \usepackage{listings}
 \usepackage{enumitem}
 \usepackage[hyphens]{url}
@@ -23,7 +23,6 @@
 \usepackage[hang,flushmargin]{footmisc}
 \usepackage[notquote]{hanging}
 \usepackage{flushend}
-\usepackage{enumerate}
 \usepackage{etoolbox}
 
 % =================================================================================================
@@ -174,7 +173,6 @@ to get the current weather. Using standard libraries, we might call it as\footno
 the full URL and omit application key (available after registration). The returned JSON is shown
 in Appendix~\ref{sec:appendix-weather} and can be used to run the code against a local file.}:
 
-\noindent
 \begin{equation*}
 \begin{array}{l}
  \kvd{let}~\ident{doc}=\ident{Http.Request}(\str{http://api.owm.org/?q=NYC}) \\
@@ -591,7 +589,7 @@ giving an inferred shape $\ident{Point}\,\{ \ident{x}\!:\!\ident{int},~ \ident{y
 
 \begin{figure}
 \begin{center}
-\includegraphics[scale=0.80,trim=5mm 5mm 5mm 5mm,clip]{images/hierarchy.pdf} % left bottom right top
+\includegraphics[scale=0.80,trim=5mm 5mm 5mm 5mm,clip]{hierarchy.pdf} % left bottom right top
 \end{center}
 \vspace{-0.5em}
 \caption{Important aspects of the preferred shape relation}
@@ -1825,7 +1823,7 @@ also $e'[x\leftarrow e_2~d] \reduce v$.
 Such $e'$ is obtained by transforming sub-expressions of $e$ using one of the following
 translation rules:
 %
-\begin{enumerate}[(i)]
+\begin{enumerate}
 \item
 $C[e]$ to $C[\kvd{match}~e~\kvd{with}~\ident{Some}(v) \rightarrow v~|~\ident{None} \rightarrow \ident{exn}]$
 \item
@@ -1841,10 +1839,10 @@ may be replaced by a less preferred shape $\sigma'$. The user code can always be
 to use the newly provided shape:
 
 \begin{itemize}
-\item[--] Primitive shapes can become nullable (i), \ident{int} can become \ident{float} (iii)
-  or become a part of a labelled top type (ii).
+\item[--] Primitive shapes can become nullable (1), \ident{int} can become \ident{float} (3)
+  or become a part of a labelled top type (2).
 \item[--] Record shape fields can change shape (recursively) and record may become a part
-  of a labelled top type (ii).
+  of a labelled top type (2).
 \item[--] For list and nullable shapes, the shape of the value may change (we apply the
   transformations recursively).
 \item[--] For the $\kvd{any}$ shape, the original code will continue to work (none of the labels is ever removed).
